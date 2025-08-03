@@ -1,0 +1,868 @@
+    <!DOCTYPE html>
+    <html lang="de">
+    <head>
+        <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+        <meta charset="UTF-8">
+        <title>Kampagnen-Vorschau: August 2025 - Fahrschule Gronemeier + Hennemann</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+        <style>
+            body {
+                font-family: 'Lato', sans-serif;
+                background-color: #f4f7f6;
+                color: #666666;
+                line-height: 1.6;
+                margin: 0;
+                padding: 20px;
+            }
+            .gantt-container {
+                margin-top: 20px;
+                width: 100%;
+                overflow-x: auto; /* Sorgt für Scrollbarkeit auf kleinen Bildschirmen */
+            }
+            .brochure {
+                max-width: 800px;
+                margin: 0 auto;
+                background-color: #ffffff;
+                border: 1px solid #e0e0e0;
+                box-shadow: 0 4px
+                15px rgba(0,0,0,0.05);
+            }
+            .header {
+                background-color: #005a9e; /* Dunkleres CI-Blau */
+                color: #ffffff;
+                padding: 30px;
+                text-align: center;
+            }
+            .header img {
+                max-height: 60px;
+                margin-bottom: 15px;
+            }
+            .header h1 {
+                font-family: 'Oswald', sans-serif;
+                text-transform: uppercase;
+                font-size: 28px;
+                margin: 0;
+                color: #ffffff;
+            }
+            .header p {
+                margin: 5px 0 0 0;
+                font-size: 16px;
+                opacity: 0.8;
+            }
+            .section {
+                padding: 30px;
+                border-bottom: 1px solid #e0e0e0;
+            }
+            .section:last-child {
+                border-bottom: none;
+            }
+            h2 {
+                font-family: 'Oswald', sans-serif;
+                text-transform: uppercase;
+                font-size: 20px;
+                color: #009ee2; /* Helleres CI-Blau */
+                border-bottom: 2px solid #009ee2;
+                padding-bottom: 10px;
+                margin-top: 0;
+                margin-bottom: 20px;
+            }
+            .kpi-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+                margin-top: 20px;
+            }
+            .kpi-box {
+                background-color: #f9f9f9;
+                border-radius: 8px;
+                padding: 15px;
+            }
+            .kpi-box-title {
+                font-weight: 700;
+                color: #333333;
+                display: block;
+                margin-bottom: 5px;
+            }
+            .week-plan {
+                margin-bottom: 25px;
+            }
+            .week-plan h3 {
+                font-family: 'Oswald', sans-serif;
+                font-size: 16px;
+                color: #333333;
+                margin-bottom: 10px;
+            }
+            .week-plan p {
+                font-size: 14px;
+                margin-top: 5px;
+            }
+            ul {
+                padding-left: 20px;
+                margin: 0;
+                font-size: 14px;
+            }
+            .mockup-container {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 20px;
+                margin-top: 20px;
+            }
+            .mockup {
+                border: 1px solid #e0e0e0;
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+                transition: transform 0.2s ease-in-out;
+            }
+            .mockup:hover {
+                transform: translateY(-5px);
+            }
+            .mockup-header {
+                padding: 10px;
+                background-color: #f9f9f9;
+                font-weight: bold;
+                font-size: 14px;
+                color: #333;
+            }
+            .mockup-content {
+                padding: 15px;
+            }
+            .mockup-content img {
+                max-width: 100%;
+                height: auto;
+                border-radius: 4px;
+            }
+            .mockup-content h4 {
+                font-family: 'Poppins', sans-serif;
+                margin: 10px 0 5px 0;
+                font-size: 15px;
+            }
+            .mockup-content p {
+                font-size: 14px;
+            }
+            .footer {
+                text-align: center;
+                padding: 20px;
+                font-size: 12px;
+                color: #aaaaaa;
+            }
+            .highlight {
+                background-color: #e0f7ff;
+                padding: 2px 5px;
+                border-radius: 4px;
+            }
+
+            @media print {
+                body { background-color: #ffffff; padding: 0; }
+                .brochure { box-shadow: none; border: none; }
+            }
+            .approval-section {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+                }
+                .button-container {
+                    display: flex;
+                    gap: 15px;
+                    margin-top: 15px;
+                    align-items: center;
+                }
+                .onedrive-button {
+                    display: inline-block;
+                    background-color: #0078D4; /* OneDrive Blue */
+                    color: #ffffff;
+                    padding: 12px 25px;
+                    border-radius: 5px;
+                    text-decoration: none;
+                    font-weight: bold;
+                    font-family: 'Roboto', sans-serif;
+                }
+
+                /* --- Interactive Approval Button CSS --- */
+                .approval-checkbox {
+                    display: none; /* Hide the actual checkbox */
+                }
+                .approval-label {
+                    display: inline-block;
+                    background-color: #28a745; /* Green */
+                    color: #ffffff;
+                    padding: 12px 25px;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-weight: bold;
+                    transition: all 0.2s ease;
+                }
+                .approval-checkbox:checked + .approval-label {
+                    background-color: #6c757d; /* Grey */
+                    content: 'Freigegeben ✔';
+                }
+                /* This is the magic part: we use the adjacent sibling combinator (+) */
+                /* We can't change the text with CSS, but we can switch which text is visible */
+                .approval-label .text-approve { display: inline; }
+                .approval-label .text-approved { display: none; }
+                .approval-checkbox:checked + .approval-label .text-approve { display: none; }
+                .approval-checkbox:checked + .approval-label .text-approved { display: inline; }
+        .feedback-section {
+            margin-top: 30px;
+        }
+        .feedback-item {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 1px solid #e0e0e0;
+        }
+        .feedback-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .feedback-item-header h4 {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            color: #333;
+        }
+        .rating {
+            display: inline-flex;
+            flex-direction: row-reverse;
+            justify-content: center;
+        }
+        .rating > input{ display:none;}
+        .rating > label {
+            position: relative;
+            width: 1.1em;
+            font-size: 2rem;
+            color: #FFD700;
+            cursor: pointer;
+        }
+        .rating > label::before{
+            content: "\2605";
+            position: absolute;
+            opacity: 0;
+        }
+        .rating > label:hover:before,
+        .rating > label:hover ~ label:before {
+            opacity: 1 !important;
+        }
+        .rating > input:checked ~ label:before{
+            opacity:1;
+        }
+        .feedback-textarea {
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: 'Roboto', sans-serif;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        
+            /* --- NEUE STILE FÜR PROFESSIONELLE MERMAID-DIAGRAMME --- */
+        .mermaid svg {
+            font-family: 'Roboto', sans-serif !important;
+        }
+
+        /* Stil für die Boxen (Nodes) */
+        .mermaid .node rect, .mermaid .node circle, .mermaid .node ellipse, .mermaid .node polygon {
+            fill: #f9f9f9 !important; /* Heller Hintergrund für die Boxen */
+            stroke: #1a2c48 !important; /* Dunkelblaue Umrandung */
+            stroke-width: 2px !important;
+        }
+
+        /* Stil für die Schrift in den Boxen */
+        .mermaid .node .label {
+            color: #333 !important;
+            font-weight: 500 !important;
+        }
+
+        /* Stil für die Pfeilspitzen */
+        .mermaid .marker {
+            fill: #1a2c48 !important;
+        }
+
+        /* Stil für die Verbindungslinien */
+        .mermaid .edgePath .path {
+            stroke: #1a2c48 !important;
+        }
+
+        /* Stil für die Beschriftung der Verbindungslinien */
+        .mermaid .edgeLabel .label {
+            background-color: #ffffff !important;
+            color: #333 !important;
+        }
+
+        /* Spezieller Stil für "Subgraph"-Titel */
+        .mermaid .subgraph-title {
+            font-family: 'Poppins', sans-serif !important;
+            font-weight: 700 !important;
+            color: #1a2c48 !important;
+        }
+        
+        </style>
+    </head>
+    <body>
+        <div class="brochure">
+            <header class="header">
+                <img src="https://www.linkedin.com/posts/zumzum50_company-official-logo-activity-7115714792660586496-1UYB" alt="Kundenlogo">
+                <h1>Kampagnen-Vorschau: August 2025</h1>
+                <p>Ihre strategische Ausrichtung für den kommenden Monat</p>
+            </header>
+
+        <section class="section">
+                <h2>Die Strategie im Überblick: Vom Jahresziel zur Wochenaufgabe</h2>
+                <p>Jede unserer Maßnahmen ist Teil eines größeren, strategischen Plans. Hier sehen Sie, wie die Aktivitäten im August auf Ihre übergeordneten Geschäftsziele einzahlen.</p>
+                
+                <div class="kpi-box" style="margin-top: 20px;">
+                    <span class="kpi-box-title">🏆 Jahres-Motto 2025:</span>
+                    <span>[Jahres-Motto aus Strategie-Planungs DB, z.B. "Dein Jahr der Unabhängigkeit: Planbar, sicher und modern zum Führerschein."]</span>
+                </div>
+                <div class="kpi-box" style="margin-top: 10px;">
+                    <span class="kpi-box-title">🎯 Quartals-Fokus (Q3):</span>
+                    <span>[Name / Motto aus Strategie-Planungs DB, z.B. "'Proof of Value'-Sprint: Maximale lokale Sichtbarkeit & Lead-Generierung"]</span>
+                </div>
+                <div class="kpi-box" style="margin-top: 10px;">
+                    <span class="kpi-box-title">🚀 Kampagnen-Ziel (August):</span>
+                    <span>[Hauptziel aus Kampagnen DB, z.B. "Maximale Auslastung der Intensivkurse im August & September durch klare Kommunikation des effizienten 5-Meilenstein-Prozesses."]</span>
+                </div>
+            </section>
+            
+            <section class="section">
+                <h2>Strategische Highlights des Monats</h2>
+                <ul>
+                    <li><strong>Autoritäts-Aufbau:</strong> Mit vier tiefgehenden Blogartikeln etablieren wir Sie als die führende Autorität für effiziente und sichere Fahrausbildung in Dortmund.</li>
+                    <li><strong>Lead-Generierung:</strong> Wir führen einen neuen, hochwertigen Lead-Magneten ("Intensivkurs-Checkliste") ein, um aktiv E-Mail-Kontakte von hochinteressierten potenziellen Kunden zu sammeln.</li>
+                    <li><strong>Lokale Dominanz:</strong> Durch wöchentlich zwei GMB-Posts erhöhen wir Ihre Sichtbarkeit in der lokalen Suche und bei Google Maps massiv.</li>
+                </ul>
+            </section>
+
+            <section class="section">
+                <h2>Ihr Content-Fahrplan (August & September 2025)</h2>
+                <p>Jede Woche hat eine klare Mission, die auf das Kampagnen-Ziel einzahlt. Hier ist die Übersicht der geplanten Inhalte:</p>
+
+                <div class="week-plan">
+                    <h3>KW 32: Fokus - Der Prozess</h3>
+                    <ul>
+                        <li><strong>Blog-Artikel:</strong> "Führerschein in 14 Tagen? Unser 5-Meilenstein-Plan im Detail."</li>
+                        <li><strong>Social Media Fokus:</strong> Reel, das den 14-Tage-Prozess visualisiert.</li>
+                        <li><strong>GMB Fokus:</strong> Teaser zum neuen Blog & Event-Post für den Intensivkurs.</li>
+                    </ul>
+                </div>
+                <div class="week-plan">
+                    <h3>KW 33: Fokus - Emotionale Vorteile</h3>
+                    <ul>
+                        <li><strong>Blog-Artikel:</strong> "5 Vorteile, warum der Sommer die beste Zeit zum Fahrenlernen ist."</li>
+                        <li><strong>Social Media Fokus:</strong> Carousel, das die Sommer-Vorteile (z.B. Fahren im kühlen Tesla) präsentiert.</li>
+                    </ul>
+                </div>
+                <div class="week-plan">
+                    <h3>KW 34: Fokus - Vertrauen & Kosten-Transparenz</h3>
+                    <ul>
+                        <li><strong>Blog-Artikel:</strong> "Kostenfalle Führerschein? Wie unser Konzept Ihnen Kosten spart."</li>
+                        <li><strong>Social Media Fokus:</strong> Gezielter Post für die "Eltern"-Persona auf Facebook.</li>
+                    </ul>
+                </div>
+                <div class="week-plan">
+                    <h3>KW 35: Fokus - Sicherheit & Kompetenz</h3>
+                    <ul>
+                        <li><strong>Blog-Artikel:</strong> "Prüfungsangst? Unser 'Heimverteil'-Konzept erklärt."</li>
+                        <li><strong>Social Media Fokus:</strong> Instagram Story-Serie, in der ein Fahrlehrer beruhigende Tipps gibt.</li>
+                    </ul>
+                </div>
+
+                <div class="week-plan">
+                    <h3>KW 36: Fokus - Nach der Prüfung</h3>
+                    <ul>
+                        <li><strong>Blog-Artikel:</strong> "Die 5 häufigsten Anfängerfehler (und wie du sie vermeidest)."</li>
+                        <li><strong>Social Media Fokus:</strong> POV-Video auf TikTok: "Erster Ausflug allein".</li>
+                    </ul>
+                </div>
+                <div class="week-plan">
+                    <h3>KW 37: Fokus - Herbst-Sicherheit</h3>
+                    <ul>
+                        <li><strong>Blog-Artikel:</strong> "Fahren bei Regen & Nebel: So bereitet dich unsere Ausbildung auf den Herbst vor."</li>
+                        <li><strong>Social Media Fokus:</strong> Reel "Sicher durch den Herbst" mit praktischen Tipps.</li>
+                    </ul>
+                </div>
+                <div class="week-plan">
+                    <h3>KW 38: Fokus - Das Team</h3>
+                    <ul>
+                        <li><strong>Blog-Artikel:</strong> "Ein Tag im Leben eines Fahrlehrers: Meet the Team - Christian."</li>
+                        <li><strong>Social Media Fokus:</strong> Video-Interview-Snippet mit Christian auf Facebook.</li>
+                    </ul>
+                </div>
+                <div class="week-plan">
+                    <h3>KW 39: Fokus - Die Technik</h3>
+                    <ul>
+                        <li><strong>Blog-Artikel:</strong> "Der digitale Co-Pilot: Alle Funktionen der DriveBuzzApp erklärt."</li>
+                        <li><strong>Social Media Fokus:</strong> Carousel auf Instagram: "3 App-Features, die du lieben wirst".</li>
+                    </ul>
+                </div>
+            </section>
+<section class="section">
+    <h2>Freigabe & Nächste Schritte</h2>
+    <p>Hier finden Sie die Links zu den finalen Entwürfen. Bitte prüfen Sie die Dokumente, geben Sie uns kurzes Feedback und erteilen Sie Ihre Freigabe direkt hier.</p>
+    
+    <div id="approvalDashboard">
+        <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+            <thead style="background-color: #f9f9f9; text-align: left;">
+                <tr>
+                    <th style="padding: 12px; border-bottom: 2px solid #e0e0e0; width: 40%;">Geplanter Inhalt (Asset)</th>
+                    <th style="padding: 12px; border-bottom: 2px solid #e0e0e0;">Entwurf</th>
+                    <th style="padding: 12px; border-bottom: 2px solid #e0e0e0; text-align: center;">Bewertung</th>
+                    <th style="padding: 12px; border-bottom: 2px solid #e0e0e0; width: 25%;">Änderungswunsch</th>
+                    <th style="padding: 12px; border-bottom: 2px solid #e0e0e0; text-align: center;">Freigabe</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="background-color: #e0f0ff;">
+                    <td colspan="4" style="padding: 10px; font-weight: bold; color: #005a9e;">AUGUST 2025</td>
+                    <td style="text-align: center; padding: 10px;"><button onclick="approveMonth('august')" style="background: #005a9e; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 12px;">Monat freigeben</button></td>
+                </tr>
+                <tr style="background-color: #f0f8ff;">
+                    <td colspan="4" style="padding: 8px 10px 8px 20px; font-weight: bold; color: #333;">KW 32: Fokus - Der Prozess</td>
+                    <td style="text-align: center; padding: 8px;"><button onclick="approveWeek(32)" style="background: #6c757d; color: white; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-size: 12px;">Woche freigeben</button></td>
+                </tr>
+                <tr data-month="august" data-week="32" data-asset-id="kw32-blog">
+                    <td style="padding: 15px;"><strong style="display: block; color: #333;">Blog-Artikel:</strong><span style="font-size: 14px;"> Führerschein in 14 Tagen? Unser 5-Meilenstein-Plan im Detail.</span></td>
+                    <td style="padding: 15px;"><a href="[ONEDRIVE-LINK]" class="onedrive-button">Ansehen</a></td>
+                    <td style="padding: 15px; text-align: center;">
+                        <div class="rating">
+                            <input type="radio" id="star5-kw32-blog" name="rating-kw32-blog" value="5" /><label for="star5-kw32-blog"></label>
+                            <input type="radio" id="star4-kw32-blog" name="rating-kw32-blog" value="4" /><label for="star4-kw32-blog"></label>
+                            <input type="radio" id="star3-kw32-blog" name="rating-kw32-blog" value="3" /><label for="star3-kw32-blog"></label>
+                            <input type="radio" id="star2-kw32-blog" name="rating-kw32-blog" value="2" /><label for="star2-kw32-blog"></label>
+                            <input type="radio" id="star1-kw32-blog" name="rating-kw32-blog" value="1" /><label for="star1-kw32-blog"></label>
+                        </div>
+                    </td>
+                    <td style="padding: 15px;"><textarea name="feedback-kw32-blog" placeholder="Kurzes Feedback..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></textarea></td>
+                    <td style="padding: 15px; text-align: center;"><input type="checkbox" name="approve-kw32-blog" id="approve-kw32-blog" class="approval-checkbox"><label for="approve-kw32-blog" class="approval-label"><span class="text-approve">Freigeben</span><span class="text-approved">✔</span></label></td>
+                </tr>
+                <tr data-month="august" data-week="32" data-asset-id="kw32-social">
+                    <td style="padding: 15px;"><strong style="display: block; color: #333;">Social Media:</strong><span style="font-size: 14px;"> Reel, das den 14-Tage-Prozess visualisiert.</span></td>
+                    <td style="padding: 15px;"><a href="[ONEDRIVE-LINK]" class="onedrive-button">Ansehen</a></td>
+                    <td style="padding: 15px; text-align: center;">
+                         <div class="rating">
+                            <input type="radio" id="star5-kw32-social" name="rating-kw32-social" value="5" /><label for="star5-kw32-social"></label>
+                            <input type="radio" id="star4-kw32-social" name="rating-kw32-social" value="4" /><label for="star4-kw32-social"></label>
+                            <input type="radio" id="star3-kw32-social" name="rating-kw32-social" value="3" /><label for="star3-kw32-social"></label>
+                            <input type="radio" id="star2-kw32-social" name="rating-kw32-social" value="2" /><label for="star2-kw32-social"></label>
+                            <input type="radio" id="star1-kw32-social" name="rating-kw32-social" value="1" /><label for="star1-kw32-social"></label>
+                        </div>
+                    </td>
+                    <td style="padding: 15px;"><textarea name="feedback-kw32-social" placeholder="Kurzes Feedback..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></textarea></td>
+                    <td style="padding: 15px; text-align: center;"><input type="checkbox" name="approve-kw32-social" id="approve-kw32-social" class="approval-checkbox"><label for="approve-kw32-social" class="approval-label"><span class="text-approve">Freigeben</span><span class="text-approved">✔</span></label></td>
+                </tr>
+                <tr data-month="august" data-week="32" data-asset-id="kw32-gmb">
+                    <td style="padding: 15px;"><strong style="display: block; color: #333;">GMB:</strong><span style="font-size: 14px;"> Teaser zum neuen Blog & Event-Post für den Intensivkurs.</span></td>
+                    <td style="padding: 15px;"><a href="[ONEDRIVE-LINK]" class="onedrive-button">Ansehen</a></td>
+                     <td style="padding: 15px; text-align: center;">
+                         <div class="rating">
+                            <input type="radio" id="star5-kw32-gmb" name="rating-kw32-gmb" value="5" /><label for="star5-kw32-gmb"></label>
+                            <input type="radio" id="star4-kw32-gmb" name="rating-kw32-gmb" value="4" /><label for="star4-kw32-gmb"></label>
+                            <input type="radio" id="star3-kw32-gmb" name="rating-kw32-gmb" value="3" /><label for="star3-kw32-gmb"></label>
+                            <input type="radio" id="star2-kw32-gmb" name="rating-kw32-gmb" value="2" /><label for="star2-kw32-gmb"></label>
+                            <input type="radio" id="star1-kw32-gmb" name="rating-kw32-gmb" value="1" /><label for="star1-kw32-gmb"></label>
+                        </div>
+                    </td>
+                    <td style="padding: 15px;"><textarea name="feedback-kw32-gmb" placeholder="Kurzes Feedback..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></textarea></td>
+                    <td style="padding: 15px; text-align: center;"><input type="checkbox" name="approve-kw32-gmb" id="approve-kw32-gmb" class="approval-checkbox"><label for="approve-kw32-gmb" class="approval-label"><span class="text-approve">Freigeben</span><span class="text-approved">✔</span></label></td>
+                </tr>
+                <tr style="background-color: #f0f8ff;">
+                    <td colspan="4" style="padding: 8px 10px 8px 20px; font-weight: bold; color: #333;">KW 33: Fokus - Emotionale Vorteile</td>
+                    <td style="text-align: center; padding: 8px;"><button onclick="approveWeek(33)" style="background: #6c757d; color: white; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-size: 12px;">Woche freigeben</button></td>
+                </tr>
+                <tr data-month="august" data-week="33" data-asset-id="kw33-blog">
+                    <td style="padding: 15px;"><strong style="display: block; color: #333;">Blog-Artikel:</strong><span style="font-size: 14px;"> 5 Vorteile, warum der Sommer die beste Zeit zum Fahrenlernen ist.</span></td>
+                    <td style="padding: 15px;"><a href="[ONEDRIVE-LINK]" class="onedrive-button">Ansehen</a></td>
+                    <td style="padding: 15px; text-align: center;">
+                        <div class="rating">
+                            <input type="radio" id="star5-kw33-blog" name="rating-kw33-blog" value="5" /><label for="star5-kw33-blog"></label>
+                            <input type="radio" id="star4-kw33-blog" name="rating-kw33-blog" value="4" /><label for="star4-kw33-blog"></label>
+                            <input type="radio" id="star3-kw33-blog" name="rating-kw33-blog" value="3" /><label for="star3-kw33-blog"></label>
+                            <input type="radio" id="star2-kw33-blog" name="rating-kw33-blog" value="2" /><label for="star2-kw33-blog"></label>
+                            <input type="radio" id="star1-kw33-blog" name="rating-kw33-blog" value="1" /><label for="star1-kw33-blog"></label>
+                        </div>
+                    </td>
+                    <td style="padding: 15px;"><textarea name="feedback-kw33-blog" placeholder="Kurzes Feedback..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></textarea></td>
+                    <td style="padding: 15px; text-align: center;"><input type="checkbox" name="approve-kw33-blog" id="approve-kw33-blog" class="approval-checkbox"><label for="approve-kw33-blog" class="approval-label"><span class="text-approve">Freigeben</span><span class="text-approved">✔</span></label></td>
+                </tr>
+                <tr data-month="august" data-week="33" data-asset-id="kw33-social">
+                    <td style="padding: 15px;"><strong style="display: block; color: #333;">Social Media:</strong><span style="font-size: 14px;"> Carousel, das die Sommer-Vorteile (z.B. Fahren im kühlen Tesla) präsentiert.</span></td>
+                    <td style="padding: 15px;"><a href="[ONEDRIVE-LINK]" class="onedrive-button">Ansehen</a></td>
+                    <td style="padding: 15px; text-align: center;">
+                         <div class="rating">
+                            <input type="radio" id="star5-kw33-social" name="rating-kw33-social" value="5" /><label for="star5-kw33-social"></label>
+                            <input type="radio" id="star4-kw33-social" name="rating-kw33-social" value="4" /><label for="star4-kw33-social"></label>
+                            <input type="radio" id="star3-kw33-social" name="rating-kw33-social" value="3" /><label for="star3-kw33-social"></label>
+                            <input type="radio" id="star2-kw33-social" name="rating-kw33-social" value="2" /><label for="star2-kw33-social"></label>
+                            <input type="radio" id="star1-kw33-social" name="rating-kw33-social" value="1" /><label for="star1-kw33-social"></label>
+                        </div>
+                    </td>
+                    <td style="padding: 15px;"><textarea name="feedback-kw33-social" placeholder="Kurzes Feedback..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></textarea></td>
+                    <td style="padding: 15px; text-align: center;"><input type="checkbox" name="approve-kw33-social" id="approve-kw33-social" class="approval-checkbox"><label for="approve-kw33-social" class="approval-label"><span class="text-approve">Freigeben</span><span class="text-approved">✔</span></label></td>
+                </tr>
+                <tr style="background-color: #f0f8ff;">
+                    <td colspan="4" style="padding: 8px 10px 8px 20px; font-weight: bold; color: #333;">KW 34: Fokus - Vertrauen & Kosten-Transparenz</td>
+                    <td style="text-align: center; padding: 8px;"><button onclick="approveWeek(34)" style="background: #6c757d; color: white; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-size: 12px;">Woche freigeben</button></td>
+                </tr>
+                <tr data-month="august" data-week="34" data-asset-id="kw34-blog">
+                    <td style="padding: 15px;"><strong style="display: block; color: #333;">Blog-Artikel:</strong><span style="font-size: 14px;"> Kostenfalle Führerschein? Wie unser Konzept Ihnen Kosten spart.</span></td>
+                    <td style="padding: 15px;"><a href="[ONEDRIVE-LINK]" class="onedrive-button">Ansehen</a></td>
+                    <td style="padding: 15px; text-align: center;">
+                        <div class="rating">
+                            <input type="radio" id="star5-kw34-blog" name="rating-kw34-blog" value="5" /><label for="star5-kw34-blog"></label>
+                            <input type="radio" id="star4-kw34-blog" name="rating-kw34-blog" value="4" /><label for="star4-kw34-blog"></label>
+                            <input type="radio" id="star3-kw34-blog" name="rating-kw34-blog" value="3" /><label for="star3-kw34-blog"></label>
+                            <input type="radio" id="star2-kw34-blog" name="rating-kw34-blog" value="2" /><label for="star2-kw34-blog"></label>
+                            <input type="radio" id="star1-kw34-blog" name="rating-kw34-blog" value="1" /><label for="star1-kw34-blog"></label>
+                        </div>
+                    </td>
+                    <td style="padding: 15px;"><textarea name="feedback-kw34-blog" placeholder="Kurzes Feedback..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></textarea></td>
+                    <td style="padding: 15px; text-align: center;"><input type="checkbox" name="approve-kw34-blog" id="approve-kw34-blog" class="approval-checkbox"><label for="approve-kw34-blog" class="approval-label"><span class="text-approve">Freigeben</span><span class="text-approved">✔</span></label></td>
+                </tr>
+                <tr data-month="august" data-week="34" data-asset-id="kw34-social">
+                    <td style="padding: 15px;"><strong style="display: block; color: #333;">Social Media:</strong><span style="font-size: 14px;"> Gezielter Post für die "Eltern"-Persona auf Facebook.</span></td>
+                    <td style="padding: 15px;"><a href="[ONEDRIVE-LINK]" class="onedrive-button">Ansehen</a></td>
+                    <td style="padding: 15px; text-align: center;">
+                         <div class="rating">
+                            <input type="radio" id="star5-kw34-social" name="rating-kw34-social" value="5" /><label for="star5-kw34-social"></label>
+                            <input type="radio" id="star4-kw34-social" name="rating-kw34-social" value="4" /><label for="star4-kw34-social"></label>
+                            <input type="radio" id="star3-kw34-social" name="rating-kw34-social" value="3" /><label for="star3-kw34-social"></label>
+                            <input type="radio" id="star2-kw34-social" name="rating-kw34-social" value="2" /><label for="star2-kw34-social"></label>
+                            <input type="radio" id="star1-kw34-social" name="rating-kw34-social" value="1" /><label for="star1-kw34-social"></label>
+                        </div>
+                    </td>
+                    <td style="padding: 15px;"><textarea name="feedback-kw34-social" placeholder="Kurzes Feedback..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></textarea></td>
+                    <td style="padding: 15px; text-align: center;"><input type="checkbox" name="approve-kw34-social" id="approve-kw34-social" class="approval-checkbox"><label for="approve-kw34-social" class="approval-label"><span class="text-approve">Freigeben</span><span class="text-approved">✔</span></label></td>
+                </tr>
+                <tr style="background-color: #f0f8ff;">
+                    <td colspan="4" style="padding: 8px 10px 8px 20px; font-weight: bold; color: #333;">KW 35: Fokus - Sicherheit & Kompetenz</td>
+                    <td style="text-align: center; padding: 8px;"><button onclick="approveWeek(35)" style="background: #6c757d; color: white; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-size: 12px;">Woche freigeben</button></td>
+                </tr>
+                <tr data-month="august" data-week="35" data-asset-id="kw35-blog">
+                    <td style="padding: 15px;"><strong style="display: block; color: #333;">Blog-Artikel:</strong><span style="font-size: 14px;"> Prüfungsangst? Unser 'Heimverteil'-Konzept erklärt.</span></td>
+                    <td style="padding: 15px;"><a href="[ONEDRIVE-LINK]" class="onedrive-button">Ansehen</a></td>
+                    <td style="padding: 15px; text-align: center;">
+                        <div class="rating">
+                            <input type="radio" id="star5-kw35-blog" name="rating-kw35-blog" value="5" /><label for="star5-kw35-blog"></label>
+                            <input type="radio" id="star4-kw35-blog" name="rating-kw35-blog" value="4" /><label for="star4-kw35-blog"></label>
+                            <input type="radio" id="star3-kw35-blog" name="rating-kw35-blog" value="3" /><label for="star3-kw35-blog"></label>
+                            <input type="radio" id="star2-kw35-blog" name="rating-kw35-blog" value="2" /><label for="star2-kw35-blog"></label>
+                            <input type="radio" id="star1-kw35-blog" name="rating-kw35-blog" value="1" /><label for="star1-kw35-blog"></label>
+                        </div>
+                    </td>
+                    <td style="padding: 15px;"><textarea name="feedback-kw35-blog" placeholder="Kurzes Feedback..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></textarea></td>
+                    <td style="padding: 15px; text-align: center;"><input type="checkbox" name="approve-kw35-blog" id="approve-kw35-blog" class="approval-checkbox"><label for="approve-kw35-blog" class="approval-label"><span class="text-approve">Freigeben</span><span class="text-approved">✔</span></label></td>
+                </tr>
+                <tr data-month="august" data-week="35" data-asset-id="kw35-social">
+                    <td style="padding: 15px;"><strong style="display: block; color: #333;">Social Media:</strong><span style="font-size: 14px;"> Instagram Story-Serie, in der ein Fahrlehrer beruhigende Tipps gibt.</span></td>
+                    <td style="padding: 15px;"><a href="[ONEDRIVE-LINK]" class="onedrive-button">Ansehen</a></td>
+                    <td style="padding: 15px; text-align: center;">
+                         <div class="rating">
+                            <input type="radio" id="star5-kw35-social" name="rating-kw35-social" value="5" /><label for="star5-kw35-social"></label>
+                            <input type="radio" id="star4-kw35-social" name="rating-kw35-social" value="4" /><label for="star4-kw35-social"></label>
+                            <input type="radio" id="star3-kw35-social" name="rating-kw35-social" value="3" /><label for="star3-kw35-social"></label>
+                            <input type="radio" id="star2-kw35-social" name="rating-kw35-social" value="2" /><label for="star2-kw35-social"></label>
+                            <input type="radio" id="star1-kw35-social" name="rating-kw35-social" value="1" /><label for="star1-kw35-social"></label>
+                        </div>
+                    </td>
+                    <td style="padding: 15px;"><textarea name="feedback-kw35-social" placeholder="Kurzes Feedback..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></textarea></td>
+                    <td style="padding: 15px; text-align: center;"><input type="checkbox" name="approve-kw35-social" id="approve-kw35-social" class="approval-checkbox"><label for="approve-kw35-social" class="approval-label"><span class="text-approve">Freigeben</span><span class="text-approved">✔</span></label></td>
+                </tr>
+            </tbody>
+            <tbody>
+                <tr style="background-color: #fff0e0;">
+                    <td colspan="4" style="padding: 10px; font-weight: bold; color: #d9534f;">SEPTEMBER 2025</td>
+                    <td style="text-align: center; padding: 10px;"><button onclick="approveMonth('september')" style="background: #d9534f; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 12px;">Monat freigeben</button></td>
+                </tr>
+                <tr style="background-color: #fff9f0;">
+                    <td colspan="4" style="padding: 8px 10px 8px 20px; font-weight: bold; color: #333;">KW 36: Fokus - Nach der Prüfung</td>
+                    <td style="text-align: center; padding: 8px;"><button onclick="approveWeek(36)" style="background: #6c757d; color: white; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-size: 12px;">Woche freigeben</button></td>
+                </tr>
+                <tr data-month="september" data-week="36" data-asset-id="kw36-blog">
+                    <td style="padding: 15px;"><strong style="display: block; color: #333;">Blog-Artikel:</strong><span style="font-size: 14px;"> Die 5 häufigsten Anfängerfehler (und wie du sie vermeidest).</span></td>
+                    <td style="padding: 15px;"><a href="[ONEDRIVE-LINK]" class="onedrive-button">Ansehen</a></td>
+                    <td style="padding: 15px; text-align: center;">
+                        <div class="rating">
+                            <input type="radio" id="star5-kw36-blog" name="rating-kw36-blog" value="5" /><label for="star5-kw36-blog"></label>
+                            <input type="radio" id="star4-kw36-blog" name="rating-kw36-blog" value="4" /><label for="star4-kw36-blog"></label>
+                            <input type="radio" id="star3-kw36-blog" name="rating-kw36-blog" value="3" /><label for="star3-kw36-blog"></label>
+                            <input type="radio" id="star2-kw36-blog" name="rating-kw36-blog" value="2" /><label for="star2-kw36-blog"></label>
+                            <input type="radio" id="star1-kw36-blog" name="rating-kw36-blog" value="1" /><label for="star1-kw36-blog"></label>
+                        </div>
+                    </td>
+                    <td style="padding: 15px;"><textarea name="feedback-kw36-blog" placeholder="Kurzes Feedback..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></textarea></td>
+                    <td style="padding: 15px; text-align: center;"><input type="checkbox" name="approve-kw36-blog" id="approve-kw36-blog" class="approval-checkbox"><label for="approve-kw36-blog" class="approval-label"><span class="text-approve">Freigeben</span><span class="text-approved">✔</span></label></td>
+                </tr>
+                <tr data-month="september" data-week="36" data-asset-id="kw36-social">
+                    <td style="padding: 15px;"><strong style="display: block; color: #333;">Social Media:</strong><span style="font-size: 14px;"> POV-Video auf TikTok: "Erster Ausflug allein".</span></td>
+                    <td style="padding: 15px;"><a href="[ONEDRIVE-LINK]" class="onedrive-button">Ansehen</a></td>
+                    <td style="padding: 15px; text-align: center;">
+                         <div class="rating">
+                            <input type="radio" id="star5-kw36-social" name="rating-kw36-social" value="5" /><label for="star5-kw36-social"></label>
+                            <input type="radio" id="star4-kw36-social" name="rating-kw36-social" value="4" /><label for="star4-kw36-social"></label>
+                            <input type="radio" id="star3-kw36-social" name="rating-kw36-social" value="3" /><label for="star3-kw36-social"></label>
+                            <input type="radio" id="star2-kw36-social" name="rating-kw36-social" value="2" /><label for="star2-kw36-social"></label>
+                            <input type="radio" id="star1-kw36-social" name="rating-kw36-social" value="1" /><label for="star1-kw36-social"></label>
+                        </div>
+                    </td>
+                    <td style="padding: 15px;"><textarea name="feedback-kw36-social" placeholder="Kurzes Feedback..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></textarea></td>
+                    <td style="padding: 15px; text-align: center;"><input type="checkbox" name="approve-kw36-social" id="approve-kw36-social" class="approval-checkbox"><label for="approve-kw36-social" class="approval-label"><span class="text-approve">Freigeben</span><span class="text-approved">✔</span></label></td>
+                </tr>
+                <tr style="background-color: #fff9f0;">
+                    <td colspan="4" style="padding: 8px 10px 8px 20px; font-weight: bold; color: #333;">KW 37: Fokus - Herbst-Sicherheit</td>
+                    <td style="text-align: center; padding: 8px;"><button onclick="approveWeek(37)" style="background: #6c757d; color: white; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-size: 12px;">Woche freigeben</button></td>
+                </tr>
+                <tr data-month="september" data-week="37" data-asset-id="kw37-blog">
+                    <td style="padding: 15px;"><strong style="display: block; color: #333;">Blog-Artikel:</strong><span style="font-size: 14px;"> Fahren bei Regen & Nebel: So bereitet dich unsere Ausbildung auf den Herbst vor.</span></td>
+                    <td style="padding: 15px;"><a href="[ONEDRIVE-LINK]" class="onedrive-button">Ansehen</a></td>
+                    <td style="padding: 15px; text-align: center;">
+                        <div class="rating">
+                            <input type="radio" id="star5-kw37-blog" name="rating-kw37-blog" value="5" /><label for="star5-kw37-blog"></label>
+                            <input type="radio" id="star4-kw37-blog" name="rating-kw37-blog" value="4" /><label for="star4-kw37-blog"></label>
+                            <input type="radio" id="star3-kw37-blog" name="rating-kw37-blog" value="3" /><label for="star3-kw37-blog"></label>
+                            <input type="radio" id="star2-kw37-blog" name="rating-kw37-blog" value="2" /><label for="star2-kw37-blog"></label>
+                            <input type="radio" id="star1-kw37-blog" name="rating-kw37-blog" value="1" /><label for="star1-kw37-blog"></label>
+                        </div>
+                    </td>
+                    <td style="padding: 15px;"><textarea name="feedback-kw37-blog" placeholder="Kurzes Feedback..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></textarea></td>
+                    <td style="padding: 15px; text-align: center;"><input type="checkbox" name="approve-kw37-blog" id="approve-kw37-blog" class="approval-checkbox"><label for="approve-kw37-blog" class="approval-label"><span class="text-approve">Freigeben</span><span class="text-approved">✔</span></label></td>
+                </tr>
+                <tr data-month="september" data-week="37" data-asset-id="kw37-social">
+                    <td style="padding: 15px;"><strong style="display: block; color: #333;">Social Media:</strong><span style="font-size: 14px;"> Reel "Sicher durch den Herbst" mit praktischen Tipps.</span></td>
+                    <td style="padding: 15px;"><a href="[ONEDRIVE-LINK]" class="onedrive-button">Ansehen</a></td>
+                    <td style="padding: 15px; text-align: center;">
+                         <div class="rating">
+                            <input type="radio" id="star5-kw37-social" name="rating-kw37-social" value="5" /><label for="star5-kw37-social"></label>
+                            <input type="radio" id="star4-kw37-social" name="rating-kw37-social" value="4" /><label for="star4-kw37-social"></label>
+                            <input type="radio" id="star3-kw37-social" name="rating-kw37-social" value="3" /><label for="star3-kw37-social"></label>
+                            <input type="radio" id="star2-kw37-social" name="rating-kw37-social" value="2" /><label for="star2-kw37-social"></label>
+                            <input type="radio" id="star1-kw37-social" name="rating-kw37-social" value="1" /><label for="star1-kw37-social"></label>
+                        </div>
+                    </td>
+                    <td style="padding: 15px;"><textarea name="feedback-kw37-social" placeholder="Kurzes Feedback..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></textarea></td>
+                    <td style="padding: 15px; text-align: center;"><input type="checkbox" name="approve-kw37-social" id="approve-kw37-social" class="approval-checkbox"><label for="approve-kw37-social" class="approval-label"><span class="text-approve">Freigeben</span><span class="text-approved">✔</span></label></td>
+                </tr>
+                <tr style="background-color: #fff9f0;">
+                    <td colspan="4" style="padding: 8px 10px 8px 20px; font-weight: bold; color: #333;">KW 38: Fokus - Das Team</td>
+                    <td style="text-align: center; padding: 8px;"><button onclick="approveWeek(38)" style="background: #6c757d; color: white; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-size: 12px;">Woche freigeben</button></td>
+                </tr>
+                <tr data-month="september" data-week="38" data-asset-id="kw38-blog">
+                    <td style="padding: 15px;"><strong style="display: block; color: #333;">Blog-Artikel:</strong><span style="font-size: 14px;"> Ein Tag im Leben eines Fahrlehrers: Meet the Team - Christian.</span></td>
+                    <td style="padding: 15px;"><a href="[ONEDRIVE-LINK]" class="onedrive-button">Ansehen</a></td>
+                    <td style="padding: 15px; text-align: center;">
+                        <div class="rating">
+                            <input type="radio" id="star5-kw38-blog" name="rating-kw38-blog" value="5" /><label for="star5-kw38-blog"></label>
+                            <input type="radio" id="star4-kw38-blog" name="rating-kw38-blog" value="4" /><label for="star4-kw38-blog"></label>
+                            <input type="radio" id="star3-kw38-blog" name="rating-kw38-blog" value="3" /><label for="star3-kw38-blog"></label>
+                            <input type="radio" id="star2-kw38-blog" name="rating-kw38-blog" value="2" /><label for="star2-kw38-blog"></label>
+                            <input type="radio" id="star1-kw38-blog" name="rating-kw38-blog" value="1" /><label for="star1-kw38-blog"></label>
+                        </div>
+                    </td>
+                    <td style="padding: 15px;"><textarea name="feedback-kw38-blog" placeholder="Kurzes Feedback..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></textarea></td>
+                    <td style="padding: 15px; text-align: center;"><input type="checkbox" name="approve-kw38-blog" id="approve-kw38-blog" class="approval-checkbox"><label for="approve-kw38-blog" class="approval-label"><span class="text-approve">Freigeben</span><span class="text-approved">✔</span></label></td>
+                </tr>
+                <tr data-month="september" data-week="38" data-asset-id="kw38-social">
+                    <td style="padding: 15px;"><strong style="display: block; color: #333;">Social Media:</strong><span style="font-size: 14px;"> Video-Interview-Snippet mit Christian auf Facebook.</span></td>
+                    <td style="padding: 15px;"><a href="[ONEDRIVE-LINK]" class="onedrive-button">Ansehen</a></td>
+                    <td style="padding: 15px; text-align: center;">
+                         <div class="rating">
+                            <input type="radio" id="star5-kw38-social" name="rating-kw38-social" value="5" /><label for="star5-kw38-social"></label>
+                            <input type="radio" id="star4-kw38-social" name="rating-kw38-social" value="4" /><label for="star4-kw38-social"></label>
+                            <input type="radio" id="star3-kw38-social" name="rating-kw38-social" value="3" /><label for="star3-kw38-social"></label>
+                            <input type="radio" id="star2-kw38-social" name="rating-kw38-social" value="2" /><label for="star2-kw38-social"></label>
+                            <input type="radio" id="star1-kw38-social" name="rating-kw38-social" value="1" /><label for="star1-kw38-social"></label>
+                        </div>
+                    </td>
+                    <td style="padding: 15px;"><textarea name="feedback-kw38-social" placeholder="Kurzes Feedback..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></textarea></td>
+                    <td style="padding: 15px; text-align: center;"><input type="checkbox" name="approve-kw38-social" id="approve-kw38-social" class="approval-checkbox"><label for="approve-kw38-social" class="approval-label"><span class="text-approve">Freigeben</span><span class="text-approved">✔</span></label></td>
+                </tr>
+                <tr style="background-color: #fff9f0;">
+                    <td colspan="4" style="padding: 8px 10px 8px 20px; font-weight: bold; color: #333;">KW 39: Fokus - Die Technik</td>
+                    <td style="text-align: center; padding: 8px;"><button onclick="approveWeek(39)" style="background: #6c757d; color: white; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-size: 12px;">Woche freigeben</button></td>
+                </tr>
+                <tr data-month="september" data-week="39" data-asset-id="kw39-blog">
+                    <td style="padding: 15px;"><strong style="display: block; color: #333;">Blog-Artikel:</strong><span style="font-size: 14px;"> Der digitale Co-Pilot: Alle Funktionen der DriveBuzzApp erklärt.</span></td>
+                    <td style="padding: 15px;"><a href="[ONEDRIVE-LINK]" class="onedrive-button">Ansehen</a></td>
+                    <td style="padding: 15px; text-align: center;">
+                        <div class="rating">
+                            <input type="radio" id="star5-kw39-blog" name="rating-kw39-blog" value="5" /><label for="star5-kw39-blog"></label>
+                            <input type="radio" id="star4-kw39-blog" name="rating-kw39-blog" value="4" /><label for="star4-kw39-blog"></label>
+                            <input type="radio" id="star3-kw39-blog" name="rating-kw39-blog" value="3" /><label for="star3-kw39-blog"></label>
+                            <input type="radio" id="star2-kw39-blog" name="rating-kw39-blog" value="2" /><label for="star2-kw39-blog"></label>
+                            <input type="radio" id="star1-kw39-blog" name="rating-kw39-blog" value="1" /><label for="star1-kw39-blog"></label>
+                        </div>
+                    </td>
+                    <td style="padding: 15px;"><textarea name="feedback-kw39-blog" placeholder="Kurzes Feedback..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></textarea></td>
+                    <td style="padding: 15px; text-align: center;"><input type="checkbox" name="approve-kw39-blog" id="approve-kw39-blog" class="approval-checkbox"><label for="approve-kw39-blog" class="approval-label"><span class="text-approve">Freigeben</span><span class="text-approved">✔</span></label></td>
+                </tr>
+                <tr data-month="september" data-week="39" data-asset-id="kw39-social">
+                    <td style="padding: 15px;"><strong style="display: block; color: #333;">Social Media:</strong><span style="font-size: 14px;"> Carousel auf Instagram: "3 App-Features, die du lieben wirst".</span></td>
+                    <td style="padding: 15px;"><a href="[ONEDRIVE-LINK]" class="onedrive-button">Ansehen</a></td>
+                    <td style="padding: 15px; text-align: center;">
+                         <div class="rating">
+                            <input type="radio" id="star5-kw39-social" name="rating-kw39-social" value="5" /><label for="star5-kw39-social"></label>
+                            <input type="radio" id="star4-kw39-social" name="rating-kw39-social" value="4" /><label for="star4-kw39-social"></label>
+                            <input type="radio" id="star3-kw39-social" name="rating-kw39-social" value="3" /><label for="star3-kw39-social"></label>
+                            <input type="radio" id="star2-kw39-social" name="rating-kw39-social" value="2" /><label for="star2-kw39-social"></label>
+                            <input type="radio" id="star1-kw39-social" name="rating-kw39-social" value="1" /><label for="star1-kw39-social"></label>
+                        </div>
+                    </td>
+                    <td style="padding: 15px;"><textarea name="feedback-kw39-social" placeholder="Kurzes Feedback..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></textarea></td>
+                    <td style="padding: 15px; text-align: center;"><input type="checkbox" name="approve-kw39-social" id="approve-kw39-social" class="approval-checkbox"><label for="approve-kw39-social" class="approval-label"><span class="text-approve">Freigeben</span><span class="text-approved">✔</span></label></td>
+                </tr>
+            </tbody>
+        </table>
+        <div style="text-align: right; margin-top: 20px; padding: 0 30px 30px 0;">
+            <button id="submitFeedback" class="approval-label" style="border: none; padding: 12px 25px; background-color: #0078D4; color: white; cursor: pointer; border-radius: 5px;">
+                Finales Feedback & Freigaben Senden
+            </button>
+        </div>
+        <div id="successMessage" style="display: none; color: green; font-weight: bold; text-align: center; margin-top: 20px;">Vielen Dank! Ihr Feedback wurde erfolgreich übermittelt.</div>
+    </div>
+</section>
+            <footer class="footer">
+                <p>Erstellt von [Ihr Agenturname] | [Datum]</p>
+            </footer>
+        </div>
+    
+    </body>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dashboard = document.getElementById('approvalDashboard');
+    const storageKey = 'approvalState_ClientXYZ_CampaignSOMMER2025'; // Eindeutiger Key für dieses Projekt
+    const submitButton = document.getElementById('submitFeedback');
+    const successMessage = document.getElementById('successMessage');
+    
+    // WICHTIG: ERSETZEN SIE DIESE URL DURCH IHRE EIGENE WEB-APP-URL AUS DEM GOOGLE APPS SCRIPT
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx6cTgF_obPP9NC4XMqXlHWG-KjhVTrf3oVkgz5bQ3FGZqRfltXHQzpwgsRrCLVBA68DA/exec';
+
+    // --- Local Storage Funktionalität (angepasst für Sterne) ---
+    const saveData = () => {
+        const data = {};
+        dashboard.querySelectorAll('input[type="checkbox"], input[type="radio"], textarea').forEach(el => {
+            if (el.type === 'checkbox') {
+                data[el.name] = el.checked;
+            } else if (el.type === 'radio') {
+                if (el.checked) {
+                    data[el.name] = el.value;
+                }
+            } else {
+                data[el.name] = el.value;
+            }
+        });
+        localStorage.setItem(storageKey, JSON.stringify(data));
+    };
+
+    const loadData = () => {
+        const savedData = localStorage.getItem(storageKey);
+        if (savedData) {
+            const data = JSON.parse(savedData);
+            for (const name in data) {
+                // Radio buttons benötigen eine spezielle Behandlung
+                if (name.startsWith('rating-')) {
+                    const selector = `input[name="${name}"][value="${data[name]}"]`;
+                    const el = dashboard.querySelector(selector);
+                    if (el) {
+                        el.checked = true;
+                    }
+                } else {
+                    const el = dashboard.querySelector(`[name="${name}"]`);
+                    if (el) {
+                        if (el.type === 'checkbox') {
+                            el.checked = data[name];
+                        } else {
+                            el.value = data[name];
+                        }
+                    }
+                }
+            }
+        }
+    };
+
+    dashboard.addEventListener('input', saveData);
+    loadData();
+    
+    // --- ÜBERARBEITETE SUBMIT FUNKTIONALITÄT FÜR GOOGLE SHEETS ---
+    submitButton.addEventListener('click', function() {
+        const feedbackEntries = [];
+        const assetRows = dashboard.querySelectorAll('tr[data-asset-id]');
+
+        assetRows.forEach(row => {
+            const assetId = row.dataset.assetId;
+            const assetNameElement = row.querySelector('td:first-child');
+            // Bereinigt den Asset-Namen für eine saubere Darstellung im Sheet
+            const assetName = assetNameElement ? assetNameElement.innerText.replace(/\n/g, ' - ') : 'Unbekanntes Asset';
+
+            const ratingInput = row.querySelector('input[name="rating-' + assetId + '"]:checked');
+            const feedbackInput = row.querySelector('textarea[name="feedback-' + assetId + '"]');
+            const approvalInput = row.querySelector('input[name="approve-' + assetId + '"]');
+
+            const rating = ratingInput ? ratingInput.value : '';
+            const feedback = feedbackInput ? feedbackInput.value.trim() : '';
+            const approved = approvalInput ? approvalInput.checked : false;
+
+            // Nur Zeilen hinzufügen, für die eine Aktion stattgefunden hat (Bewertung, Feedback oder Freigabe)
+            if (rating || feedback || approved) {
+                feedbackEntries.push({
+                    asset: assetName,
+                    bewertung: rating,
+                    feedback: feedback,
+                    freigabe: approved ? 'Ja' : 'Nein'
+                });
+            }
+        });
+
+        if (feedbackEntries.length === 0) {
+            alert('Es gibt kein neues Feedback oder keine neuen Freigaben zum Senden.');
+            return;
+        }
+        
+        // Visuelles Feedback für den Nutzer während des Sendens
+        submitButton.textContent = 'Sende Daten...';
+        submitButton.disabled = true;
+
+        fetch(WEB_APP_URL, {
+            method: 'POST',
+            mode: 'cors', // CORS ist für die Kommunikation mit Google Web-Apps erforderlich
+            cache: 'no-cache',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ entries: feedbackEntries }) // Sende die gesammelten Einträge als JSON
+        })
+        .then(response => response.json()) // Antwort vom Server als JSON verarbeiten
+        .then(data => {
+            if(data.status === 'success'){
+                successMessage.style.display = 'block';
+                submitButton.style.display = 'none'; // Sende-Button ausblenden nach Erfolg
+                // localStorage.removeItem(storageKey); // Optional: Leert den Speicher, damit nichts doppelt gesendet werden kann.
+            } else {
+                // Falls das Skript einen Fehler zurückgibt
+                throw new Error(data.message || 'Ein unbekannter Fehler ist auf dem Server aufgetreten.');
+            }
+        })
+        .catch(error => {
+            // Fehlerbehandlung, falls die Anfrage fehlschlägt
+            console.error('Fehler beim Senden:', error);
+            alert('Ein Fehler ist aufgetreten: ' + error.message);
+            submitButton.textContent = 'Erneut versuchen';
+            submitButton.disabled = false;
+        });
+    });
+
+    // --- Bulk-Funktionen (bleiben unverändert) ---
+    window.approveMonth = function(month) {
+        dashboard.querySelectorAll('tr[data-month="' + month + '"] .approval-checkbox').forEach(cb => { cb.checked = true; });
+        saveData();
+    }
+    window.approveWeek = function(week) {
+        dashboard.querySelectorAll('tr[data-week="' + week + '"] .approval-checkbox').forEach(cb => { cb.checked = true; });
+        saveData();
+    }
+});
+</script>
+    </html>
