@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strategische Ausrichtung: Q3 2025 - Ihr Plan zum Erfolg</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ci-dark-blue: #1a2c48; --ci-bright-blue: #009ee2; --ci-text-dark: #333; --ci-text-light: #666; --ci-background-light: #f4f7f6; --ci-background-white: #ffffff; --ci-border-color: #e0e0e0; --ci-box-background: #f9f9f9; --ci-green-approve: #28a745; --ci-red-reset: #dc3545;
+        }
+        body.dark-mode {
+            --ci-text-dark: #e0e0e0; --ci-text-light: #999; --ci-background-light: #121212; --ci-background-white: #1e1e1e; --ci-border-color: #333; --ci-box-background: #2a2a2a;
+        }
+        body { font-family: 'Roboto', sans-serif; background-color: var(--ci-background-light); color: var(--ci-text-light); line-height: 1.6; margin: 0; padding: 20px; transition: background-color 0.3s, color 0.3s; }
+        .brochure { max-width: 800px; margin: 0 auto; background-color: var(--ci-background-white); border: 1px solid var(--ci-border-color); box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden; transition: background-color 0.3s, border-color 0.3s; }
+        .header { background-color: var(--ci-dark-blue); color: #ffffff; padding: 20px 30px 30px 30px; text-align: center; position: relative; }
+        .header h1 { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 28px; margin: 0; color: #ffffff; }
+        .header p { margin: 5px 0 0 0; font-size: 16px; opacity: 0.8; }
+        .header-meta { display: flex; justify-content: space-between; align-items: center; font-size: 12px; padding-bottom: 15px; color: #fff; opacity: 0.7; border-bottom: 1px solid rgba(255, 255, 255, 0.1); margin-bottom: 20px; }
+        .dark-mode-toggle { display: flex; align-items: center; cursor: pointer; }
+        .dark-mode-toggle-switch { width: 40px; height: 20px; background-color: rgba(0,0,0,0.3); border-radius: 10px; position: relative; margin-left: 8px; }
+        .dark-mode-toggle-switch::before { content: ''; position: absolute; width: 16px; height: 16px; border-radius: 50%; background-color: #fff; top: 2px; left: 2px; transition: transform 0.3s; }
+        body.dark-mode .dark-mode-toggle-switch { background-color: var(--ci-bright-blue); }
+        body.dark-mode .dark-mode-toggle-switch::before { transform: translateX(20px); }
+        .section { padding: 30px; border-bottom: 1px solid var(--ci-border-color); }
+        .section:last-of-type { border-bottom: none; }
+        h2 { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 20px; color: var(--ci-bright-blue); border-bottom: 2px solid var(--ci-bright-blue); padding-bottom: 10px; margin-top: 0; margin-bottom: 20px; }
+        .strategy-box { background-color: var(--ci-box-background); border-radius: 8px; padding: 20px; border-left: 5px solid var(--ci-bright-blue); }
+        .strategy-box-title { font-family: 'Poppins', sans-serif; font-weight: 700; color: var(--ci-text-dark); display: block; margin-bottom: 10px; }
+        .strategy-box ul { padding-left: 20px; margin: 0; font-size: 14px; }
+        .strategy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        .bento-grid { display: grid; grid-template-columns: repeat(2, 1fr); grid-auto-rows: minmax(180px, auto); gap: 20px; margin-top: 30px; }
+        .bento-item { perspective: 1000px; }
+        .bento-item--large { grid-column: span 2; }
+        .bento-item-inner { background: var(--ci-box-background); border-radius: 12px; padding: 25px; height: 100%; box-sizing: border-box; border: 1px solid var(--ci-border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.07); color: var(--ci-text-dark); transition: transform 0.1s ease-out; transform-style: preserve-3d; }
+        .bento-icon { font-size: 2.5rem; display: block; margin-bottom: 10px; }
+        .bento-item-inner h3 { margin: 0 0 10px 0; color: var(--ci-text-dark); }
+        .bento-item-inner p { margin: 0; font-size: 14px; color: var(--ci-text-light); line-height: 1.5; }
+        .feedback-item { background-color: var(--ci-box-background); border-radius: 8px; padding: 20px; margin-bottom: 15px; border: 1px solid var(--ci-border-color); }
+        .feedback-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .feedback-item-header h4 { margin: 0; font-family: 'Poppins', sans-serif; color: var(--ci-text-dark); }
+        .rating { display: flex; flex-direction: row-reverse; } .rating > input{ display:none;} .rating > label { position: relative; width: 1.1em; font-size: 2rem; color: #FFD700; cursor: pointer; } .rating > label::before{ content: "\2605"; position: absolute; opacity: 0.2; } .rating > label:hover:before, .rating > label:hover ~ label:before { opacity: 0.6 !important; } .rating > input:checked ~ label:before{ opacity:1 !important; }
+        .feedback-textarea { width: 100%; box-sizing: border-box; border: 1px solid var(--ci-border-color); border-radius: 8px; padding: 12px; font-family: 'Roboto', sans-serif; font-size: 14px; margin-top: 10px; resize: vertical; background-color: var(--ci-background-white); color: var(--ci-text-dark); }
+        .submit-button { border: none; padding: 12px 25px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; background-color: var(--ci-green-approve); color: white; transition: background-color 0.2s ease; display: inline-flex; align-items: center; justify-content: center; min-height: 45px; }
+        .submit-button:hover { background-color: #218838; }
+        .submit-button .button-spinner { display: none; width: 18px; height: 18px; border: 3px solid rgba(255, 255, 255, 0.3); border-radius: 50%; border-top-color: #ffffff; animation: spin 1s ease-in-out infinite; }
+        .submit-button.loading .button-spinner { display: block; }
+        .submit-button.loading .button-text { display: none; }
+        #errorMessage { display: none; color: var(--ci-red-reset); font-weight: bold; text-align: center; margin-top: 20px; background-color: #fff0f1; padding: 12px; border: 1px solid var(--ci-red-reset); border-radius: 8px; }
+        .footer-logo-container { display: flex; justify-content: center; align-items: center; padding-top: 30px; margin-top: 30px; border-top: 1px solid var(--ci-border-color); }
+        .system-sun-logo { width: 80px; height: 80px; }
+        .fade-in { opacity: 0; transform: translateY(20px); transition: opacity 0.6s ease-out, transform 0.6s ease-out; }
+        .fade-in.visible { opacity: 1; transform: translateY(0); }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 768px) {
+            body { padding: 0; } .brochure { border: none; box-shadow: none; }
+            .header, .section, footer { padding-left: 15px; padding-right: 15px; }
+            .header h1 { font-size: 24px; }
+            .strategy-grid, .bento-grid { grid-template-columns: 1fr; }
+            .bento-item--large { grid-column: span 1; }
+            .feedback-item-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .submit-button { width: 100%; padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="brochure">
+        <header class="header">
+            <div class="header-meta">
+                <div>Status: <span id="strategyStatus">In Abstimmung</span></div>
+                <div id="countdown"></div>
+                <div class="dark-mode-toggle" id="darkModeToggle">
+                    Dark Mode <span class="dark-mode-toggle-switch"></span>
+                </div>
+            </div>
+            <img src="https://media.licdn.com/dms/image/D4E16AQG4lB57zC9Lpg/profile-displaybackgroundimage-shrink_200_800/0/1709292813357?e=2147483647&v=beta&t=UoT3e-rY8G1s-jU0WVw9L_5mH-PzL9s-S0i1k2X_3L0" alt="Kundenlogo" style="max-height: 60px; margin-bottom: 15px;">
+            <h1>Strategische Ausrichtung: Q3 2025</h1>
+            <p>Unsere gemeinsame Marschroute für die kommenden zwei Monate.</p>
+        </header>
+
+        <section class="section">
+            <h2 class="fade-in">Die strategische Blaupause</h2>
+            <p class="fade-in">Basierend auf unserer Analyse haben wir die folgende strategische Ausrichtung für das kommende Quartal entwickelt. Unser Ziel ist es, die größte Lücke im Markt zu besetzen und die Themen zu dominieren, die für Ihre wertvollsten Kunden am wichtigsten sind.</p>
+            
+            <div class="strategy-box fade-in" style="margin-top: 20px;">
+                <span class="strategy-box-title">🎯 Quartals-Motto & Hauptziel</span>
+                <p><strong>"Proof of Value"-Sprint: Dominanz im Intensivkurs-Markt</strong></p>
+                <p style="font-size: 14px;">Innerhalb von 2 Monaten eine messbare Steigerung der qualifizierten Anfragen für die hoch-profitablen Intensivkurse nachweisen.</p>
+            </div>
+
+            <div class="strategy-grid">
+                <div class="strategy-box fade-in">
+                    <span class="strategy-box-title">👥 Fokus-Persona</span>
+                    <ul>
+                        <li><b>Der engagierte Effiziente Lerner:</b> Sucht den schnellsten Weg zum Ziel, ist digital affin und preisbewusst.</li>
+                    </ul>
+                </div>
+                <div class="strategy-box fade-in">
+                    <span class="strategy-box-title">🔑 Fokus-Themen</span>
+                    <ul>
+                        <li>Intensivkurs (Geschwindigkeit & Effizienz)</li>
+                        <li>Kosten-Transparenz (Vertrauen & Planbarkeit)</li>
+                        <li>Prüfungs-Sicherheit (Erfolgsgarantie)</li>
+                    </ul>
+                </div>
+                <div class="strategy-box fade-in">
+                    <span class="strategy-box-title">📈 Primäre Erfolgsmetriken</span>
+                    <ul>
+                        <li>15 qualifizierte Leads für Intensivkurse</li>
+                        <li>Top-10-Ranking für "Intensivkurs"-Keywords</li>
+                         <li>25% Steigerung der Anrufe über Google Business</li>
+                    </ul>
+                </div>
+                <div class="strategy-box fade-in">
+                    <span class="strategy-box-title">📢 Kanal-Fokus</span>
+                    <ul>
+                        <li>Google Business Profile (Lokale Sichtbarkeit)</li>
+                        <li>SEO-Blog (Organische Reichweite)</li>
+                        <li>Instagram (Visuelle Ansprache)</li>
+                        <li>Lokaler Outreach (Partnerschaften)</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="fade-in">Strategie-Matrix Interaktiv</h2>
+            <p>Die wichtigsten strategischen Säulen als interaktive Zusammenfassung.</p>
+            <div class="bento-grid fade-in">
+                <div class="bento-item">
+                    <div class="bento-item-inner">
+                        <span class="bento-icon">👥</span>
+                        <h3>Fokus-Personas</h3>
+                        <p>Im Zentrum jeder Entscheidung: Der engagierte, effiziente Lerner.</p>
+                    </div>
+                </div>
+                <div class="bento-item">
+                    <div class="bento-item-inner">
+                        <span class="bento-icon">🔑</span>
+                        <h3>Kernthemen</h3>
+                        <p>Wir dominieren die Narrative um Effizienz, Transparenz und Prüfungssicherheit.</p>
+                    </div>
+                </div>
+                <div class="bento-item">
+                    <div class="bento-item-inner">
+                        <span class="bento-icon">📈</span>
+                        <h3>Erfolgsmetriken</h3>
+                        <p>15 qualifizierte Leads sind das klare, messbare Ziel.</p>
+                    </div>
+                </div>
+                <div class="bento-item">
+                    <div class="bento-item-inner">
+                        <span class="bento-icon">📢</span>
+                        <h3>Fokus-Kanäle</h3>
+                        <p>Maximale Präsenz auf Google (GMB) und Instagram.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section class="section">
+            <h2 class="fade-in">Strategisches Feedback & Freigabe</h2>
+            <p class="fade-in">Wir sind überzeugt, dass dies der schlagkräftigste Plan ist. Wie bewerten Sie diese strategische Ausrichtung? Ihr Feedback ist entscheidend für den gemeinsamen Erfolg.</p>
+
+            <div id="feedbackDashboard" class="fade-in">
+                <div class="feedback-item">
+                    <div class="feedback-item-header">
+                        <h4>Ihre Gesamteinschätzung der Strategie:</h4>
+                        <div class="rating">
+                            <input type="radio" name="rating-strategy" id="rating-strategy-5" value="5"><label for="rating-strategy-5">☆</label>
+                            <input type="radio" name="rating-strategy" id="rating-strategy-4" value="4"><label for="rating-strategy-4">☆</label>
+                            <input type="radio" name="rating-strategy" id="rating-strategy-3" value="3"><label for="rating-strategy-3">☆</label>
+                            <input type="radio" name="rating-strategy" id="rating-strategy-2" value="2"><label for="rating-strategy-2">☆</label>
+                            <input type="radio" name="rating-strategy" id="rating-strategy-1" value="1"><label for="rating-strategy-1">☆</label>
+                        </div>
+                    </div>
+                    <textarea name="feedback-text-strategy" class="feedback-textarea" rows="3" placeholder="Ihre Anmerkungen, Wünsche oder Bedenken..."></textarea>
+                </div>
+
+                <div style="text-align: right; margin-top: 20px;">
+                    <button id="submitFeedback" class="submit-button">
+                        <span class="button-text">Strategie freigeben</span>
+                        <span class="button-spinner"></span>
+                    </button>
+                </div>
+
+                <div id="successMessage" style="display: none; color: var(--ci-green-approve); font-weight: bold; text-align: center; margin-top: 20px;"></div>
+                <div id="errorMessage"></div>
+            </div>
+        </section>
+
+        <footer class="footer-logo-container">
+            <svg class="system-sun-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <radialGradient id="sunGradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+                        <stop offset="0%" stop-color="#FFF7B0" />
+                        <stop offset="100%" stop-color="#FFD700" />
+                    </radialGradient>
+                </defs>
+                <circle cx="50" cy="50" r="16" fill="url(#sunGradient)" stroke="#FFC700" stroke-width="1.5"/>
+            </svg>
+        </footer>
+
+    </div>```
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // =================================================================
+        // Konfiguration & UI-Elemente
+        // =================================================================
+        const strategyStatusEl = document.getElementById('strategyStatus');
+        const countdownEl = document.getElementById('countdown');
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const submitButton = document.getElementById('submitFeedback');
+        const ratingInputs = document.querySelectorAll('input[name="rating-strategy"]');
+        const textInput = document.querySelector('textarea[name="feedback-text-strategy"]');
+
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyLR5IeOkJzIi_O2EvDeNcbYwqWxDt5SuwpKGeBH__YruV4vGKKkjQN-9-3XzRbrUX6Ig/exec'; // 👈 WICHTIG: URL anpassen!
+
+        // =================================================================
+        // Feature: Dark Mode
+        // =================================================================
+        if (localStorage.getItem('darkMode') === 'enabled') {
+            document.body.classList.add('dark-mode');
+        }
+        darkModeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode') ? 'enabled' : 'disabled');
+        });
+
+        // =================================================================
+        // Feature: Live-Countdown
+        // =================================================================
+        const targetDate = new Date('2025-10-01T00:00:00'); // Ziel: Start von Q4
+        if (countdownEl) {
+            const countdownInterval = setInterval(() => {
+                const now = new Date();
+                const diff = targetDate - now;
+                if (diff < 0) {
+                    countdownEl.innerHTML = "Q4 ist gestartet!";
+                    clearInterval(countdownInterval);
+                    return;
+                }
+                const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                countdownEl.innerHTML = `Start Q4 in: ${d}d ${h}h`;
+            }, 1000);
+        }
+
+        // =================================================================
+        // Feature: Scroll-Animationen
+        // =================================================================
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+        
+        // =================================================================
+        // Feature: Interaktives 3D Bento Grid
+        // =================================================================
+        const bentoItems = document.querySelectorAll('.bento-item');
+        bentoItems.forEach(item => {
+            const innerItem = item.querySelector('.bento-item-inner');
+            if (!innerItem) return;
+
+            item.addEventListener('mousemove', (e) => {
+                const rect = item.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const rotateX = (y - (rect.height / 2)) / 20;
+                const rotateY = ((rect.width / 2) - x) / 20;
+                innerItem.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+            });
+
+            item.addEventListener('mouseleave', () => {
+                innerItem.style.transform = 'rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+            });
+        });
+
+        // =================================================================
+        // Kernfunktion: Feedback-System
+        // =================================================================
+        submitButton.addEventListener('click', () => {
+            submitButton.disabled = true;
+            submitButton.classList.add('loading');
+            
+            document.getElementById('successMessage').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'none';
+
+            const ratingInput = document.querySelector('input[name="rating-strategy"]:checked');
+            const feedbackInput = document.querySelector('textarea[name="feedback-text-strategy"]');
+
+            const payload = {
+                kundenId: 'Fahrschule-Gronemeier-Hennemann',
+                freigabeTyp: 'Strategie',
+                strategieId: 'Q3_2025',
+                daten: [{
+                    bewertung: ratingInput ? ratingInput.value : 'N/A',
+                    feedback: feedbackInput ? feedbackInput.value.trim() : '',
+                    status: 'Freigegeben'
+                }]
+            };
+
+            const finalUrl = `${WEB_APP_URL}?callback=feedbackGesendet&data=${encodeURIComponent(JSON.stringify(payload))}`;
+            let scriptTag = document.createElement('script');
+            scriptTag.src = finalUrl;
+            document.body.appendChild(scriptTag);
+        });
+
+        window.feedbackGesendet = function(response) {
+            const successMessageDiv = document.getElementById('successMessage');
+            const errorMessageDiv = document.getElementById('errorMessage');
+
+            submitButton.disabled = false;
+            submitButton.classList.remove('loading');
+
+            if (response.status === 'Erfolg') {
+                successMessageDiv.innerHTML = `✔ ${response.processedCount} Eintrag erfolgreich übermittelt. Sie können Ihre Eingaben bei Bedarf erneut aktualisieren.`;
+                successMessageDiv.style.display = 'block';
+                document.querySelector('#submitFeedback .button-text').textContent = 'Feedback aktualisieren';
+                
+                if (strategyStatusEl) {
+                    strategyStatusEl.textContent = 'Freigegeben';
+                    strategyStatusEl.style.color = 'var(--ci-green-approve)';
+                }
+
+                setTimeout(() => { successMessageDiv.style.display = 'none'; }, 5000);
+            } else {
+                errorMessageDiv.innerHTML = `Ein Fehler ist aufgetreten: ${response.nachricht}`;
+                errorMessageDiv.style.display = 'block';
+            }
+        };
+
+        // =================================================================
+        // Logik zum Laden und Speichern von Entwürfen
+        // =================================================================
+        const ratingDraftKey = 'strategyRating_Q3_2025_draft';
+        const textDraftKey = 'strategyText_Q3_2025_draft';
+
+        const savedRating = localStorage.getItem(ratingDraftKey);
+        if (savedRating && document.querySelector(`input[value="${savedRating}"]`)) {
+            document.querySelector(`input[value="${savedRating}"]`).checked = true;
+        }
+        const savedText = localStorage.getItem(textDraftKey);
+        if (savedText && textInput) {
+            textInput.value = savedText;
+        }
+
+        ratingInputs.forEach(input => {
+            input.addEventListener('change', () => {
+                localStorage.setItem(ratingDraftKey, input.value);
+            });
+        });
+        if(textInput) {
+            textInput.addEventListener('input', () => {
+                localStorage.setItem(textDraftKey, textInput.value);
+            });
+        }
+    });
+    </script>
+</body>
+</html>
