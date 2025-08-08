@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kunden-Dashboard</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --ci-dark-blue: #1a2c48;
+            --ci-bright-blue: #009ee2;
+            --ci-green-approve: #28a745;
+            --text-dark: #333;
+            --bg-light: #f4f7f6;
+            --bg-white: #ffffff;
+            --border-color: #e0e0e0;
+        }
+
+        html, body {
+            position: relative;
+            height: 100%;
+            font-family: 'Lato', sans-serif;
+            background-color: var(--bg-light);
+            margin: 0;
+            padding: 0;
+            overflow: hidden; 
+        }
+        
+        /* --- Reiter-Navigation oben --- */
+        .main-tabs {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: var(--bg-white);
+            text-align: center;
+            padding: 10px 0;
+            z-index: 1000;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .main-tabs button {
+            font-family: 'Oswald', sans-serif;
+            text-transform: uppercase;
+            font-size: 14px;
+            background: none;
+            border: none;
+            color: var(--text-light);
+            padding: 8px 15px;
+            margin: 0 5px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.2s ease-in-out;
+            border-bottom: 2px solid transparent;
+        }
+        .main-tabs button.active {
+            color: var(--ci-bright-blue);
+            border-bottom: 2px solid var(--ci-bright-blue);
+        }
+
+        /* --- Container für die Ansichten --- */
+        .main-content {
+            padding-top: 60px;
+            height: 100%;
+            box-sizing: border-box;
+            background-color: var(--bg-light);
+        }
+        .view-container {
+            display: none;
+            width: 100%;
+            height: calc(100vh - 60px); /* Höhe abzüglich der Navigationsleiste */
+            overflow-y: auto; /* Dieser Scrollbalken ist der entscheidende */
+        }
+        .view-container.active {
+            display: block;
+        }
+        
+        /* --- Allgemeine Stile für die Broschüren --- */
+        .brochure { max-width: 800px; margin: 20px auto; background-color: var(--bg-white); border: 1px solid var(--border-color); }
+        .header { background-color: var(--ci-dark-blue); color: var(--bg-white); padding: 20px; text-align: center; }
+        .header h1 { font-family: 'Oswald', sans-serif; text-transform: uppercase; font-size: 24px; margin: 0; }
+        .header p { margin: 5px 0 0 0; font-size: 16px; opacity: 0.8; }
+        .section { padding: 30px; border-bottom: 1px solid var(--border-color); }
+        .section:last-of-type { border-bottom: none; }
+        h2 { font-family: 'Oswald', sans-serif; text-transform: uppercase; font-size: 18px; color: var(--ci-bright-blue); }
+        .kpi-box { background-color: #f9f9f9; border-radius: 8px; padding: 20px; margin-top: 15px; border-left: 5px solid var(--ci-bright-blue); }
+        .kpi-box-title { font-family: 'Oswald', sans-serif; font-weight: 700; color: var(--text-dark); display: block; margin-bottom: 5px; }
+        .week-plan { margin-bottom: 25px; }
+        .week-plan:last-child { margin-bottom: 0; }
+        .week-plan h3 { font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 16px; color: var(--text-dark); margin-bottom: 10px; }
+        .week-plan ul { list-style-type: '✓ '; padding-left: 20px; margin: 0; font-size: 14px; line-height: 1.8; }
+        .week-plan ul li::marker { color: var(--ci-green-approve); font-weight: bold; }
+        .footer { text-align: center; padding: 20px; font-size: 12px; color: #aaaaaa; border-top: 1px solid var(--border-color); }
+
+        
+        /* Stile für den horizontalen Slider */
+        .swiper-horizontal-container {
+            width: 100%;
+            /* KORREKTUR: Feste Höhe entfernt, damit der Parent scrollen kann */
+            /* height: 100%; */ 
+            padding-bottom: 40px;
+            box-sizing: border-box;
+        }
+        .swiper-horizontal-container .brochure {
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+        .swiper-horizontal-container .swiper-button-next, .swiper-horizontal-container .swiper-button-prev {
+            color: var(--ci-dark-blue);
+        }
+        .swiper-horizontal-container .swiper-pagination-bullet-active {
+            background-color: var(--ci-dark-blue);
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="main-tabs">
+        <button class="tab-button active" data-target="dashboard-view">Dashboard</button>
+        <button class="tab-button" data-target="strategie-view">Strategie</button>
+        <button class="tab-button" data-target="redaktionsplan-view">Redaktionspläne</button>
+        <button class="tab-button" data-target="content-freigabe-view">Content-Freigabe</button>
+        <button class="tab-button" data-target="performance-view">Performance</button>
+    </nav>
+    
+    <main class="main-content">
+        <div id="dashboard-view" class="view-container active">
+            <div class="brochure">
+        <header class="header">
+            <img src="fahrschule-gronemeier-hennemann-logo-zeilen-49efb60b.svg" alt="Kundenlogo" style="max-height: 60px; margin-bottom: 15px;">
+            <h1>Kampagnen-Vorschau & Redaktionsplan-Freigabe</h1>
+            <p>August 2025</p>
+        </header>
+
+        <section class="section">
+            <h2>Unsere Mission für August</h2>
+            <p>Basierend auf der übergeordneten Quartals-Strategie starten wir in diesem Monat die Kampagne <strong>"Sommer-Intensiv 2025"</strong>. Unser Hauptziel ist es, <strong>die Dominanz im Bereich der Intensivkurse weiter auszubauen und über klar kommunizierte USPs (Planbarkeit, Effizienz, Vertrauen) qualifizierte Anfragen zu generieren.</strong></p>
+            <div class="kpi-box">
+                <span class="kpi-box-title">Primärer KPI für den Erfolg dieser Kampagne:</span>
+                <span>Anzahl der Anmeldungen zum Info-Abend und für Beratungsgespräche</span>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Der Content-Fahrplan im Überblick</h2>
+            <p>Um dieses Ziel zu erreichen, haben wir einen detaillierten, kanalübergreifenden Redaktionsplan für die kommenden vier Wochen erstellt.</p>
+            
+            <div class="week-plan">
+                <h3>KW 32: Fokus - Planbarkeit & Struktur</h3>
+                <ul>
+                    <li><strong>Lead Magnet:</strong> Anti-Chaos-Checkliste: 10 Fragen, die du jeder Fahrschule stellen musst</li>
+                    <li><strong>Blog:</strong> Das Anti-Chaos-Prinzip: Wie unser 5-Meilenstein-Plan dir den Führerschein ohne Stress garantiert</li>
+                    <li><strong>GMB:</strong> Neuigkeit: Teaser für den "Anti-Chaos-Prinzip" Blog</li>
+                    <li><strong>Instagram:</strong> Reel: "So sieht eine stressfreie Fahrausbildung aus!"</li>
+                    <li><strong>GMB:</strong> Angebot: "Sichere dir deinen Platz im nächsten Intensivkurs!"</li>
+                    <li><strong>E-Mail:</strong> Betreff: Schluss mit dem Fahrschul-Chaos!</li>
+                    <li><strong>Instagram:</strong> Carousel: 5 Schritte zu deinem Führerschein</li>
+                </ul>
+            </div>
+
+            <div class="week-plan">
+                <h3>KW 33: Fokus - Kosteneffizienz & Simulator</h3>
+                <ul>
+                    <li><strong>Blog:</strong> Weniger Fahrstunden, mehr im Portemonnaie: Wie unser System dir bares Geld spart</li>
+                    <li><strong>GMB:</strong> Neuigkeit: "Der teuerste Fehler in der Fahrausbildung..."</li>
+                    <li><strong>Instagram:</strong> Carousel: 3 Wege, wie wir deine Ausbildungskosten senken</li>
+                    <li><strong>GMB:</strong> Kennst du schon unseren Fahrstundensparer?</li>
+                    <li><strong>Instagram:</strong> Reel: Fahrstunden-Mythen aufgedeckt!</li>
+                    <li><strong>E-Mail:</strong> Betreff: Zahl nicht mehr als nötig für deinen Führerschein.</li>
+                </ul>
+            </div>
+
+            <div class="week-plan">
+                <h3>KW 34: Fokus - Geschwindigkeit & Intensivkurse</h3>
+                <ul>
+                    <li><strong>Blog:</strong> Führerschein in Rekordzeit? Warum unsere Erfahrung deine Abkürzung ist.</li>
+                    <li><strong>GMB:</strong> Neuigkeit: "In den Sommerferien zum Führerschein!"</li>
+                    <li><strong>Instagram:</strong> Reel: Ein typischer Tag im Intensivkurs</li>
+                    <li><strong>GMB:</strong> Event: "Info-Abend: Dein Intensivkurs zum Führerschein"</li>
+                    <li><strong>Instagram:</strong> Story: "Fragen zum Intensivkurs? Her damit!"</li>
+                    <li><strong>E-Mail:</strong> Betreff: Deine Abkürzung zum Führerschein?</li>
+                </ul>
+            </div>
+
+            <div class="week-plan">
+                <h3>KW 35: Fokus - Erfahrung & Vertrauen</h3>
+                <ul>
+                    <li><strong>Blog:</strong> Seit 1957 auf der Überholspur: Wie unsere Tradition deinen Erfolg heute garantiert.</li>
+                    <li><strong>GMB:</strong> Neuigkeit: "Erfahrung kann man nicht downloaden."</li>
+                    <li><strong>Instagram:</strong> Reel: Damals vs. Heute</li>
+                    <li><strong>GMB:</strong> "Unser Team: Geballte Erfahrung für deinen Erfolg"</li>
+                    <li><strong>Instagram:</strong> Carousel: Das Team hinter deinem Führerschein</li>
+                    <li><strong>E-Mail:</strong> Betreff: Warum Erfahrung der beste Beifahrer ist.</li>
+                </ul>
+            </div>
+
+            <div class="week-plan">
+                <h3>Laufende Monatsaufgaben (Outreach & Kooperationen)</h3>
+                <ul>
+                    <li><strong>Gastbeitrag:</strong> Erstellung: "5 Anzeichen, dass du in der falschen Fahrschule bist (und wie du wechselst)"</li>
+                    <li><strong>Outreach:</strong> Recherche: Partner für GAST_001</li>
+                    <li><strong>Outreach:</strong> Recherche & Pitch: Social Media Kooperation</li>
+                    <li><strong>Outreach:</strong> Recherche & Pitch: Link-Partnerschaften</li>
+                </ul>
+            </div>
+
+        </section>
+        
+        <section class="section">
+            <h2>Strategisches Feedback & Freigabe des Plans</h2>
+            <p>Wir sind überzeugt, dass dieser Plan die richtige strategische Ausrichtung hat. Bitte geben Sie uns Ihr finales "Go", damit wir mit der Produktion der Inhalte beginnen können.</p>
+
+            <div id="feedbackDashboard">
+                <div class="feedback-item">
+                    <div class="feedback-item-header">
+                        <h4>Ihre Gesamteinschätzung des Redaktionsplans:</h4>
+                        <div class="rating">
+                            <input type="radio" name="rating-redaktionsplan" id="rating-redaktionsplan-5" value="5"><label for="rating-redaktionsplan-5">☆</label>
+                            <input type="radio" name="rating-redaktionsplan" id="rating-redaktionsplan-4" value="4"><label for="rating-redaktionsplan-4">☆</label>
+                            <input type="radio" name="rating-redaktionsplan" id="rating-redaktionsplan-3" value="3"><label for="rating-redaktionsplan-3">☆</label>
+                            <input type="radio" name="rating-redaktionsplan" id="rating-redaktionsplan-2" value="2"><label for="rating-redaktionsplan-2">☆</label>
+                            <input type="radio" name="rating-redaktionsplan" id="rating-redaktionsplan-1" value="1"><label for="rating-redaktionsplan-1">☆</label>
+                        </div>
+                    </div>
+                    <textarea name="feedback-text-redaktionsplan" class="feedback-textarea" rows="3" placeholder="Ihre Anmerkungen, Wünsche oder Bedenken zum Gesamtplan..."></textarea>
+                </div>
+                <div style="text-align: right; margin-top: 20px;">
+                    <button id="submitFeedback" class="submit-button">
+                        <span class="button-text">Redaktionsplan freigeben & Produktion starten</span>
+                        <span class="button-spinner"></span>
+                    </button>
+                </div>
+                <div id="successMessage"></div>
+                <div id="errorMessage"></div>
+            </div>
+        </section>
+
+        <footer class="footer">
+            <p>Erstellt für Fahrschule Gronemeier + Hennemann | August 2025</p>
+        </footer>
+                        </div>
+                    </div>
+                     <div class="swiper-slide"><div class="brochure"><header class="header"><h1>Redaktionsplan Juli 2025</h1></header></div></div>
+                </div>
+                <div class="swiper-button-next"></div>
+                <div class="swiper-button-prev"></div>
+                <div class="swiper-pagination"></div>
+            </div>
+        </div>
+        
+        <div id="content-freigabe-view" class="view-container">
+             <div class="swiper swiper-horizontal-container">
+                <div class="swiper-wrapper">
+                    <div class="swiper-slide"><div class="brochure"><header class="header"><h1>Freigabe: Blogartikel KW34</h1></header><section class="section"><h2>Entwurf des Artikels...</h2></section></div></div>
+                    <div class="swiper-slide"><div class="brochure"><header class="header"><h1>Freigabe: Reel KW33</h1></header><section class="section"><h2>Video-Vorschau...</h2></section></div></div>
+                </div>
+                <div class="swiper-button-next"></div>
+                <div class="swiper-button-prev"></div>
+                <div class="swiper-pagination"></div>
+            </div>
+        </div>
+        
+        <div id="performance-view" class="view-container">
+             <div class="brochure">
+                <header class="header"><h1>Performance</h1></header>
+                <section class="section"><h2>Monatsbericht Juli 2025</h2><p>Hier werden die Performance-Berichte angezeigt.</p></section>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const swiperInstances = {};
+            document.querySelectorAll('.swiper-horizontal-container').forEach(element => {
+                const containerId = element.closest('.view-container').id;
+                swiperInstances[containerId] = new Swiper(element, {
+                    direction: 'horizontal',
+                    pagination: { el: element.querySelector('.swiper-pagination'), clickable: true },
+                    navigation: { nextEl: element.querySelector('.swiper-button-next'), prevEl: element.querySelector('.swiper-button-prev') },
+                });
+            });
+
+            const tabButtons = document.querySelectorAll('.main-tabs .tab-button');
+            const viewContainers = document.querySelectorAll('.view-container');
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetId = button.getAttribute('data-target');
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    viewContainers.forEach(container => container.classList.remove('active'));
+                    const targetView = document.getElementById(targetId);
+                    if (targetView) {
+                        targetView.classList.add('active');
+                        if (swiperInstances[targetId]) {
+                            swiperInstances[targetId].update();
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

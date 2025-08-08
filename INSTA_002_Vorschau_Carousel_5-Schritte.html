@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finale Instagram Carousel Vorschau (Responsiv)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh; /* Stellt sicher, dass der Body mindestens die volle Höhe hat */
+            box-sizing: border-box;
+            margin: 0;
+        }
+        .phone-frame {
+            /* --- VERBESSERUNG --- */
+            /* Macht den Rahmen responsiv und sorgt dafür, dass er immer ins Fenster passt */
+            height: 90vh; /* Nimmt 90% der Fensterhöhe ein */
+            max-height: 800px; /* Aber wird nicht größer als 800px */
+            max-width: 420px;
+            aspect-ratio: 420 / 800; /* Behält das korrekte Seitenverhältnis bei */
+            
+            background-color: #1c1c1c;
+            border-radius: 40px;
+            padding: 15px;
+            box-shadow: 0 10px B30px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+        }
+        .phone-screen {
+            background-color: #ffffff;
+            flex-grow: 1;
+            border-radius: 25px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .insta-header {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            border-bottom: 1px solid #dbdbdb;
+            flex-shrink: 0;
+        }
+        .insta-logo {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-image: url('408510062_770377664925139_2253200024654655244_n.jpg');
+       background-size: contain;
+            border: 1px solid #eee;
+        }
+        .insta-username {
+            font-weight: 700;
+            margin-left: 10px;
+        }
+        .carousel-container {
+            position: relative;
+            width: 100%;
+            /* --- VERBESSERUNG --- */
+            /* Sorgt dafür, dass der Carousel-Container immer quadratisch bleibt */
+            aspect-ratio: 1 / 1;
+            overflow: hidden;
+            display: flex;
+        }
+        .carousel-track {
+            display: flex;
+            transition: transform 0.3s ease-in-out;
+            height: 100%;
+        }
+        .slide {
+            width: 100%;
+            height: 100%;
+            flex-shrink: 0;
+        }
+        .slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .nav-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(255, 255, 255, 0.7);
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 18px;
+            z-index: 10;
+        }
+        .prev { left: 10px; }
+        .next { right: 10px; }
+        .slide-indicators {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            z-index: 5;
+        }
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: #a8a8a8;
+            margin: 0 3px;
+        }
+        .dot.active { background-color: #007bff; }
+        .insta-caption {
+            padding: 15px;
+            font-size: 14px;
+            line-height: 1.4;
+            flex-grow: 1;
+            overflow-y: auto; /* Erlaubt Scrollen, falls der Text zu lang wird */
+        }
+        .insta-caption strong { font-weight: 700; }
+    </style>
+</head>
+<body>
+    <div class="phone-frame">
+        <div class="phone-screen">
+            <div class="insta-header">
+                <div class="insta-logo"></div>
+                <span class="insta-username">fahrschulegh</span>
+            </div>
+            <div class="carousel-container">
+                <div class="carousel-track">
+                    <div class="slide"><img src="insta_slide_01_titel_final.png" alt="Titel"></div>
+                    <div class="slide"><img src="insta_slide_02_step1_final.png" alt="Schritt 1"></div>
+                    <div class="slide"><img src="insta_slide_03_step2_final.png" alt="Schritt 2"></div>
+                    <div class="slide"><img src="insta_slide_04_step3_final.png" alt="Schritt 3"></div>
+                    <div class="slide"><img src="insta_slide_05_step4_final.png" alt="Schritt 4"></div>
+                    <div class="slide"><img src="insta_slide_06_step5_final.png" alt="Schritt 5"></div>
+                    <div class="slide"><img src="insta_slide_07_cta_final.png" alt="CTA"></div>
+                </div>
+                <button class="nav-arrow prev">&#10094;</button>
+                <button class="nav-arrow next">&#10095;</button>
+                <div class="slide-indicators"></div>
+            </div>
+            <div class="insta-caption">
+                <p><strong>fahrschulegh</strong> Dein Weg zum Führerschein in 5 klaren Schritten! 🗺️✨ Swipe dich durch unseren bewährten 5-Meilenstein-Plan und entdecke, wie wir deine Ausbildung von Anfang an planbar und stressfrei gestalten. #führerschein #fahrschule #dortmund</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const track = document.querySelector('.carousel-track');
+        const slides = Array.from(track.children);
+        const nextButton = document.querySelector('.next');
+        const prevButton = document.querySelector('.prev');
+        const indicatorsContainer = document.querySelector('.slide-indicators');
+        let currentIndex = 0;
+
+        const slideWidth = () => slides[0].getBoundingClientRect().width;
+
+        slides.forEach((_, i) => {
+            const dot = document.createElement('div');
+            dot.classList.add('dot');
+            if (i === 0) dot.classList.add('active');
+            indicatorsContainer.appendChild(dot);
+        });
+        const dots = Array.from(indicatorsContainer.children);
+
+        const updateSlide = () => {
+            track.style.transform = 'translateX(-' + slideWidth() * currentIndex + 'px)';
+            dots.forEach(dot => dot.classList.remove('active'));
+            dots[currentIndex].classList.add('active');
+            prevButton.style.display = currentIndex === 0 ? 'none' : 'block';
+            nextButton.style.display = currentIndex === slides.length - 1 ? 'none' : 'block';
+        };
+
+        const navigate = (direction) => {
+            const newIndex = currentIndex + direction;
+            if (newIndex >= 0 && newIndex < slides.length) {
+                currentIndex = newIndex;
+                updateSlide();
+            }
+        };
+        
+        nextButton.addEventListener('click', () => navigate(1));
+        prevButton.addEventListener('click', () => navigate(-1));
+
+        // Update slide width on window resize
+        window.addEventListener('resize', () => {
+            updateSlide();
+        });
+
+        updateSlide();
+    </script>
+</body>
+</html>
