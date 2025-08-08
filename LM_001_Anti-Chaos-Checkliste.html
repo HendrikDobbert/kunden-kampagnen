@@ -8,29 +8,41 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary-color: #009ee2;
+            --text-color: #212529;
+            --background-light: #f4f7f6;
+            --background-white: #ffffff;
+            --border-light: #f0f0f0;
+        }
+
         body {
             font-family: 'Poppins', sans-serif;
-            background-color: #f4f7f6;
-            color: #212529;
+            background-color: var(--background-light);
+            color: var(--text-color);
             margin: 0;
             padding: 20px;
         }
+
         .container {
             max-width: 800px;
             margin: 0 auto;
         }
+
         .page {
-            background-color: #ffffff;
+            background-color: var(--background-white);
             padding: 50px 60px;
             margin-bottom: 20px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.08);
             border-radius: 5px;
             position: relative; /* Für Seitenzahl */
         }
+
         .logo {
             max-width: 250px;
             margin-bottom: 40px;
         }
+
         h1 {
             font-size: 3rem;
             font-weight: 900;
@@ -38,38 +50,44 @@
             line-height: 1.1;
             margin-bottom: 10px;
         }
+
         h2 {
             font-size: 1.5rem;
             font-weight: 700;
-            color: #009ee2; /* Primärfarbe */
+            color: var(--primary-color);
             margin-top: 0;
             margin-bottom: 20px;
         }
+
         h3 {
             font-size: 1.2rem;
             font-weight: 700;
             text-transform: uppercase;
-            color: #212529;
-            border-bottom: 2px solid #f0f0f0;
+            color: var(--text-color);
+            border-bottom: 2px solid var(--border-light);
             padding-bottom: 10px;
             margin-top: 40px;
-            display: flex; /* Für Icons */
-            align-items: center; /* Für Icons */
+            display: flex;
+            align-items: center;
         }
+
         .icon {
             font-size: 1.8rem;
             margin-right: 15px;
-            color: #009ee2;
+            color: var(--primary-color);
         }
+
         p {
             font-size: 1rem;
             line-height: 1.7;
         }
+
         .intro-text {
             font-size: 1.1rem;
             font-weight: 700;
             color: #555;
         }
+
         blockquote {
             background-color: #f9f9f9;
             border-left: 5px solid #e0e0e0;
@@ -78,34 +96,41 @@
             font-size: 1.1rem;
             font-weight: 700;
         }
+
         .question-meta {
             font-weight: 700;
             color: #333;
         }
+
         .gh-answer {
             background-color: #f0f8ff;
-            border-left: 5px solid #009ee2; /* Primärfarbe */
+            border-left: 5px solid var(--primary-color);
             padding: 15px 20px;
             margin-top: 15px;
         }
+
         .gh-answer strong {
-            color: #009ee2; /* Primärfarbe */
+            color: var(--primary-color);
             font-weight: 900;
             display: block;
             margin-bottom: 5px;
         }
+
         .cta-button {
-            background-color: #009ee2;
-            color: #ffffff;
+            background-color: var(--primary-color);
+            color: var(--background-white);
             padding: 15px 30px;
             border-radius: 5px;
             text-decoration: none;
             font-weight: 700;
             transition: background-color 0.3s ease;
+            display: inline-block; /* Für besseres Padding-Verhalten */
         }
+
         .cta-button:hover {
             background-color: #007bb5;
         }
+
         .page-number {
             position: absolute;
             bottom: 20px;
@@ -113,6 +138,53 @@
             font-size: 0.9rem;
             color: #aaa;
         }
+        
+        /* --- MOBILE OPTIMIERUNG --- */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .page {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 2.2rem;
+                line-height: 1.2;
+            }
+
+            h2 {
+                font-size: 1.3rem;
+            }
+
+            h3 {
+                font-size: 1.1rem;
+            }
+            
+            p, .intro-text, blockquote {
+                font-size: 1rem;
+            }
+
+            .logo {
+                max-width: 200px;
+                margin-bottom: 25px;
+            }
+
+            .page-number {
+                bottom: 15px;
+                right: 20px;
+                font-size: 0.8rem;
+            }
+            
+            .cta-button {
+                padding: 15px 20px;
+                width: 100%;
+                box-sizing: border-box; /* Stellt sicher, dass Padding in der Breite enthalten ist */
+                text-align: center;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -280,10 +352,10 @@
             <div style="text-align: center; margin-top: 30px;">
                 <a href="[LINK_ZUM_KALENDER]" class="cta-button">Plane jetzt dein kostenloses Beratungsgespräch</a>
             </div>
-            <hr style="margin-top: 50px; border: 1px solid #f0f0f0;">
+            <hr style="margin-top: 50px; border: none; border-top: 1px solid var(--border-light);">
             <div style="text-align: center; margin-top: 20px;">
                 <img src="fahrschule-gronemeier-hennemann-logo-zeilen-49efb60b.svg" alt="Logo Fahrschule Gronemeier + Hennemann" style="max-width: 200px; margin-bottom: 10px;">
-                <p style="font-size: 0.9rem; margin: 0;">Fahrschule Gronemeier Hennemann GmbH<br>
+                <p style="font-size: 0.9rem; margin: 0; line-height: 1.5;">Fahrschule Gronemeier Hennemann GmbH<br>
                 fahrschule-in-dortmund.de | 0231 28211720 | buero@gronemeier-hennemann.de</p>
             </div>
             <div class="page-number">Seite 8 von 8</div>
