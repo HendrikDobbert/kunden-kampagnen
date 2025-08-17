@@ -23,10 +23,10 @@
          * Callback after the GAPI script is loaded. It proceeds to load the GAPI client.
          */
         function gapiLoaded() {
-            // This function is defined globally, so the `onload` attribute in the script tag can find it.
             console.log("LOG: GAPI script loaded successfully.");
-            // `gapi` is now available globally from the loaded script.
-            gapi.load('client', initializeGapiClient);
+            // Sage der Funktion explizit, dass sie die Version
+            // aus dem globalen "window"-Objekt nehmen soll.
+            gapi.load('client', window.initializeGapiClient);
         }
 
         /**
