@@ -11,6 +11,10 @@
     <!-- Marked.js for Markdown-Rendering in Chat -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
+    <!-- Google API Scripts -->
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://accounts.google.com/gsi/client"></script>
+
     <!-- Custom Stylesheet -->
     <style>
         body {
@@ -434,6 +438,12 @@
                 await gapi.client.load('calendar', 'v3');
                 gapiInited = true;
                 console.log("DEBUG: GAPI client and Calendar API initialized successfully.");
+                
+                // FIX: Resolve the promise to signal that GAPI is ready.
+                if (window.resolveGapiClientReady) {
+                    window.resolveGapiClientReady();
+                }
+
                 maybeEnableButtons();
             } catch (error) {
                 handleApiInitError("Fehler bei der Initialisierung des Google API-Clients (GAPI).", error);
@@ -2095,16 +2105,17 @@
                     db = getFirestore(app);
                     auth = getAuth(app);
 
-                    onAuthStateChanged(auth, user => {
+                    onAuthStateChanged(auth, async (user) => {
                         if (user) {
                             console.log("Firebase user signed in:", user.uid);
                             userId = user.uid;
-                            // Set token for GAPI if not already set (e.g., on page refresh)
-                            if (!gapi.client.getToken()) {
-                                user.getIdToken().then(accessToken => {
-                                    gapi.client.setToken({ access_token: accessToken });
-                                });
-                            }
+                            
+                            // FIX: Wait for GAPI to be fully initialized before proceeding
+                            await gapiClientReadyPromise;
+                            
+                            // The Google token is now handled by the signInWithPopup result.
+                            // On reload, GAPI might not have a token, which is fine.
+                            // It will be requested when an API call is made.
                             updateSigninStatus(true);
                         } else {
                             console.log("Firebase user signed out.");
@@ -2158,22 +2169,21 @@
             // --- Initial Load ---
             showLoader();
             console.log("DEBUG: DOM fully loaded. Starting app initialization.");
+            
+            let resolveGapiClientReady;
+            const gapiClientReadyPromise = new Promise(resolve => {
+                resolveGapiClientReady = resolve;
+            });
+            
+            // Assign resolver to the global scope so the async function can call it
+            window.resolveGapiClientReady = resolveGapiClientReady;
+
             // Initialize Firebase right away
             initializeAppAndFirestore();
-
-            setTimeout(() => {
-                if (!gapiInited || !gisInited) {
-                   if (!API_KEY || API_KEY === "YOUR_API_KEY" || !CLIENT_ID || CLIENT_ID === "YOUR_CLIENT_ID") {
-                        // Error already shown, do nothing
-                   } else {
-                        handleApiInitError("Timeout: Google-Skripte konnten nicht geladen werden. Überprüfen Sie Ihre Netzwerkverbindung und Werbeblocker.");
-                   }
-                }
-            }, 10000); // 10-second timeout
+            
+            // The Google API scripts will call their respective `loaded` functions
+            // once they are ready.
         });
     </script>
-    <!-- The onload callbacks must be on the window object when using modules -->
-    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
-    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 </body>
 </html>
