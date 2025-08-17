@@ -1,26 +1,2177 @@
-DEBUG: GIS client initialized.
-index copy 15.html:428 DEBUG: Initializing GAPI client...
-content.js:40 Feature is disabled
-index copy 15.html:2098 Firebase user signed in: ayaIsn0ggUMnOo5Kvu1sbPwi2fp1
-index copy 15.html:452  Termine konnten nicht geladen werden. TypeError: Cannot read properties of undefined (reading 'events')
-    at fetchEvents (index copy 15.html:679:65)
-    at updateSigninStatus (index copy 15.html:636:21)
-    at index copy 15.html:2106:29
-    at auth_impl.ts:758:47
-showError @ index copy 15.html:452
-index copy 15.html:701 DEBUG: Fetching wider range of events for AI context...
-index copy 15.html:732  Could not fetch events for AI context. TypeError: Cannot read properties of undefined (reading 'events')
-    at fetchAiContextEvents (index copy 15.html:708:65)
-    at updateSigninStatus (index copy 15.html:637:21)
-    at index copy 15.html:2106:29
-    at auth_impl.ts:758:47
-fetchAiContextEvents @ index copy 15.html:732
-index copy 15.html:434 DEBUG: GAPI client initialized successfully.
-index copy 15.html:478 DEBUG: Both GAPI and GIS are initialized. Enabling buttons.
-index copy 15.html:2152  Error listening to todos: FirebaseError: Missing or insufficient permissions.
-(anonymous) @ index copy 15.html:2152
-index copy 15.html:2136  Error listening to profile: FirebaseError: Missing or insufficient permissions.
-(anonymous) @ index copy 15.html:2136
-index copy 15.html:2145  Error listening to goals: FirebaseError: Missing or insufficient permissions.
-(anonymous) @ index copy 15.html:2145
-index copy 15.html:1  [Deprecation] -ms-high-contrast is in the process of being deprecated. Please see https://blogs.windows.com/msedgedev/2024/04/29/deprecating-ms-high-contrast/ for tips on updating to the new Forced Colors Mode standard.
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaktiver KI-Kalender & Dashboard</title>
+    
+    <!-- External Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Marked.js for Markdown-Rendering in Chat -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Custom Stylesheet -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            cursor: default;
+            user-select: none;
+        }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+        .calendar-day-month { min-height: 120px; }
+        .events-container::-webkit-scrollbar, #chat-messages::-webkit-scrollbar, .timeline-wrapper::-webkit-scrollbar, #goal-list::-webkit-scrollbar, #todo-list::-webkit-scrollbar, #analysis-results::-webkit-scrollbar, #crm-suggestions::-webkit-scrollbar { width: 5px; }
+        .events-container::-webkit-scrollbar-thumb, #chat-messages::-webkit-scrollbar-thumb, .timeline-wrapper::-webkit-scrollbar-thumb, #goal-list::-webkit-scrollbar-thumb, #todo-list::-webkit-scrollbar-thumb, #analysis-results::-webkit-scrollbar-thumb, #crm-suggestions::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+        .events-container::-webkit-scrollbar-track, #chat-messages::-webkit-scrollbar-track, .timeline-wrapper::-webkit-scrollbar-track, #goal-list::-webkit-scrollbar-track, #todo-list::-webkit-scrollbar-track, #analysis-results::-webkit-scrollbar-track, #crm-suggestions::-webkit-scrollbar-track { background-color: #f1f5f9; }
+        .view-btn.active { background-color: #3b82f6; color: white; }
+        .timeline-wrapper { display: grid; grid-template-columns: 50px 1fr; height: calc(60px * 24); overflow-y: auto; position: relative; }
+        .timeline-hours { grid-column: 1; }
+        .timeline-grid { grid-column: 2; position: relative; display: grid; grid-template-rows: repeat(24, 60px); }
+        .timeline-grid .hour-line { border-bottom: 1px solid #e5e7eb; }
+        .timeline-hour-label { height: 60px; text-align: right; padding-right: 10px; font-size: 12px; color: #6b7280; }
+        .week-view-grid { display: grid; grid-template-columns: 50px repeat(7, minmax(0, 1fr)); }
+        .week-day-column { position: relative; border-right: 1px solid #e5e7eb; }
+        .timeline-event { position: absolute; left: 4px; right: 4px; z-index: 10; overflow: hidden; display: flex; flex-direction: column; }
+        #loader { position: fixed; inset: 0; background-color: rgba(255, 255, 255, 0.7); display: flex; align-items: center; justify-content: center; z-index: 10000; }
+        .spinner { border: 4px solid rgba(0, 0, 0, 0.1); width: 36px; height: 36px; border-radius: 50%; border-left-color: #3b82f6; animation: spin 1s ease infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* KI Chat Styles */
+        .chat-bubble-user { background-color: #3b82f6; color: white; }
+        .chat-bubble-ai { background-color: #e5e7eb; color: #1f2937; }
+        
+        /* Markdown Styles for the Chat */
+        .chat-bubble-ai p, .proposal-card p { margin-bottom: 0.5rem; }
+        .chat-bubble-ai ul, .proposal-card ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 0.5rem; }
+        .chat-bubble-ai ol, .proposal-card ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 0.5rem; }
+        .chat-bubble-ai strong, .proposal-card strong { font-weight: 600; }
+        .chat-bubble-ai a { color: #2563eb; text-decoration: underline; }
+
+        .typing-indicator span { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #9ca3af; animation: typing 1.4s infinite both; }
+        .typing-indicator span:nth-child(1) { animation-delay: 0s; }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1.0); } }
+
+        /* Mikrofon-Button Styles */
+        #mic-btn.recording { background-color: #ef4444; color: white; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+
+        /* Dashboard & Analysis Styles */
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+        .dashboard-card { background-color: white; border-radius: 0.75rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); padding: 1.5rem; border: 1px solid #e5e7eb; display: flex; flex-direction: column; }
+        .dashboard-card h3 { font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; }
+
+        /* Goal Tracking Styles */
+        .progress-bar-bg { background-color: #e5e7eb; border-radius: 9999px; height: 0.75rem; overflow: hidden; }
+        .progress-bar-fill { background-color: #3b82f6; height: 100%; border-radius: 9999px; transition: width 0.5s ease-in-out; }
+        .goal-item:hover { background-color: #f9fafb; }
+
+        /* To-Do List Styles */
+        .todo-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem; border-radius: 0.375rem; transition: background-color 0.2s; }
+        .todo-item:hover { background-color: #f9fafb; }
+        .todo-item input[type="checkbox"] { width: 1rem; height: 1rem; border-radius: 0.25rem; border-color: #d1d5db; }
+        .todo-item .todo-text { flex-grow: 1; font-size: 0.875rem; color: #374151; }
+        .todo-item.completed .todo-text { text-decoration: line-through; color: #9ca3af; }
+        .todo-item .delete-todo-btn { background: none; border: none; color: #9ca3af; cursor: pointer; opacity: 0; transition: opacity 0.2s; }
+        .todo-item:hover .delete-todo-btn { opacity: 1; }
+        .todo-item .delete-todo-btn:hover { color: #ef4444; }
+        
+        /* NEU: Styles for injected Agenda HTML */
+        .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 0.5rem; }
+        .prose ul ul { list-style-type: circle; padding-left: 1.5rem; margin-top: 0.25rem; }
+        .prose li { margin-bottom: 0.25rem; }
+        .prose strong { font-weight: 600; }
+
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 antialiased">
+
+    <!-- Loading Spinner Overlay -->
+    <div id="loader"><div class="spinner"></div></div>
+
+    <!-- The root container for our entire application -->
+    <div class="container mx-auto p-4 md:p-8">
+        
+        <!-- Error Display Container -->
+        <div id="error-container" class="hidden text-center p-4 mb-4 bg-red-100 text-red-700 rounded-lg shadow">
+            <p id="error-message" class="font-bold"></p>
+            <p class="text-sm">Bitte öffnen Sie die Entwicklerkonsole (F12) für technische Details.</p>
+        </div>
+
+        <!-- Authentication Section -->
+        <div id="auth-container" class="text-center p-8 bg-white rounded-2xl shadow-lg">
+            <h2 class="text-2xl font-bold mb-4">Interaktiver Kalender</h2>
+            <p id="auth-message" class="mb-6 text-gray-600">Bitte melden Sie sich mit Ihrem Google-Konto an, um Ihre Kalendertermine zu verwalten.</p>
+            <button id="auth-btn" class="inline-flex items-center justify-center px-6 py-3 text-lg font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 transition-colors disabled:opacity-50" disabled>
+                <svg class="w-6 h-6 mr-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48px" height="48px"><path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/><path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/><path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/><path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.082,5.599l6.19,5.238C42.012,35.846,44,30.138,44,24C44,22.659,43.862,21.35,43.611,20.083z"/></svg>
+                Mit Google anmelden
+            </button>
+        </div>
+
+        <!-- Main Calendar App (initially hidden) -->
+        <div id="calendar-app" class="hidden bg-white rounded-2xl shadow-lg overflow-hidden">
+            <!-- Header -->
+            <div id="calendar-header" class="flex flex-wrap items-center justify-between p-4 md:p-6 border-b border-gray-200 gap-4">
+                <div class="flex items-center space-x-4">
+                    <button id="today-btn" class="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">Heute</button>
+                    <div class="flex items-center space-x-2">
+                        <button id="prev-btn" class="p-2 rounded-full hover:bg-gray-100 transition-colors"><svg class="w-5 h-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg></button>
+                        <button id="next-btn" class="p-2 rounded-full hover:bg-gray-100 transition-colors"><svg class="w-5 h-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></button>
+                    </div>
+                    <h2 id="current-period" class="text-xl md:text-2xl font-semibold text-gray-700 w-48 text-center"></h2>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center bg-gray-100 rounded-lg p-1">
+                        <!-- View Buttons -->
+                        <button id="dashboard-view-btn" class="view-btn px-3 py-1 text-sm font-medium rounded-md transition-colors active">Dashboard</button>
+                        <button id="day-view-btn" class="view-btn px-3 py-1 text-sm font-medium rounded-md transition-colors">Tag</button>
+                        <button id="week-view-btn" class="view-btn px-3 py-1 text-sm font-medium rounded-md transition-colors">Woche</button>
+                        <button id="month-view-btn" class="view-btn px-3 py-1 text-sm font-medium rounded-md transition-colors">Monat</button>
+                        <button id="analysis-view-btn" class="view-btn px-3 py-1 text-sm font-medium rounded-md transition-colors">Analyse</button>
+                        <button id="profile-view-btn" class="view-btn px-3 py-1 text-sm font-medium rounded-md transition-colors flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                            Profil
+                        </button>
+                    </div>
+                     <!-- Goal Button -->
+                    <button id="manage-goals-btn" class="p-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors" title="Ziele verwalten">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <button id="add-event-btn" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors flex items-center space-x-2"><svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg><span class="hidden md:inline">Termin</span></button>
+                    <button id="signout-btn" class="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">Abmelden</button>
+                </div>
+            </div>
+
+            <!-- Calendar Views -->
+            <div id="dashboard-view" class="p-6 md:p-8 bg-gray-50">
+                <div id="dashboard-content" class="dashboard-grid">
+                    <!-- Dashboard Widgets werden hier per JavaScript eingefügt -->
+                </div>
+            </div>
+            <div id="month-view" class="hidden">
+                <div class="calendar-grid border-b border-gray-200"><div class="text-center py-3 text-sm font-medium text-gray-500">So</div><div class="text-center py-3 text-sm font-medium text-gray-500">Mo</div><div class="text-center py-3 text-sm font-medium text-gray-500">Di</div><div class="text-center py-3 text-sm font-medium text-gray-500">Mi</div><div class="text-center py-3 text-sm font-medium text-gray-500">Do</div><div class="text-center py-3 text-sm font-medium text-gray-500">Fr</div><div class="text-center py-3 text-sm font-medium text-gray-500">Sa</div></div>
+                <div id="month-days" class="calendar-grid" style="grid-auto-rows: 1fr;"></div>
+            </div>
+            <div id="week-view" class="hidden">
+                 <div id="week-header" class="grid" style="grid-template-columns: 50px repeat(7, minmax(0, 1fr));"></div>
+                 <div id="week-body" class="timeline-wrapper week-view-grid"></div>
+            </div>
+            <div id="day-view" class="hidden">
+                <div id="day-header" class="text-center text-xl font-semibold p-4 border-b"></div>
+                <div id="day-body" class="timeline-wrapper"></div>
+            </div>
+            <div id="profile-view" class="hidden p-6 md:p-8 bg-gray-50">
+                <div class="max-w-3xl mx-auto bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-2">Mein Planungsprofil</h3>
+                    <p class="text-gray-500 mb-6">Diese Informationen verwendet Ihr KI-Assistent, um personalisierte Pläne und Termine für Sie zu erstellen. Starten Sie einen Chat, um Ihr Profil zu füllen.</p>
+                    
+                    <div id="profile-data-container" class="space-y-4">
+                        <!-- Profildaten werden hier per JavaScript eingefügt -->
+                    </div>
+                </div>
+            </div>
+            <div id="analysis-view" class="hidden p-6 md:p-8 bg-gray-50">
+                <div class="max-w-4xl mx-auto">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6">Analyse & Einblicke</h3>
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200 mb-6">
+                        <h4 class="text-lg font-semibold mb-4">Benutzerdefinierte Abfrage</h4>
+                        <form id="analysis-form" class="flex flex-wrap items-end gap-4">
+                            <div>
+                                <label for="analysis-keyword" class="block text-sm font-medium text-gray-700 mb-1">Stichwort (im Titel)</label>
+                                <input type="text" id="analysis-keyword" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="z.B. Projekt X">
+                            </div>
+                             <div>
+                                <label for="analysis-range" class="block text-sm font-medium text-gray-700 mb-1">Zeitraum</label>
+                                <select id="analysis-range" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                    <option value="7">Letzte 7 Tage</option>
+                                    <option value="30" selected>Letzte 30 Tage</option>
+                                    <option value="90">Letzte 90 Tage</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm">Analyse starten</button>
+                        </form>
+                    </div>
+                    <div id="analysis-results" class="dashboard-grid">
+                        <!-- Analyse-Ergebnisse werden hier eingefügt -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Event Modal -->
+    <div id="event-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-auto transform transition-all">
+            <form id="event-form" class="p-6 space-y-4">
+                <div class="flex justify-between items-center"><h3 id="modal-title" class="text-lg font-semibold text-gray-800">Termin hinzufügen</h3><button type="button" id="close-modal-btn" class="p-2 rounded-full hover:bg-gray-100"><svg class="w-5 h-5 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button></div>
+                <input type="hidden" id="event-id">
+                <div><label for="event-title" class="block text-sm font-medium text-gray-700 mb-1">Titel</label><input type="text" id="event-title" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required></div>
+                <div><label for="event-date" class="block text-sm font-medium text-gray-700 mb-1">Datum</label><input type="date" id="event-date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required></div>
+                <div class="flex items-center space-x-2"><input type="checkbox" id="all-day-checkbox" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"><label for="all-day-checkbox" class="text-sm font-medium text-gray-700">Ganztägig</label></div>
+                <div id="time-inputs" class="grid grid-cols-2 gap-4">
+                    <div><label for="event-start-time" class="block text-sm font-medium text-gray-700 mb-1">Start</label><input type="time" id="event-start-time" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"></div>
+                    <div><label for="event-end-time" class="block text-sm font-medium text-gray-700 mb-1">Ende</label><input type="time" id="event-end-time" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"></div>
+                </div>
+                <div><label for="event-description" class="block text-sm font-medium text-gray-700 mb-1">Beschreibung</label><textarea id="event-description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Zweck des Termins..."></textarea></div>
+                
+                <!-- NEU: Kontextbezogene Agenda -->
+                <div id="contextual-agenda-section" class="hidden pt-4 border-t">
+                    <h4 class="text-sm font-medium text-gray-800 mb-2 flex justify-between items-center">
+                        <span>Automatisch erstellte Agenda</span>
+                        <button type="button" id="regenerate-agenda-btn" class="p-1 text-blue-600 hover:bg-blue-100 rounded-full" title="Agenda neu generieren">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h5M20 20v-5h-5M4 4l1.5 1.5A9 9 0 0120.5 10.5M20 20l-1.5-1.5A9 9 0 003.5 13.5" />
+                            </svg>
+                        </button>
+                    </h4>
+                    <div id="contextual-agenda-content" class="text-sm p-3 bg-gray-50 rounded-lg min-h-[100px] text-gray-600 prose">
+                        <!-- Agenda content will be injected here -->
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="event-skill-tags" class="block text-sm font-medium text-gray-700 mb-1">Skill-Tags</label>
+                    <input type="text" id="event-skill-tags" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="z.B. #Python, #Verhandlungsführung">
+                </div>
+
+                <!-- Goal Linking Section -->
+                <div>
+                    <label for="event-goal-link" class="block text-sm font-medium text-gray-700 mb-1">Mit Ziel verknüpfen</label>
+                    <select id="event-goal-link" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">-- Kein Ziel --</option>
+                        <!-- Goal options will be populated by JS -->
+                    </select>
+                </div>
+
+                <!-- Sektion für Terminergebnis -->
+                <div id="event-outcome-section" class="hidden pt-4 border-t">
+                    <h4 class="text-sm font-medium text-gray-800 mb-2">Wie war der Termin? (Feedback für die KI)</h4>
+                    <div>
+                        <label for="event-outcome" class="block text-sm font-medium text-gray-700 mb-1">Ergebnis</label>
+                        <select id="event-outcome" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">-- Bitte wählen --</option>
+                            <option value="Erfolgreich">Erfolgreich</option>
+                            <option value="Neutral">Neutral</option>
+                            <option value="Nicht erfolgreich">Nicht erfolgreich</option>
+                        </select>
+                    </div>
+                    <div class="mt-2">
+                        <label for="event-outcome-notes" class="block text-sm font-medium text-gray-700 mb-1">Notizen zum Ergebnis</label>
+                        <textarea id="event-outcome-notes" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Was wurde erreicht? Was waren die nächsten Schritte?"></textarea>
+                    </div>
+                </div>
+
+                <div><label for="event-color" class="block text-sm font-medium text-gray-700 mb-1">Farbe</label><select id="event-color" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"><option value="1">Blau</option><option value="2">Grün</option><option value="3">Lila</option><option value="4">Rot</option><option value="5">Gelb</option><option value="6">Orange</option><option value="7">Türkis</option><option value="8">Grau</option></select></div>
+                <div class="flex justify-end items-center pt-4 space-x-3"><button type="button" id="delete-event-btn" class="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-sm transition-colors hidden">Löschen</button><button type="submit" id="save-event-btn" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors">Speichern</button></div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Goal Management Modal -->
+    <div id="goal-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-auto transform transition-all flex flex-col h-[70vh]">
+            <div class="flex justify-between items-center p-4 border-b">
+                <h3 class="text-lg font-semibold text-gray-800">Meine Ziele verwalten</h3>
+                <button type="button" id="close-goal-modal-btn" class="p-2 rounded-full hover:bg-gray-100"><svg class="w-5 h-5 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+            </div>
+            <div id="goal-list" class="flex-1 p-4 overflow-y-auto space-y-3">
+                <!-- Goal items will be rendered here -->
+            </div>
+            <div class="p-4 border-t bg-gray-50">
+                <form id="goal-form" class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                    <input type="hidden" id="goal-id">
+                    <div>
+                        <label for="goal-title" class="block text-sm font-medium text-gray-700 mb-1">Ziel-Titel</label>
+                        <input type="text" id="goal-title" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="z.B. Spanisch lernen" required>
+                    </div>
+                    <div>
+                        <label for="goal-target" class="block text-sm font-medium text-gray-700 mb-1">Benötigte Schritte</label>
+                        <input type="number" id="goal-target" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="z.B. 50" min="1" required>
+                    </div>
+                    <button type="submit" id="save-goal-btn" class="w-full md:w-auto justify-self-end px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm">Ziel speichern</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gemini AI Planner Chat -->
+    <button id="open-chat-btn" class="hidden fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 shadow-lg transition-transform hover:scale-110 z-40">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm2.293 15.707L11 14.414l-3.293 3.293-1.414-1.414L9.586 13l-3.293-3.293 1.414-1.414L11 11.586l3.293-3.293 1.414 1.414L12.414 13l3.293 3.293-1.414 1.414z"/></svg>
+    </button>
+    <div id="chat-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg h-[80vh] flex flex-col transform transition-all">
+            <div class="flex justify-between items-center p-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-800">Ihr persönlicher Planungsassistent</h3>
+                <button type="button" id="close-chat-btn" class="p-2 rounded-full hover:bg-gray-100">
+                    <svg class="w-5 h-5 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-4">
+                <!-- Chat messages will be appended here -->
+            </div>
+            <div id="ai-thinking-indicator" class="p-4 border-t border-gray-200 hidden">
+                 <div class="flex items-center space-x-2">
+                     <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm2.293 15.707L11 14.414l-3.293 3.293-1.414-1.414L9.586 13l-3.293-3.293 1.414-1.414L11 11.586l3.293-3.293 1.414 1.414L12.414 13l3.293 3.293-1.414 1.414z"/></svg>
+                     </div>
+                     <div class="typing-indicator"><span></span><span></span><span></span></div>
+                 </div>
+            </div>
+            <div class="p-4 border-t border-gray-200">
+                <form id="chat-form" class="flex items-center space-x-2">
+                    <input type="text" id="chat-input" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Was sind Ihre Ziele?..." required autocomplete="off">
+                    <button type="button" id="mic-btn" class="p-3 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 transition-colors">
+                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                    </button>
+                    <button type="submit" class="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-300">
+                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-auto p-6 text-center">
+            <h3 id="confirm-title" class="text-lg font-semibold text-gray-800 mb-4">Bestätigung</h3>
+            <p id="confirm-message" class="text-gray-600 mb-6">Möchten Sie diesen Vorgang wirklich ausführen?</p>
+            <div class="flex justify-center space-x-4">
+                <button id="confirm-cancel-btn" class="px-6 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg">Abbrechen</button>
+                <button id="confirm-ok-btn" class="px-6 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg">Löschen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEU: Briefing Modal -->
+    <div id="briefing-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 id="briefing-title" class="text-lg font-semibold text-gray-800">Meeting-Briefing</h3>
+                    <button type="button" id="close-briefing-btn" class="p-2 rounded-full hover:bg-gray-100">
+                        <svg class="w-5 h-5 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+                <div id="briefing-content" class="text-sm text-gray-700 prose min-h-[150px]">
+                    <!-- Briefing content will be injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Main application script -->
+    <script type="module">
+        // --- Firebase SDK Imports ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, collection, query, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // --- Global Scope for GAPI/GIS Callbacks ---
+        window.gapiLoaded = gapiLoaded;
+        window.gisLoaded = gisLoaded;
+
+        let gapiInited = false;
+        let gisInited = false;
+        let tokenClient;
+
+        // --- Firebase Globals ---
+        let db, auth, userId;
+        let unsubscribeGoals, unsubscribeTodos, unsubscribeProfile;
+
+        // --- Google API Configuration ---
+        const API_KEY = "AIzaSyC1ymSnU_BjwnyrvWZCn8kmjGO_IKw9Lvw";
+        const CLIENT_ID = "384756172708-u3vcpbukuut2gvjpomnl1ccq52rb4e33.apps.googleusercontent.com";
+        const SCOPES = 'https://www.googleapis.com/auth/calendar';
+        
+        // --- Gemini API Configuration ---
+        const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${API_KEY}`;
+
+
+        /**
+         * Callback after GAPI script is loaded.
+         */
+        function gapiLoaded() {
+            console.log("DEBUG: GAPI script loaded successfully.");
+            gapi.load('client', initializeGapiClient);
+        }
+
+        /**
+         * Callback after GIS script is loaded.
+         */
+        function gisLoaded() {
+            console.log("DEBUG: GIS script loaded successfully.");
+            try {
+                // GIS client is still needed for revoking the token on sign-out
+                tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: CLIENT_ID,
+                    scope: SCOPES,
+                    callback: '', 
+                });
+                gisInited = true;
+                console.log("DEBUG: GIS client initialized.");
+                maybeEnableButtons();
+            } catch (error) {
+                handleApiInitError("Fehler bei der Initialisierung des Google Identity Clients (GIS).", error);
+            }
+        }
+
+        /**
+         * Initializes the GAPI client.
+         */
+        async function initializeGapiClient() {
+            try {
+                console.log("DEBUG: Initializing GAPI client...");
+                await gapi.client.init({
+                    apiKey: API_KEY,
+                    discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"],
+                });
+                gapiInited = true;
+                console.log("DEBUG: GAPI client initialized successfully.");
+                maybeEnableButtons();
+            } catch (error) {
+                handleApiInitError("Fehler bei der Initialisierung des Google API-Clients (GAPI).", error);
+            }
+        }
+        
+        /**
+         * Displays a visible error message to the user.
+         */
+        function showError(message, errorObject = null) {
+            const errorContainer = document.getElementById('error-container');
+            const errorMessage = document.getElementById('error-message');
+            
+            errorMessage.textContent = message;
+            errorContainer.classList.remove('hidden');
+            
+            if (errorObject) {
+                console.error(message, errorObject);
+            } else {
+                console.error(message);
+            }
+        }
+
+        /**
+         * Handles critical API initialization errors.
+         */
+        function handleApiInitError(message, error) {
+            const loader = document.getElementById('loader');
+            if(loader) loader.style.display = 'none';
+            showError(message + " Prüfen Sie die API-Konfiguration und die autorisierten JavaScript-Quellen in der Google Cloud Console.", error);
+            document.getElementById('auth-btn').disabled = true;
+            document.getElementById('auth-message').textContent = "Kalender konnte nicht initialisiert werden. Bitte überprüfen Sie die Konsole auf Fehler."
+        }
+
+        /**
+         * Enables the authentication button once both libraries are initialized.
+         */
+        function maybeEnableButtons() {
+            if (!API_KEY || API_KEY === "YOUR_API_KEY" || !CLIENT_ID || CLIENT_ID === "YOUR_CLIENT_ID") {
+                 handleApiInitError("API-Schlüssel und/oder Client-ID sind nicht konfiguriert. Bitte ersetzen Sie die Platzhalter im Skript.", "Konfigurationsfehler");
+                 return;
+            }
+            if (gapiInited && gisInited) {
+                console.log("DEBUG: Both GAPI and GIS are initialized. Enabling buttons.");
+                const loader = document.getElementById('loader');
+                if(loader) loader.style.display = 'none';
+                document.getElementById('auth-btn').disabled = false;
+            }
+        }
+        
+        // --- Main App Logic (runs after DOM is loaded) ---
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- DOM Element References ---
+            const loader = document.getElementById('loader');
+            const authContainer = document.getElementById('auth-container');
+            const authBtn = document.getElementById('auth-btn');
+            const calendarApp = document.getElementById('calendar-app');
+            const signoutBtn = document.getElementById('signout-btn');
+            const currentPeriod = document.getElementById('current-period');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            const todayBtn = document.getElementById('today-btn');
+            const addEventBtn = document.getElementById('add-event-btn');
+            
+            const monthView = document.getElementById('month-view'), 
+                  weekView = document.getElementById('week-view'), 
+                  dayView = document.getElementById('day-view'),
+                  profileView = document.getElementById('profile-view'),
+                  dashboardView = document.getElementById('dashboard-view'),
+                  analysisView = document.getElementById('analysis-view');
+
+            const monthDays = document.getElementById('month-days'), weekHeader = document.getElementById('week-header'), weekBody = document.getElementById('week-body'), dayHeader = document.getElementById('day-header'), dayBody = document.getElementById('day-body'), dashboardContent = document.getElementById('dashboard-content');
+            
+            const dayViewBtn = document.getElementById('day-view-btn'), 
+                  weekViewBtn = document.getElementById('week-view-btn'), 
+                  monthViewBtn = document.getElementById('month-view-btn'),
+                  profileViewBtn = document.getElementById('profile-view-btn'),
+                  dashboardViewBtn = document.getElementById('dashboard-view-btn'),
+                  analysisViewBtn = document.getElementById('analysis-view-btn');
+                  
+            const viewBtns = [dashboardViewBtn, dayViewBtn, weekViewBtn, monthViewBtn, profileViewBtn, analysisViewBtn];
+            
+            const profileDataContainer = document.getElementById('profile-data-container');
+
+            const eventModal = document.getElementById('event-modal'), closeModalBtn = document.getElementById('close-modal-btn'), eventForm = document.getElementById('event-form'), modalTitle = document.getElementById('modal-title'), eventIdInput = document.getElementById('event-id'), eventTitleInput = document.getElementById('event-title'), eventDateInput = document.getElementById('event-date'), eventDescriptionInput = document.getElementById('event-description'), eventColorInput = document.getElementById('event-color'), deleteEventBtn = document.getElementById('delete-event-btn'), eventSkillTagsInput = document.getElementById('event-skill-tags');
+            const allDayCheckbox = document.getElementById('all-day-checkbox'), timeInputs = document.getElementById('time-inputs'), eventStartTimeInput = document.getElementById('event-start-time'), eventEndTimeInput = document.getElementById('event-end-time');
+            
+            const eventOutcomeSection = document.getElementById('event-outcome-section'),
+                  eventOutcomeSelect = document.getElementById('event-outcome'),
+                  eventOutcomeNotes = document.getElementById('event-outcome-notes');
+
+            // NEU: Agenda DOM Elements
+            const contextualAgendaSection = document.getElementById('contextual-agenda-section');
+            const contextualAgendaContent = document.getElementById('contextual-agenda-content');
+            const regenerateAgendaBtn = document.getElementById('regenerate-agenda-btn');
+            
+            // Goal DOM Elements
+            const manageGoalsBtn = document.getElementById('manage-goals-btn');
+            const goalModal = document.getElementById('goal-modal');
+            const closeGoalModalBtn = document.getElementById('close-goal-modal-btn');
+            const goalForm = document.getElementById('goal-form');
+            const goalIdInput = document.getElementById('goal-id');
+            const goalTitleInput = document.getElementById('goal-title');
+            const goalTargetInput = document.getElementById('goal-target');
+            const goalList = document.getElementById('goal-list');
+            const eventGoalLinkSelect = document.getElementById('event-goal-link');
+
+            // Analysis DOM Elements
+            const analysisForm = document.getElementById('analysis-form');
+            const analysisResults = document.getElementById('analysis-results');
+
+            // Briefing Modal DOM Elements
+            const briefingModal = document.getElementById('briefing-modal');
+            const briefingTitle = document.getElementById('briefing-title');
+            const briefingContent = document.getElementById('briefing-content');
+            const closeBriefingBtn = document.getElementById('close-briefing-btn');
+
+
+            // --- Gemini Chat DOM Elements ---
+            const openChatBtn = document.getElementById('open-chat-btn');
+            const chatModal = document.getElementById('chat-modal');
+            const closeChatBtn = document.getElementById('close-chat-btn');
+            const chatMessages = document.getElementById('chat-messages');
+            const chatForm = document.getElementById('chat-form');
+            const chatInput = document.getElementById('chat-input');
+            const micBtn = document.getElementById('mic-btn');
+            const aiThinkingIndicator = document.getElementById('ai-thinking-indicator');
+
+            // --- Confirmation Modal DOM Elements ---
+            const confirmModal = document.getElementById('confirm-modal');
+            const confirmMessage = document.getElementById('confirm-message');
+            const confirmOkBtn = document.getElementById('confirm-ok-btn');
+            const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
+            let confirmCallback = null;
+
+            // --- State Management ---
+            let currentDate = new Date();
+            let currentView = 'dashboard';
+            let events = [];
+            let goals = [];
+            let todos = [];
+            let userProfile = {};
+            let chatHistory = [];
+            let aiContextEvents = [];
+            let allLoadedEvents = []; // Cache for all events for dashboard/briefings
+            
+            // --- UI Helper Functions ---
+            const showLoader = () => { if (loader) loader.style.display = 'flex'; };
+            const hideLoader = () => { if (loader) loader.style.display = 'none'; };
+            
+            /**
+             * Handles user sign-in for Google Calendar.
+             */
+            async function handleAuthClick() {
+                if (!auth) {
+                    showError("Firebase ist noch nicht initialisiert.");
+                    return;
+                }
+                const provider = new GoogleAuthProvider();
+                provider.addScope('https://www.googleapis.com/auth/calendar');
+                try {
+                    const result = await signInWithPopup(auth, provider);
+                    const credential = GoogleAuthProvider.credentialFromResult(result);
+                    const accessToken = credential.accessToken;
+                    
+                    // Set the access token for the GAPI client to use for calendar API calls
+                    gapi.client.setToken({ access_token: accessToken });
+                    
+                    // The onAuthStateChanged listener will handle the rest of the UI updates.
+                    console.log("Successfully signed in with Google and set GAPI token.");
+
+                } catch (error) {
+                    showError("Anmeldung mit Google fehlgeschlagen.", error);
+                }
+            }
+
+            /**
+             * Handles user sign-out.
+             */
+            function handleSignoutClick() {
+                if (auth) {
+                    auth.signOut();
+                }
+                // Also revoke the Google token to ensure a clean sign-out
+                const token = gapi.client.getToken();
+                if (token && tokenClient) {
+                    google.accounts.oauth2.revoke(token.access_token, () => {
+                        gapi.client.setToken('');
+                        console.log("Google token revoked.");
+                    });
+                }
+            }
+
+            /**
+             * Updates the UI based on the user's sign-in status.
+             */
+            function updateSigninStatus(isSignedIn) {
+                 if (isSignedIn) {
+                    authContainer.classList.add('hidden');
+                    calendarApp.classList.remove('hidden');
+                    openChatBtn.classList.remove('hidden');
+                    fetchEvents();
+                    fetchAiContextEvents();
+                    setupFirestoreListeners(); // This will now handle loading data
+                } else {
+                    authContainer.classList.remove('hidden');
+                    calendarApp.classList.add('hidden');
+                    openChatBtn.classList.add('hidden');
+                    // Clear local state
+                    events = []; aiContextEvents = []; allLoadedEvents = [];
+                    goals = []; todos = []; userProfile = {};
+                    // Detach Firestore listeners
+                    if (unsubscribeGoals) unsubscribeGoals();
+                    if (unsubscribeTodos) unsubscribeTodos();
+                    if (unsubscribeProfile) unsubscribeProfile();
+                }
+            }
+
+            // --- API Functions (CRUD Operations) ---
+            const fetchEvents = async () => {
+                showLoader();
+                try {
+                    let timeMin, timeMax;
+                    const year = currentDate.getFullYear();
+                    const month = currentDate.getMonth();
+                    const day = currentDate.getDate();
+
+                    if (currentView === 'month') {
+                        timeMin = new Date(year, month, 1);
+                        timeMax = new Date(year, month + 1, 1);
+                    } else if (currentView === 'week') {
+                        const firstDayOfWeek = new Date(currentDate);
+                        firstDayOfWeek.setDate(day - currentDate.getDay());
+                        firstDayOfWeek.setHours(0, 0, 0, 0);
+                        timeMin = firstDayOfWeek;
+                        
+                        const lastDayOfWeek = new Date(timeMin);
+                        lastDayOfWeek.setDate(timeMin.getDate() + 7);
+                        timeMax = lastDayOfWeek;
+                    } else { // day view or dashboard
+                        timeMin = new Date(year, month, day, 0, 0, 0);
+                        timeMax = new Date(year, month, day + 1, 0, 0, 0);
+                    }
+
+                    const response = await gapi.client.calendar.events.list({
+                        'calendarId': 'primary',
+                        'timeMin': timeMin.toISOString(),
+                        'timeMax': timeMax.toISOString(),
+                        'showDeleted': false,
+                        'singleEvents': true,
+                        'maxResults': 250,
+                        'orderBy': 'startTime'
+                    });
+                    events = response.result.items.map(googleEventToInternal);
+                    render();
+                } catch (error) {
+                    showError('Termine konnten nicht geladen werden.', error);
+                } finally {
+                    hideLoader();
+                }
+            };
+
+            /**
+             * Fetches a wider range of events for the AI's context.
+             */
+            const fetchAiContextEvents = async () => {
+                console.log("DEBUG: Fetching wider range of events for AI context...");
+                try {
+                    const timeMin = new Date();
+                    timeMin.setDate(timeMin.getDate() - 90); // Last 90 days
+                    const timeMax = new Date();
+                    timeMax.setDate(timeMax.getDate() + 90); // Next 90 days
+
+                    const response = await gapi.client.calendar.events.list({
+                        'calendarId': 'primary',
+                        'timeMin': timeMin.toISOString(),
+                        'timeMax': timeMax.toISOString(),
+                        'showDeleted': false,
+                        'singleEvents': true,
+                        'maxResults': 1000,
+                        'orderBy': 'startTime'
+                    });
+                    
+                    // Cache all events for dashboard and briefings
+                    allLoadedEvents = response.result.items.map(googleEventToInternal);
+
+                    // Stores a simplified version of events for the prompt
+                    aiContextEvents = allLoadedEvents.map(e => ({
+                        summary: e.title,
+                        description: e.description,
+                        start: e.startDateTime.toISOString(),
+                        end: e.endDateTime.toISOString(),
+                        outcome: e.outcome,
+                        outcomeNotes: e.outcomeNotes,
+                    }));
+                    console.log(`DEBUG: Fetched ${aiContextEvents.length} events for AI context.`);
+                } catch (error) {
+                    console.error('Could not fetch events for AI context.', error);
+                }
+            };
+            
+            const addEventAPI = async (eventData) => {
+                showLoader();
+                try {
+                    const eventResource = internalEventToGoogle(eventData);
+                    await gapi.client.calendar.events.insert({ 'calendarId': 'primary', 'resource': eventResource });
+                    return true; // Success
+                } catch (error) {
+                    showError('Termin konnte nicht hinzugefügt werden.', error);
+                    return false; // Failure
+                } finally {
+                    hideLoader();
+                }
+            };
+            
+            const updateEventAPI = async (eventData) => {
+                showLoader();
+                try {
+                    const eventResource = internalEventToGoogle(eventData);
+                    await gapi.client.calendar.events.update({ 'calendarId': 'primary', 'eventId': eventData.id, 'resource': eventResource });
+                    await fetchEvents();
+                    await fetchAiContextEvents(); 
+                } catch (error) {
+                    showError('Termin konnte nicht aktualisiert werden.', error);
+                } finally {
+                    hideLoader();
+                }
+            };
+            
+            const deleteEventAPI = async (eventId) => {
+                showLoader();
+                try {
+                    await gapi.client.calendar.events.delete({ 'calendarId': 'primary', 'eventId': eventId });
+                    events = events.filter(e => e.id !== eventId);
+                    await fetchAiContextEvents(); 
+                    render();
+                } catch (error) {
+                    showError('Termin konnte nicht gelöscht werden.', error);
+                } finally {
+                    hideLoader();
+                }
+            };
+            
+            // --- Data Mapping Functions ---
+            const outcomeSeparator = "\n--- Ergebnis ---\n";
+            const goalSeparator = "\n--- Ziel-ID ---\n";
+            const skillsSeparator = "\n--- Skills ---\n";
+
+            const googleEventToInternal = (gEvent) => {
+                const isAllDay = !!gEvent.start.date;
+                const { originalDescription, outcome, notes, goalId, skills } = parseDescriptionAndMetadata(gEvent.description || '');
+                return {
+                    id: gEvent.id,
+                    title: gEvent.summary || '(Kein Titel)',
+                    description: originalDescription,
+                    date: isAllDay ? gEvent.start.date : toISODateString(new Date(gEvent.start.dateTime)),
+                    startDateTime: isAllDay ? new Date(gEvent.start.date) : new Date(gEvent.start.dateTime),
+                    allDay: isAllDay,
+                    startTime: isAllDay ? null : new Date(gEvent.start.dateTime).toTimeString().substring(0, 5),
+                    endTime: isAllDay ? null : new Date(gEvent.end.dateTime).toTimeString().substring(0, 5),
+                    endDateTime: isAllDay ? new Date(gEvent.end.date) : new Date(gEvent.end.dateTime),
+                    color: gEvent.colorId || '1',
+                    outcome: outcome,
+                    outcomeNotes: notes,
+                    goalId: goalId,
+                    skills: skills
+                };
+            };
+
+            const internalEventToGoogle = (iEvent) => {
+                let start, end;
+                if (iEvent.allDay) {
+                    start = { date: iEvent.date };
+                    const endDate = new Date(iEvent.date);
+                    endDate.setDate(endDate.getDate() + 1);
+                    end = { date: toISODateString(endDate) };
+                } else {
+                    start = { dateTime: new Date(`${iEvent.date}T${iEvent.startTime || '00:00'}`).toISOString() };
+                    end = { dateTime: new Date(`${iEvent.date}T${iEvent.endTime || '23:59'}`).toISOString() };
+                }
+                return { 
+                    'summary': iEvent.title, 
+                    'description': formatDescriptionAndMetadata(iEvent.description, iEvent.outcome, iEvent.outcomeNotes, iEvent.goalId, iEvent.skills),
+                    'start': start, 
+                    'end': end, 
+                    'colorId': iEvent.color 
+                };
+            };
+
+            // --- Core Calendar Logic ---
+            const colorClasses = { 
+                '1': { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-500' }, 
+                '2': { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-500' }, 
+                '3': { bg: 'bg-purple-100', text: 'text-purple-800', border: 'border-purple-500' },
+                '4': { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-500' }, 
+                '5': { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-500' },
+                '6': { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-500' },
+                '7': { bg: 'bg-cyan-100', text: 'text-cyan-800', border: 'border-cyan-500' },
+                '8': { bg: 'bg-gray-200', text: 'text-gray-800', border: 'border-gray-500' }
+            };
+            const toISODateString = (date) => date.toISOString().split('T')[0];
+            
+            const render = () => {
+                switch (currentView) {
+                    case 'month': generateMonthCalendar(); break;
+                    case 'week': generateWeekCalendar(); break;
+                    case 'day': generateDayCalendar(); break;
+                    case 'profile': renderProfileView(); break;
+                    case 'dashboard': renderDashboardView(); break;
+                    case 'analysis': renderAnalysisView(); break;
+                }
+            };
+            
+            const switchView = (view) => {
+                currentView = view;
+                [dashboardView, monthView, weekView, dayView, profileView, analysisView].forEach(v => v.classList.add('hidden'));
+                viewBtns.forEach(b => b.classList.remove('active'));
+                
+                document.getElementById(`${view}-view-btn`).classList.add('active');
+                document.getElementById(`${view}-view`).classList.remove('hidden');
+
+                if (view === 'profile') {
+                    currentPeriod.textContent = "Mein Profil";
+                    renderProfileView();
+                } else if (view === 'dashboard') {
+                    currentPeriod.textContent = "Dashboard";
+                    renderDashboardView(); 
+                } else if (view === 'analysis') {
+                    currentPeriod.textContent = "Analyse";
+                    renderAnalysisView();
+                } else {
+                    fetchEvents(); 
+                }
+            };
+            
+            const generateMonthCalendar = () => {
+                monthDays.innerHTML = '';
+                const year = currentDate.getFullYear(), month = currentDate.getMonth();
+                currentPeriod.textContent = new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'numeric' }).format(currentDate);
+                const firstDayOfMonth = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const daysInPrevMonth = new Date(year, month, 0).getDate();
+                for (let i = firstDayOfMonth - 1; i >= 0; i--) monthDays.appendChild(createDayCell(daysInPrevMonth - i, toISODateString(new Date(year, month - 1, daysInPrevMonth - i)), false));
+                for (let day = 1; day <= daysInMonth; day++) monthDays.appendChild(createDayCell(day, toISODateString(new Date(year, month, day)), true, toISODateString(new Date(year, month, day)) === toISODateString(new Date())));
+                const lastDayOfMonth = new Date(year, month, daysInMonth).getDay();
+                for (let day = 1; day <= 6 - lastDayOfMonth; day++) monthDays.appendChild(createDayCell(day, toISODateString(new Date(year, month + 1, day)), false));
+                renderMonthEvents();
+            };
+            
+            const generateTimelineGrid = (container) => {
+                const hoursContainer = document.createElement('div');
+                hoursContainer.className = 'timeline-hours';
+                const gridContainer = document.createElement('div');
+                gridContainer.className = 'timeline-grid';
+                
+                for (let i = 0; i < 24; i++) {
+                    const hourLabel = document.createElement('div');
+                    hourLabel.className = 'timeline-hour-label';
+                    hourLabel.textContent = `${String(i).padStart(2, '0')}:00`;
+                    hoursContainer.appendChild(hourLabel);
+                    
+                    const hourLine = document.createElement('div');
+                    hourLine.className = 'hour-line';
+                    gridContainer.appendChild(hourLine);
+                }
+                container.appendChild(hoursContainer);
+                container.appendChild(gridContainer);
+                return gridContainer;
+            };
+
+            const generateWeekCalendar = () => {
+                weekHeader.innerHTML = '';
+                weekBody.innerHTML = '';
+                
+                const firstDayOfWeek = new Date(currentDate);
+                firstDayOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
+                
+                currentPeriod.textContent = `${new Intl.DateTimeFormat('de-DE', { month: 'short', day: 'numeric' }).format(firstDayOfWeek)} - ${new Intl.DateTimeFormat('de-DE', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(new Date(firstDayOfWeek).setDate(firstDayOfWeek.getDate() + 6)))}`;
+                
+                weekHeader.appendChild(document.createElement('div')); // Spacer
+                
+                for (let i = 0; i < 7; i++) {
+                    const day = new Date(firstDayOfWeek);
+                    day.setDate(firstDayOfWeek.getDate() + i);
+                    const dayHeaderCell = document.createElement('div');
+                    dayHeaderCell.className = 'text-center p-2 border-b';
+                    dayHeaderCell.innerHTML = `<span class="text-sm text-gray-500">${new Intl.DateTimeFormat('de-DE', { weekday: 'short' }).format(day)}</span><br><span class="text-lg font-semibold ${toISODateString(day) === toISODateString(new Date()) ? 'text-blue-600' : ''}">${day.getDate()}</span>`;
+                    weekHeader.appendChild(dayHeaderCell);
+                }
+                
+                generateTimelineGrid(weekBody);
+                
+                for (let i = 0; i < 7; i++) {
+                    const day = new Date(firstDayOfWeek);
+                    day.setDate(firstDayOfWeek.getDate() + i);
+                    const dayColumn = document.createElement('div');
+                    dayColumn.className = 'week-day-column';
+                    dayColumn.style.gridColumn = `${i + 2}`;
+                    dayColumn.style.gridRow = '1 / span 24';
+                    dayColumn.dataset.date = toISODateString(day);
+                    weekBody.appendChild(dayColumn);
+                    renderTimelineEvents(dayColumn, toISODateString(day));
+                }
+            };
+
+            const generateDayCalendar = () => {
+                dayHeader.innerHTML = '';
+                dayBody.innerHTML = '';
+                
+                dayHeader.textContent = new Intl.DateTimeFormat('de-DE', { dateStyle: 'full' }).format(currentDate);
+                const gridContainer = generateTimelineGrid(dayBody);
+                gridContainer.dataset.date = toISODateString(currentDate);
+                renderTimelineEvents(gridContainer, toISODateString(currentDate));
+            };
+
+            const createDayCell = (day, dateStr, isCurrent, isToday = false) => {
+                const dayCell = document.createElement('div');
+                dayCell.className = `calendar-day-month relative p-2 border-t border-r border-gray-200 flex flex-col ${isCurrent ? 'bg-white hover:bg-gray-50 transition-colors' : 'bg-gray-50 text-gray-400'}`;
+                dayCell.dataset.date = dateStr;
+                const dayNumber = document.createElement('span');
+                dayNumber.textContent = day;
+                dayNumber.className = `text-sm font-medium mb-1 self-start ${isToday ? 'bg-blue-600 text-white rounded-full w-7 h-7 flex items-center justify-center' : ''}`;
+                dayCell.appendChild(dayNumber);
+                const eventsContainer = document.createElement('div');
+                eventsContainer.className = 'events-container flex-grow overflow-y-auto space-y-1';
+                dayCell.appendChild(eventsContainer);
+                if (isCurrent) {
+                    dayCell.addEventListener('click', (e) => {
+                        if (e.target.closest('.event-item')) return;
+                        const [year, month, day] = dateStr.split('-').map(Number);
+                        currentDate = new Date(year, month - 1, day, 12, 0, 0);
+                        switchView('day');
+                    });
+                }
+                return dayCell;
+            };
+            
+            const renderMonthEvents = () => {
+                document.querySelectorAll('#month-view .event-item').forEach(el => el.remove());
+                events.forEach(event => {
+                    const dayCell = document.querySelector(`#month-view [data-date='${event.date}']`);
+                    if (dayCell) {
+                        dayCell.querySelector('.events-container').appendChild(createEventElement(event, 'month'));
+                    }
+                });
+            };
+            
+            const renderTimelineEvents = (container, dateStr) => {
+                const dayEvents = events.filter(e => e.date === dateStr && !e.allDay);
+                dayEvents.forEach(event => {
+                    container.appendChild(createEventElement(event, 'timeline'));
+                });
+            };
+
+            const renderProfileView = () => {
+                profileDataContainer.innerHTML = ''; 
+                
+                const profileKeys = Object.keys(userProfile);
+
+                if (profileKeys.length === 0) {
+                    profileDataContainer.innerHTML = `<p class="text-center text-gray-500 italic py-4">Noch keine Profildaten vorhanden.</p>`;
+                    return;
+                }
+
+                const dl = document.createElement('dl');
+                dl.className = 'divide-y divide-gray-200';
+
+                profileKeys.forEach(key => {
+                    const value = userProfile[key];
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'py-3 grid grid-cols-3 gap-4';
+                    
+                    const dt = document.createElement('dt');
+                    dt.className = 'text-sm font-medium text-gray-600 capitalize';
+                    dt.textContent = key.replace(/([A-Z])/g, ' $1').trim();
+                    
+                    const dd = document.createElement('dd');
+                    dd.className = 'text-sm text-gray-900 col-span-2';
+                    dd.textContent = value;
+                    
+                    itemDiv.appendChild(dt);
+                    itemDiv.appendChild(dd);
+                    dl.appendChild(itemDiv);
+                });
+
+                profileDataContainer.appendChild(dl);
+            };
+
+            const renderDashboardView = async () => {
+                dashboardContent.innerHTML = ''; // Clear previous content
+                
+                // Ensure we have the latest data
+                if (allLoadedEvents.length === 0) {
+                    await fetchAiContextEvents();
+                }
+
+                const today = new Date();
+                const todayStr = toISODateString(today);
+                const tomorrow = new Date();
+                tomorrow.setDate(today.getDate() + 1);
+                const tomorrowStr = toISODateString(tomorrow);
+                
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(today.getDate() - 30);
+
+                const todaysEvents = allLoadedEvents.filter(e => e.date === todayStr).sort((a,b) => (a.startTime || '00:00').localeCompare(b.startTime || '00:00'));
+                const tomorrowsEvents = allLoadedEvents.filter(e => e.date === tomorrowStr).sort((a,b) => (a.startTime || '00:00').localeCompare(b.startTime || '00:00'));
+                const pastEventsWithFeedback = allLoadedEvents.filter(e => e.endDateTime < today && e.outcome);
+
+                // --- Helper for creating dashboard event list items ---
+                const createEventListItem = (event) => {
+                    const startTime = event.allDay ? 'Ganztägig' : event.startTime;
+                    return `
+                        <li class="text-sm p-2 rounded-md flex justify-between items-center bg-blue-50 border-l-4 border-blue-400">
+                            <span>${startTime} - <strong>${event.title}</strong></span>
+                            <button class="briefing-btn p-1 hover:bg-blue-200 rounded-full" data-event-id="${event.id}" title="Meeting-Briefing abrufen">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </li>
+                    `;
+                };
+
+                // Widget 1: Heute im Fokus
+                const focusWidget = document.createElement('div');
+                focusWidget.className = 'dashboard-card';
+                let focusHTML = '<h3>Heute im Fokus</h3>';
+                if (todaysEvents.length > 0) {
+                    focusHTML += '<ul class="space-y-2">';
+                    todaysEvents.forEach(e => { focusHTML += createEventListItem(e); });
+                    focusHTML += '</ul>';
+                } else {
+                    focusHTML += '<p class="text-sm text-gray-500">Für heute sind keine Termine geplant. Zeit, etwas Neues anzugehen!</p>';
+                }
+                focusWidget.innerHTML = focusHTML;
+                dashboardContent.appendChild(focusWidget);
+                
+                // Widget 2: To-Do Liste
+                const todoWidget = document.createElement('div');
+                todoWidget.className = 'dashboard-card';
+                todoWidget.innerHTML = `
+                    <h3>Meine To-Dos</h3>
+                    <div id="todo-list" class="flex-1 overflow-y-auto pr-2 mb-4 space-y-1">
+                        <!-- To-Do items will be rendered here -->
+                    </div>
+                    <form id="todo-form" class="flex gap-2">
+                        <input type="text" id="todo-input" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg" placeholder="Neue Aufgabe..." required>
+                        <button type="submit" class="px-3 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg">+</button>
+                    </form>
+                `;
+                dashboardContent.appendChild(todoWidget);
+                renderTodoList(); // Render the list
+                document.getElementById('todo-form').addEventListener('submit', handleTodoSubmit);
+
+                // NEU: Widget 3: Netzwerkpflege (CRM)
+                const crmWidget = document.createElement('div');
+                crmWidget.className = 'dashboard-card';
+                crmWidget.innerHTML = `
+                    <h3 class="flex justify-between items-center">
+                        <span>Netzwerkpflege</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+                        </svg>
+                    </h3>
+                    <div id="crm-suggestions" class="flex-1 overflow-y-auto text-sm text-gray-600">
+                        <p class="text-center italic text-gray-400 p-4">Analysiere Kontakte...</p>
+                    </div>
+                `;
+                dashboardContent.appendChild(crmWidget);
+                generateCrmSuggestions(); // Start the AI analysis
+
+                // Widget 4: Ziel-Fortschritt
+                const goalsWidget = document.createElement('div');
+                goalsWidget.className = 'dashboard-card';
+                let goalsHTML = '<h3>Meine Ziele</h3>';
+                if (goals.length > 0) {
+                    goalsHTML += '<div class="space-y-4">';
+                    goals.forEach(goal => {
+                        const completedCount = allLoadedEvents.filter(e => e.goalId === goal.id && e.outcome === 'Erfolgreich').length;
+                        const progress = goal.target > 0 ? Math.min(100, (completedCount / goal.target) * 100) : 0;
+                        goalsHTML += `
+                            <div>
+                                <div class="flex justify-between items-center mb-1 text-sm">
+                                    <span class="font-medium text-gray-700">${goal.title}</span>
+                                    <span class="text-gray-500">${completedCount} / ${goal.target}</span>
+                                </div>
+                                <div class="progress-bar-bg">
+                                    <div class="progress-bar-fill" style="width: ${progress}%;"></div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    goalsHTML += '</div>';
+                } else {
+                    goalsHTML += '<p class="text-sm text-gray-500">Sie haben noch keine Ziele definiert. Klicken Sie auf das Ziel-Symbol oben, um loszulegen!</p>';
+                }
+                goalsWidget.innerHTML = goalsHTML;
+                dashboardContent.appendChild(goalsWidget);
+
+                // Widget 5: Vorschau auf Morgen
+                const tomorrowWidget = document.createElement('div');
+                tomorrowWidget.className = 'dashboard-card';
+                let tomorrowHTML = '<h3>Vorschau auf Morgen</h3>';
+                 if (tomorrowsEvents.length > 0) {
+                    tomorrowHTML += '<ul class="space-y-2">';
+                    tomorrowsEvents.forEach(e => { tomorrowHTML += createEventListItem(e); });
+                    tomorrowHTML += '</ul>';
+                } else {
+                    tomorrowHTML += '<p class="text-sm text-gray-500">Morgen ist noch nichts geplant.</p>';
+                }
+                tomorrowWidget.innerHTML = tomorrowHTML;
+                dashboardContent.appendChild(tomorrowWidget);
+            };
+            
+            const renderAnalysisView = async (keyword = '', days = 30) => {
+                analysisResults.innerHTML = '';
+                showLoader();
+
+                try {
+                    const timeMin = new Date();
+                    timeMin.setDate(timeMin.getDate() - days);
+                    const timeMax = new Date();
+
+                    const response = await gapi.client.calendar.events.list({
+                        'calendarId': 'primary',
+                        'timeMin': timeMin.toISOString(),
+                        'timeMax': timeMax.toISOString(),
+                        'showDeleted': false,
+                        'singleEvents': true,
+                        'maxResults': 2500,
+                        'orderBy': 'startTime'
+                    });
+
+                    let analysisEvents = response.result.items.map(googleEventToInternal);
+
+                    if (keyword) {
+                        analysisEvents = analysisEvents.filter(e => e.title.toLowerCase().includes(keyword.toLowerCase()));
+                    }
+
+                    // Card 1: Zusammenfassung
+                    let totalHours = 0;
+                    let successfulEvents = 0;
+                    const categorySuccess = {}; // { 'Meeting': { total: 5, success: 3 } }
+
+                    analysisEvents.forEach(event => {
+                        if (!event.allDay && event.startTime && event.endTime) {
+                            const start = new Date(`1970-01-01T${event.startTime}`);
+                            const end = new Date(`1970-01-01T${event.endTime}`);
+                            const durationHours = (end - start) / (1000 * 60 * 60);
+                            totalHours += durationHours;
+                        }
+
+                        if (event.outcome === 'Erfolgreich') {
+                            successfulEvents++;
+                        }
+                        
+                        // Simple categorization by keyword
+                        const categories = ['Meeting', 'Projekt', 'Anruf', 'Termin', 'Fokus'];
+                        const category = categories.find(c => event.title.toLowerCase().includes(c.toLowerCase())) || 'Sonstiges';
+                        if (!categorySuccess[category]) {
+                            categorySuccess[category] = { total: 0, success: 0 };
+                        }
+                        categorySuccess[category].total++;
+                        if (event.outcome === 'Erfolgreich') {
+                            categorySuccess[category].success++;
+                        }
+                    });
+
+                    const summaryCard = document.createElement('div');
+                    summaryCard.className = 'dashboard-card md:col-span-2';
+                    summaryCard.innerHTML = `
+                        <h3>Zusammenfassung für "${keyword || 'Alle Termine'}"</h3>
+                        <div class="grid grid-cols-2 gap-4 text-center">
+                            <div>
+                                <p class="text-3xl font-bold">${Math.round(totalHours)}</p>
+                                <p class="text-sm text-gray-500">Stunden investiert</p>
+                            </div>
+                             <div>
+                                <p class="text-3xl font-bold">${analysisEvents.length}</p>
+                                <p class="text-sm text-gray-500">Termine gesamt</p>
+                            </div>
+                        </div>
+                    `;
+                    analysisResults.appendChild(summaryCard);
+
+                    // Card 2: Erfolgsquote nach Kategorie
+                    const successCard = document.createElement('div');
+                    successCard.className = 'dashboard-card';
+                    let successHTML = `<h3>Erfolgsquoten</h3>`;
+                    successHTML += '<div class="space-y-3">';
+                    for (const category in categorySuccess) {
+                        const item = categorySuccess[category];
+                        const rate = item.total > 0 ? Math.round((item.success / item.total) * 100) : 0;
+                        successHTML += `
+                                <div>
+                                    <div class="flex justify-between items-center mb-1 text-sm">
+                                        <span class="font-medium text-gray-700">${category}</span>
+                                        <span class="text-gray-500">${rate}% erfolgreich (${item.success}/${item.total})</span>
+                                    </div>
+                                    <div class="progress-bar-bg">
+                                        <div class="progress-bar-fill bg-green-500" style="width: ${rate}%;"></div>
+                                    </div>
+                                </div>
+                        `;
+                    }
+                    successHTML += '</div>';
+                    successCard.innerHTML = successHTML;
+                    analysisResults.appendChild(successCard);
+
+
+                } catch (error) {
+                    showError('Analyse konnte nicht durchgeführt werden.', error);
+                } finally {
+                    hideLoader();
+                }
+            };
+
+
+            const createEventElement = (event, viewType) => {
+                const eventEl = document.createElement('div');
+                const color = colorClasses[event.color] || colorClasses['1'];
+                eventEl.className = `event-item p-1 rounded-md text-xs cursor-pointer border-l-4 ${color.bg} ${color.text} ${color.border}`;
+                eventEl.dataset.eventId = event.id;
+                
+                if (viewType === 'month') {
+                    eventEl.innerHTML = `<strong class="font-semibold">${event.allDay ? '' : event.startTime}</strong> ${event.title}`;
+                } else if (viewType === 'timeline') {
+                    const [startH, startM] = event.startTime.split(':').map(Number);
+                    const [endH, endM] = event.endTime.split(':').map(Number);
+                    const startMinutes = startH * 60 + startM;
+                    const endMinutes = endH * 60 + endM;
+                    const duration = Math.max(30, endMinutes - startMinutes);
+                    
+                    eventEl.classList.add('timeline-event');
+                    eventEl.style.top = `${startMinutes}px`;
+                    eventEl.style.height = `${duration}px`;
+                    eventEl.innerHTML = `<strong class="font-semibold">${event.title}</strong><span class="text-gray-600">${event.startTime} - ${event.endTime}</span>`;
+                }
+
+                eventEl.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openModal(event.date, event.id);
+                });
+                return eventEl;
+            };
+            
+            // --- Description and Metadata Parsing ---
+            const parseDescriptionAndMetadata = (fullDescription) => {
+                let description = fullDescription;
+                let outcome = '';
+                let notes = '';
+                let goalId = '';
+                let skills = '';
+
+                if (description.includes(skillsSeparator)) {
+                    const parts = description.split(skillsSeparator);
+                    description = parts[0];
+                    skills = parts[1].trim();
+                }
+
+                if (description.includes(goalSeparator)) {
+                    const parts = description.split(goalSeparator);
+                    description = parts[0];
+                    goalId = parts[1].trim();
+                }
+
+                if (description.includes(outcomeSeparator)) {
+                    const parts = description.split(outcomeSeparator);
+                    description = parts[0];
+                    const outcomePart = parts[1];
+                    const outcomeMatch = outcomePart.match(/Ergebnis: (.*)/);
+                    const notesMatch = outcomePart.match(/Notizen: (.*)/s);
+                    outcome = outcomeMatch ? outcomeMatch[1].trim() : '';
+                    notes = notesMatch ? notesMatch[1].trim() : '';
+                }
+
+                return { originalDescription: description.trim(), outcome, notes, goalId, skills };
+            };
+
+            const formatDescriptionAndMetadata = (original, outcome, notes, goalId, skills) => {
+                let fullDescription = original.trim();
+                
+                if (outcome || notes) {
+                    fullDescription += outcomeSeparator;
+                    if (outcome) fullDescription += `Ergebnis: ${outcome}\n`;
+                    if (notes) fullDescription += `Notizen: ${notes}`;
+                }
+
+                if (goalId) {
+                    fullDescription += goalSeparator + goalId;
+                }
+                
+                if (skills) {
+                    fullDescription += skillsSeparator + skills;
+                }
+
+                return fullDescription;
+            };
+
+            /**
+             * Generiert eine kontextbezogene Agenda mit der Gemini API.
+             */
+            const generateContextualAgenda = async (event) => {
+                contextualAgendaContent.innerHTML = `
+                    <div class="flex items-center justify-center h-full p-4">
+                        <div class="spinner h-5 w-5 border-2"></div>
+                        <span class="ml-2 text-xs">Agenda wird vorbereitet...</span>
+                    </div>
+                `;
+
+                try {
+                    const agendaPrompt = `Sie sind ein hocheffizienter Assistent für die Meeting-Vorbereitung. Ihre Aufgabe ist es, eine kontextbezogene Agenda für das folgende Kalenderereignis zu erstellen, basierend auf ECHTEN Daten aus dem Kalenderverlauf.
+
+                **Kontext:**
+                - Heutiges Datum: ${new Date().toISOString()}
+                - Das vorzubereitende Ereignis: ${JSON.stringify({title: event.title, date: event.date, description: event.description})}
+                - Die letzten und nächsten Termine des Benutzers als Referenz: ${JSON.stringify(aiContextEvents.slice(-50))}
+
+                **Ihre Aufgabe:**
+                Basierend auf dem Ereignistitel "${event.title}", generieren Sie eine kurze, hilfreiche Agenda. Befolgen Sie diese Schritte genau:
+                1.  **Letztes Treffen finden:** Durchsuchen Sie die Kalenderereignisse des Benutzers, um das letzte Treffen mit einem ähnlichen Titel zu finden.
+                2.  **Ergebnis zusammenfassen:** Wenn ein früheres Treffen gefunden wird, fassen Sie dessen Ergebnis zusammen, basierend auf den Notizen in seiner Beschreibung (suchen Sie nach "--- Ergebnis ---"). Wenn kein früheres Treffen gefunden wird, geben Sie an, dass dies das erste aufgezeichnete Treffen zu diesem Thema ist.
+                3.  **Hinweis zu Dokumenten:** Fügen Sie einen Punkt hinzu, der den Benutzer daran erinnert, seine persönlichen Notizen oder Dokumente zum Thema zu überprüfen.
+                4.  **Formatierung:** Formatieren Sie Ihre gesamte Antwort als sauberen HTML-String. Verwenden Sie \`<ul>\` und \`<li>\` für Listen und \`<strong>\` zur Hervorhebung. Geben Sie NUR den HTML-Code zurück. Erfinden Sie KEINE Informationen.
+
+                Beispiel-Ausgabe (wenn Daten gefunden wurden):
+                <ul>
+                  <li><strong>Letztes Treffen am [Datum]:</strong> Zusammenfassung des letzten Treffens...</li>
+                  <li><strong>Vorbereitung:</strong> Relevante Dokumente aus Ihren Notizen prüfen.</li>
+                </ul>
+                `;
+                    const payload = {
+                        contents: [{ parts: [{ text: agendaPrompt }] }],
+                        generationConfig: {
+                            temperature: 0.2,
+                            topK: 32,
+                            topP: 1,
+                            maxOutputTokens: 4096,
+                        }
+                    };
+
+                    const response = await fetch(GEMINI_API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) throw new Error(`API-Fehler: ${response.statusText}`);
+
+                    const result = await response.json();
+                     if (!result.candidates || !result.candidates[0].content.parts[0].text) {
+                         throw new Error("Unerwartete API-Antwortstruktur für Agenda.");
+                    }
+                    let agendaHtml = result.candidates[0].content.parts[0].text;
+                    
+                    // Clean up potential markdown code block fences
+                    agendaHtml = agendaHtml.replace(/```html/g, '').replace(/```/g, '').trim();
+
+                    contextualAgendaContent.innerHTML = agendaHtml;
+
+                } catch (error) {
+                    console.error("Fehler beim Generieren der Agenda:", error);
+                    contextualAgendaContent.innerHTML = `
+                        <p class="text-red-600 text-xs">Konnte die Agenda nicht generieren. Bitte versuchen Sie es erneut.</p>
+                        <p class="text-xs text-gray-400 mt-1">${error.message}</p>
+                    `;
+                }
+            };
+
+
+            const openModal = (date, eventId = null) => {
+                eventForm.reset();
+                eventOutcomeSection.classList.add('hidden');
+                contextualAgendaSection.classList.add('hidden'); // Hide it by default
+                contextualAgendaContent.innerHTML = ''; // Clear previous content
+                populateGoalDropdown();
+
+                if (eventId) {
+                    const event = events.find(e => e.id === eventId);
+                    modalTitle.textContent = 'Termin bearbeiten';
+                    eventIdInput.value = event.id;
+                    eventTitleInput.value = event.title;
+                    eventDateInput.value = event.date;
+                    
+                    eventDescriptionInput.value = event.description;
+                    eventSkillTagsInput.value = event.skills || '';
+                    eventOutcomeSelect.value = event.outcome || '';
+                    eventOutcomeNotes.value = event.outcomeNotes || '';
+                    eventGoalLinkSelect.value = event.goalId || '';
+
+                    eventColorInput.value = event.color;
+                    allDayCheckbox.checked = !!event.allDay;
+                    if (!event.allDay) {
+                        eventStartTimeInput.value = event.startTime;
+                        eventEndTimeInput.value = event.endTime;
+                    }
+                    deleteEventBtn.classList.remove('hidden');
+
+                    const eventEnd = event.endDateTime;
+                    if (eventEnd && eventEnd < new Date()) {
+                        eventOutcomeSection.classList.remove('hidden');
+                    }
+
+                    // NEU: Agenda-Logik
+                    contextualAgendaSection.classList.remove('hidden');
+                    generateContextualAgenda(event);
+                    // Add listener for the regenerate button, specific to this event
+                    regenerateAgendaBtn.onclick = () => generateContextualAgenda(event);
+
+                } else {
+                    modalTitle.textContent = 'Termin hinzufügen';
+                    eventIdInput.value = '';
+                    eventDateInput.value = date;
+                    eventDescriptionInput.value = '';
+                    eventSkillTagsInput.value = '';
+                    eventStartTimeInput.value = '09:00';
+                    eventEndTimeInput.value = '10:00';
+                    deleteEventBtn.classList.add('hidden');
+                }
+                timeInputs.style.display = allDayCheckbox.checked ? 'none' : 'grid';
+                eventModal.classList.remove('hidden');
+            };
+            const closeModal = () => eventModal.classList.add('hidden');
+            
+            // --- Confirmation Modal Logic ---
+            const showConfirm = (message, onConfirm) => {
+                confirmMessage.textContent = message;
+                confirmCallback = onConfirm;
+                confirmModal.classList.remove('hidden');
+            };
+
+            // --- Goal Management Logic (with Firestore) ---
+            const openGoalModal = () => {
+                goalForm.reset();
+                goalIdInput.value = '';
+                // renderGoalList is called by onSnapshot, no need to call here
+                goalModal.classList.remove('hidden');
+            };
+            const closeGoalModal = () => goalModal.classList.add('hidden');
+
+            const renderGoalList = () => {
+                goalList.innerHTML = '';
+                if (goals.length === 0) {
+                    goalList.innerHTML = '<p class="text-center text-gray-500 italic py-4">Noch keine Ziele erstellt.</p>';
+                    return;
+                }
+                goals.forEach(goal => {
+                    const completedCount = allLoadedEvents.filter(e => e.goalId === goal.id && e.outcome === 'Erfolgreich').length;
+                    const goalEl = document.createElement('div');
+                    goalEl.className = 'goal-item flex items-center justify-between p-3 rounded-lg border border-gray-200';
+                    goalEl.innerHTML = `
+                        <div>
+                            <p class="font-semibold text-gray-800">${goal.title}</p>
+                            <p class="text-sm text-gray-500">Fortschritt: ${completedCount} von ${goal.target} Schritten</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button class="edit-goal-btn p-2 hover:bg-gray-200 rounded-full" data-id="${goal.id}"><svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536L16.732 3.732z"></path></svg></button>
+                            <button class="delete-goal-btn p-2 hover:bg-gray-200 rounded-full" data-id="${goal.id}"><svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                        </div>
+                    `;
+                    goalList.appendChild(goalEl);
+                });
+            };
+
+            const handleGoalSubmit = async (e) => {
+                e.preventDefault();
+                const id = goalIdInput.value;
+                const goalData = {
+                    title: goalTitleInput.value.trim(),
+                    target: parseInt(goalTargetInput.value, 10)
+                };
+
+                if (!goalData.title || !goalData.target) return;
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'local-dev-app';
+
+                try {
+                    const goalsCollection = collection(db, `artifacts/${appId}/users/${userId}/goals`);
+                    if (id) {
+                        await setDoc(doc(goalsCollection, id), goalData);
+                    } else {
+                        await addDoc(goalsCollection, goalData);
+                    }
+                    goalForm.reset();
+                    goalIdInput.value = '';
+                } catch (error) {
+                    showError("Ziel konnte nicht gespeichert werden.", error);
+                }
+            };
+            
+            const populateGoalDropdown = () => {
+                eventGoalLinkSelect.innerHTML = '<option value="">-- Kein Ziel --</option>';
+                goals.forEach(goal => {
+                    const option = document.createElement('option');
+                    option.value = goal.id;
+                    option.textContent = goal.title;
+                    eventGoalLinkSelect.appendChild(option);
+                });
+            };
+
+            // --- To-Do List Logic (with Firestore) ---
+            const renderTodoList = () => {
+                const todoListContainer = document.getElementById('todo-list');
+                if (!todoListContainer) return;
+                todoListContainer.innerHTML = '';
+                if (todos.length === 0) {
+                    todoListContainer.innerHTML = '<p class="text-sm text-center text-gray-500 italic py-4">Keine offenen Aufgaben.</p>';
+                    return;
+                }
+                todos.forEach(todo => {
+                    const todoEl = document.createElement('div');
+                    todoEl.className = `todo-item ${todo.completed ? 'completed' : ''}`;
+                    todoEl.dataset.id = todo.id;
+                    todoEl.innerHTML = `
+                        <input type="checkbox" ${todo.completed ? 'checked' : ''}>
+                        <span class="todo-text">${todo.text}</span>
+                        <button class="delete-todo-btn">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    `;
+                    todoListContainer.appendChild(todoEl);
+                });
+            };
+            
+            const handleTodoSubmit = async (e) => {
+                e.preventDefault();
+                const todoInput = document.getElementById('todo-input');
+                const text = todoInput.value.trim();
+                if (text) {
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'local-dev-app';
+                    try {
+                        const todosCollection = collection(db, `artifacts/${appId}/users/${userId}/todos`);
+                        await addDoc(todosCollection, { text: text, completed: false });
+                        todoInput.value = '';
+                    } catch (error) {
+                        showError("To-Do konnte nicht hinzugefügt werden.", error);
+                    }
+                }
+            };
+
+            // --- Gemini Chat Logic ---
+            const openChat = () => {
+                chatModal.classList.remove('hidden');
+                if (chatHistory.length === 0) {
+                    aiThinkingIndicator.classList.remove('hidden');
+                    const primingPrompt = "Hallo Assistent. Bitte sieh dir mein aktuelles Profil und meine anstehenden Termine an. Gib mir eine kurze Zusammenfassung meines aktuellen Status oder einen proaktiven Vorschlag, was ich als Nächstes tun könnte, um meine Ziele zu erreichen. Wenn heute Sonntag ist, starte bitte mit einer wöchentlichen Planungs-Session.";
+                    chatHistory.push({ role: "user", parts: [{ text: primingPrompt }] });
+                    callGeminiAPI();
+                }
+            };
+            const closeChat = () => chatModal.classList.add('hidden');
+
+            const addMessageToChat = (sender, text) => {
+                const messageWrapper = document.createElement('div');
+                messageWrapper.className = `flex items-start gap-3 ${sender === 'user' ? 'justify-end' : ''}`;
+                
+                const icon = document.createElement('div');
+                icon.className = 'w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0';
+                icon.innerHTML = sender === 'user' 
+                    ? `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>`
+                    : `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm2.293 15.707L11 14.414l-3.293 3.293-1.414-1.414L9.586 13l-3.293-3.293 1.414-1.414L11 11.586l3.293-3.293 1.414 1.414L12.414 13l3.293 3.293-1.414 1.414z"/></svg>`;
+
+                const bubble = document.createElement('div');
+                bubble.className = `p-3 rounded-lg max-w-xs md:max-w-md ${sender === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai'}`;
+                
+                bubble.innerHTML = marked.parse(text);
+
+                if (sender === 'user') {
+                    messageWrapper.appendChild(bubble);
+                    messageWrapper.appendChild(icon);
+                } else {
+                    messageWrapper.appendChild(icon);
+                    messageWrapper.appendChild(bubble);
+                }
+                
+                chatMessages.appendChild(messageWrapper);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            };
+
+            const displayScheduleProposal = (proposal) => {
+                const proposalWrapper = document.createElement('div');
+                proposalWrapper.className = 'flex items-start gap-3';
+
+                const icon = document.createElement('div');
+                icon.className = 'w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0';
+                icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm2.293 15.707L11 14.414l-3.293 3.293-1.414-1.414L9.586 13l-3.293-3.293 1.414-1.414L11 11.586l3.293-3.293 1.414 1.414L12.414 13l3.293 3.293-1.414 1.414z"/></svg>`;
+
+                const card = document.createElement('div');
+                card.className = 'proposal-card bg-gray-50 border border-gray-200 p-4 rounded-lg max-w-xs md:max-w-md flex-1';
+
+                let cardHTML = `<h4 class="font-bold text-gray-800 mb-2">Plan-Vorschau</h4>`;
+                cardHTML += `<div class="text-sm text-gray-600 mb-4">${marked.parse(proposal.responseText || '')}</div>`;
+                cardHTML += '<div class="space-y-3">';
+
+                proposal.schedule.forEach(event => {
+                    const eventDate = new Date(event.date);
+                    const formattedDate = new Intl.DateTimeFormat('de-DE', { weekday: 'short', day: 'numeric', month: 'short' }).format(eventDate);
+                    cardHTML += `
+                        <div class="bg-white p-3 rounded-md border border-gray-200">
+                            <p class="font-semibold text-gray-900">${event.title}</p>
+                            <p class="text-sm text-gray-500">${formattedDate}, ${event.startTime} - ${event.endTime}</p>
+                            <p class="text-sm text-gray-600 mt-1 italic">"${event.description}"</p>
+                        </div>
+                    `;
+                });
+
+                cardHTML += '</div>';
+                cardHTML += `
+                    <div class="mt-4 flex gap-2">
+                        <button class="accept-proposal-btn flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm">Plan erstellen</button>
+                        <button class="decline-proposal-btn flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg">Ändern</button>
+                    </div>
+                `;
+                card.innerHTML = cardHTML;
+
+                proposalWrapper.appendChild(icon);
+                proposalWrapper.appendChild(card);
+                chatMessages.appendChild(proposalWrapper);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                card.querySelector('.accept-proposal-btn').addEventListener('click', () => {
+                    submitUserResponse("Ja, dieser Plan sieht gut aus. Bitte erstelle die Termine.");
+                });
+                card.querySelector('.decline-proposal-btn').addEventListener('click', () => {
+                    submitUserResponse("Nein, das passt noch nicht ganz. Lass uns etwas ändern.");
+                });
+            };
+
+            const submitUserResponse = (text) => {
+                addMessageToChat('user', text);
+                chatInput.value = '';
+                chatForm.querySelector('button[type="submit"]').disabled = true;
+                aiThinkingIndicator.classList.remove('hidden');
+                
+                // Continue conversation with the user's response
+                chatHistory.push({ role: "user", parts: [{ text: text }] });
+                callGeminiAPI();
+            };
+
+            const callGeminiAPI = async () => {
+                try {
+                    const systemPrompt = `Sie sind ein hyper-organisierter, motivierender und freundlicher persönlicher Planungsassistent. Ihre Aufgabe ist es, dem Benutzer zu helfen, seine Ziele zu erreichen, indem Sie seinen Kalender planen und seine Fähigkeiten entwickeln. Sie sind ein Coach, kein Befehlshaber.
+
+                    **Ihre Vorgehensweise:**
+                    1.  **Tiefgründig fragen:** Beginnen Sie damit, tiefgründige Fragen zu stellen. Verstehen Sie nicht nur WAS der Benutzer will, sondern WARUM. Was ist die wahre Motivation hinter dem Ziel? Welche Hindernisse gab es in der Vergangenheit? Wie sieht Erfolg aus? Bauen Sie schrittweise ein detailliertes Profil auf.
+                    2.  **Profil aktualisieren:** Wenn Sie neue, relevante Informationen erhalten, fassen Sie diese zusammen und geben Sie eine Aktion zum Aktualisieren des Profils aus.
+                    3.  **Konflikte vermeiden:** Bevor Sie einen Plan vorschlagen, prüfen Sie SEHR SORGFÄLTIG die bestehenden Termine des Benutzers. Schlagen Sie NIEMALS Termine vor, die sich mit bereits existierenden überschneiden. Finden Sie stattdessen freie Zeitfenster.
+                    4.  **Lernpfade erstellen:** Wenn der Benutzer eine Fähigkeit erlernen möchte (z.B. "Ich möchte besser in Präsentationstechnik werden"), schlagen Sie einen konkreten Lernpfad vor. Dieser sollte aus mehreren Terminen bestehen, die über einen sinnvollen Zeitraum verteilt sind (z.B. wöchentlich). Die Termine sollten klare Titel haben (z.B. "Präsentation üben", "Rhetorik-Video ansehen") und mit dem entsprechenden Skill-Tag (z.B. #Präsentationstechnik) versehen sein.
+                    5.  **Plan vorschlagen:** Wenn Sie GENUG Informationen haben, schlagen Sie einen konkreten Plan mit MEHREREN Terminen vor. Erklären Sie kurz die Strategie hinter dem Plan. Jeder Termin im Vorschlag MUSS eine kurze "description" und relevante "skills" (als kommaseparierten String, z.B. "#Python, #Coding") haben.
+                    6.  **Auf Bestätigung warten:** Warten Sie auf die Zustimmung des Benutzers. Schlagen Sie nur vor, erstellen Sie nichts ohne explizite Bestätigung.
+                    7.  **Termine erstellen:** Wenn der Benutzer dem Plan zustimmt (z.B. mit "Ja, bitte erstellen"), geben Sie die Aktion zum Erstellen ALLER Termine aus dem vorherigen Vorschlag aus.
+                    8.  **Lernen und Anpassen:** Beziehen Sie sich auf die Ergebnisse vergangener Termine (im Beschreibungsfeld, gekennzeichnet durch '--- Ergebnis ---'), um zukünftige Pläne zu verbessern. Analysieren Sie auch die Skill-Tags, um zu sehen, woran der Benutzer arbeitet.
+                    9.  **Proaktiv sein:** Schauen Sie sich die Termine für morgen an. Bieten Sie an, bei der Vorbereitung zu helfen. Fragen Sie nach kürzlich vergangenen Terminen, für die noch kein Feedback hinterlegt wurde. Wenn der Benutzer das Gespräch an einem Sonntag beginnt, initiieren Sie eine **wöchentliche Planungs-Session**.
+
+                    **WICHTIG - Antwortformat:** Antworten Sie IMMER im JSON-Format.
+                    - \`responseText\`: Ihre Nachricht an den Benutzer (unterstützt Markdown).
+                    - \`action\`: Eine der folgenden Aktionen.
+
+                    **Aktionen:**
+                    - \`"action": "update_profile"\`: Aktualisiert das Benutzerprofil. Fügen Sie ein "profileUpdate"-Objekt hinzu.
+                    - \`"action": "propose_schedule"\`: Schlägt einen Plan vor. Fügen Sie ein "schedule"-Array mit Terminobjekten hinzu. Jedes Objekt braucht: title, date ("YYYY-MM-DD"), startTime ("HH:MM"), endTime ("HH:MM"), description, skills (z.B. "#Skill1, #Skill2"), color ("1"-"8").
+                    - \`"action": "create_schedule"\`: Erstellt die Termine. Fügen Sie ein "schedule"-Array hinzu, genau wie bei "propose_schedule".
+                    - \`"action": "respond"\`: Für alle normalen Konversationsantworten.
+                    
+                    **Kontext:**
+                    - Das heutige Datum ist: ${new Date().toLocaleDateString('de-DE')} (Wochentag: ${new Intl.DateTimeFormat('de-DE', { weekday: 'long' }).format(new Date())})
+                    - Aktuelles Benutzerprofil: ${JSON.stringify(userProfile)}
+                    - Bestehende Termine des Benutzers (Vergangenheit & Zukunft, inkl. Beschreibungen mit Ergebnissen und Skills): ${JSON.stringify(aiContextEvents)}
+                    - Aktuelle To-Do-Liste: ${JSON.stringify(todos.filter(t => !t.completed))}
+                    `;
+
+                    const payload = {
+                        contents: [ ...chatHistory ],
+                        systemInstruction: { parts: [{ text: systemPrompt }] },
+                        generationConfig: { responseMimeType: "application/json" }
+                    };
+
+                    const response = await fetch(GEMINI_API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) throw new Error(`API-Fehler: ${response.statusText}`);
+
+                    const result = await response.json();
+                    if (!result.candidates || !result.candidates[0].content.parts[0].text) {
+                        throw new Error("Unerwartete API-Antwortstruktur.");
+                    }
+                    const aiResponseText = result.candidates[0].content.parts[0].text;
+                    let aiResponse;
+
+                    try {
+                        aiResponse = JSON.parse(aiResponseText);
+                    } catch (parseError) {
+                        console.warn("Gemini-Antwort war kein gültiges JSON. Behandle als reinen Text.", parseError, aiResponseText);
+                        aiResponse = { action: "respond", responseText: aiResponseText };
+                    }
+
+                    chatHistory.push({ role: "model", parts: [{ text: JSON.stringify(aiResponse) }] });
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'local-dev-app';
+
+                    if (aiResponse.action === 'update_profile' && aiResponse.profileUpdate) {
+                        const profileDoc = doc(db, `artifacts/${appId}/users/${userId}/profile/main`);
+                        await setDoc(profileDoc, aiResponse.profileUpdate, { merge: true });
+                        addMessageToChat('ai', aiResponse.responseText);
+                    } else if (aiResponse.action === 'propose_schedule' && aiResponse.schedule) {
+                        displayScheduleProposal(aiResponse);
+                    } else if (aiResponse.action === 'create_schedule' && aiResponse.schedule) {
+                        addMessageToChat('ai', aiResponse.responseText);
+                        showLoader();
+                        // Create all events in parallel
+                        const creationPromises = aiResponse.schedule.map(eventData => addEventAPI(eventData));
+                        await Promise.all(creationPromises);
+                        // Fetch all events again to update UI
+                        await fetchEvents();
+                        await fetchAiContextEvents();
+                        hideLoader();
+                    } else {
+                        addMessageToChat('ai', aiResponse.responseText);
+                    }
+
+                } catch (error) {
+                    console.error("Fehler bei der Kommunikation mit der Gemini-API:", error);
+                    addMessageToChat('ai', 'Entschuldigung, ich habe gerade ein technisches Problem. Können Sie das bitte wiederholen?');
+                } finally {
+                    aiThinkingIndicator.classList.add('hidden');
+                    chatForm.querySelector('button[type="submit"]').disabled = false;
+                }
+            };
+
+            const handleChatSubmit = async (e) => {
+                e.preventDefault();
+                const userInput = chatInput.value.trim();
+                if (!userInput) return;
+
+                addMessageToChat('user', userInput);
+                chatInput.value = '';
+                chatForm.querySelector('button[type="submit"]').disabled = true;
+                aiThinkingIndicator.classList.remove('hidden');
+
+                chatHistory.push({ role: "user", parts: [{ text: userInput }] });
+                await callGeminiAPI();
+            };
+            
+            // --- Speech Recognition Setup ---
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            let recognition;
+            if (SpeechRecognition) {
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.lang = 'de-DE';
+                recognition.interimResults = false;
+                recognition.maxAlternatives = 1;
+
+                micBtn.disabled = false;
+
+                recognition.onresult = (event) => {
+                    const speechResult = event.results[0][0].transcript;
+                    chatInput.value = speechResult;
+                };
+
+                recognition.onspeechend = () => {
+                    recognition.stop();
+                    micBtn.classList.remove('recording');
+                };
+
+                recognition.onerror = (event) => {
+                    console.error('Fehler bei der Spracherkennung: ' + event.error);
+                    micBtn.classList.remove('recording');
+                };
+                
+                micBtn.addEventListener('click', () => {
+                    if (micBtn.classList.contains('recording')) {
+                        recognition.stop();
+                        micBtn.classList.remove('recording');
+                    } else {
+                        recognition.start();
+                        micBtn.classList.add('recording');
+                    }
+                });
+
+            } else {
+                console.warn("Spracherkennung wird von diesem Browser nicht unterstützt.");
+                micBtn.disabled = true;
+            }
+
+            // --- NEU: CRM & Briefing Logic ---
+            const generateCrmSuggestions = async () => {
+                const suggestionsContainer = document.getElementById('crm-suggestions');
+                if (!suggestionsContainer) return;
+
+                try {
+                    const crmPrompt = `
+                        Sie sind ein persönlicher Beziehungsmanager (CRM). Analysieren Sie die folgende Liste von Kalenderereignissen der letzten 12 Monate. 
+                        Identifizieren Sie wichtige Kontakte (Personen, die in den Ereignistiteln oder Beschreibungen erwähnt werden), mit denen der Benutzer seit über 90 Tagen kein Meeting mehr hatte. 
+                        Ignorieren Sie allgemeine Begriffe wie "Team-Meeting". Konzentrieren Sie sich auf Namen von Personen.
+                        
+                        **Kontext:**
+                        - Heutiges Datum: ${new Date().toISOString().split('T')[0]}
+                        - Kalenderereignisse: ${JSON.stringify(aiContextEvents.slice(-200))}
+                        
+                        **Ihre Aufgabe:**
+                        Geben Sie eine Liste mit maximal 3 Vorschlägen zurück, um wieder in Kontakt zu treten.
+                        Formatieren Sie Ihre Antwort als sauberen HTML-String mit \`<ul>\` und \`<li>\`.
+                        Jedes \`<li>\` sollte den Namen der Person, den Zeitraum seit dem letzten Kontakt und einen freundlichen Vorschlag enthalten.
+                        Wenn keine solchen Kontakte gefunden werden, geben Sie eine ermutigende Nachricht zurück, dass das Netzwerk gut gepflegt ist.
+
+                        Beispiel-Ausgabe:
+                        <ul>
+                          <li class="p-2 rounded-md bg-amber-50 border-l-4 border-amber-400"><strong>Hans Müller:</strong> Seit über 3 Monaten kein Kontakt. Vielleicht ist es Zeit für ein kurzes Telefonat, um auf dem Laufenden zu bleiben?</li>
+                          <li class="p-2 rounded-md bg-amber-50 border-l-4 border-amber-400"><strong>Anna Schmidt:</strong> Letztes Treffen war vor 4 Monaten. Wie wäre es mit einem Kaffee, um sich über das Projekt X auszutauschen?</li>
+                        </ul>
+                    `;
+                     const payload = {
+                        contents: [{ parts: [{ text: crmPrompt }] }],
+                        generationConfig: { temperature: 0.5 }
+                    };
+                    const response = await fetch(GEMINI_API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error('CRM API response not OK');
+                    const result = await response.json();
+                    let crmHtml = result.candidates[0].content.parts[0].text;
+                    crmHtml = crmHtml.replace(/```html/g, '').replace(/```/g, '').trim();
+                    suggestionsContainer.innerHTML = crmHtml;
+
+                } catch (error) {
+                    console.error("Fehler bei der Erstellung von CRM-Vorschlägen:", error);
+                    suggestionsContainer.innerHTML = '<p class="text-xs text-red-500">Vorschläge konnten nicht geladen werden.</p>';
+                }
+            };
+
+            const generateMeetingBriefing = async (event) => {
+                briefingTitle.textContent = `Briefing für: ${event.title}`;
+                briefingContent.innerHTML = `
+                    <div class="flex items-center justify-center h-full p-4">
+                        <div class="spinner h-5 w-5 border-2"></div>
+                        <span class="ml-2 text-xs">Briefing wird erstellt...</span>
+                    </div>`;
+                briefingModal.classList.remove('hidden');
+
+                try {
+                    const briefingPrompt = `
+                        Sie sind ein Assistent für die Meeting-Vorbereitung. Der Benutzer hat morgen ein Meeting und benötigt ein kurzes, prägnantes Briefing basierend auf ECHTEN Daten.
+
+                        **Kontext:**
+                        - Heutiges Datum: ${new Date().toISOString().split('T')[0]}
+                        - Das bevorstehende Meeting: ${JSON.stringify({ title: event.title, description: event.description, date: event.date })}
+                        - Kalenderverlauf des Benutzers (relevante Auszüge): ${JSON.stringify(aiContextEvents)}
+
+                        **Ihre Aufgabe:**
+                        1.  **Letztes Treffen finden:** Suchen Sie im Kalenderverlauf nach dem letzten Treffen mit einem sehr ähnlichen Titel oder Thema.
+                        2.  **Zusammenfassen:** Fassen Sie die wichtigsten Punkte des letzten Treffens zusammen. Achten Sie besonders auf Notizen unter der Überschrift "--- Ergebnis ---" in der Beschreibung des alten Termins.
+                        3.  **Persönliche Notizen hervorheben:** Wenn Sie persönliche Notizen im alten Termin finden (z.B. "Sohn spielt Fußball"), erwähnen Sie diese als "persönlichen Anknüpfungspunkt".
+                        4.  **Formatierung:** Geben Sie Ihre Antwort als sauberen HTML-String zurück. Verwenden Sie \`<p>\`, \`<strong>\` und \`<ul>/<li>\`. Erfinden Sie KEINE Informationen.
+
+                        Beispiel-Ausgabe:
+                        <p>Hier ist eine kurze Zusammenfassung zur Vorbereitung:</p>
+                        <ul>
+                            <li><strong>Letztes Gespräch am 15. Mai 2024:</strong> Ihr habt über den Projektstatus gesprochen. Als Ergebnis wurde festgehalten, dass die Design-Phase abgeschlossen ist.</li>
+                            <li><strong>Persönlicher Anknüpfungspunkt:</strong> Sie hatten sich notiert, dass sein Sohn Fußball spielt. Eine gute Gelegenheit, danach zu fragen!</li>
+                        </ul>
+                    `;
+                    const payload = {
+                        contents: [{ parts: [{ text: briefingPrompt }] }],
+                        generationConfig: { temperature: 0.3 }
+                    };
+                    const response = await fetch(GEMINI_API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error('Briefing API response not OK');
+                    const result = await response.json();
+                    let briefingHtml = result.candidates[0].content.parts[0].text;
+                    briefingHtml = briefingHtml.replace(/```html/g, '').replace(/```/g, '').trim();
+                    briefingContent.innerHTML = briefingHtml;
+                } catch (error) {
+                    console.error("Fehler beim Erstellen des Briefings:", error);
+                    briefingContent.innerHTML = '<p class="text-xs text-red-500">Briefing konnte nicht erstellt werden.</p>';
+                }
+            };
+
+
+            // --- Event Listeners ---
+            authBtn.addEventListener('click', handleAuthClick);
+            signoutBtn.addEventListener('click', handleSignoutClick);
+            prevBtn.addEventListener('click', () => {
+                if (currentView === 'month') currentDate.setMonth(currentDate.getMonth() - 1);
+                else if (currentView === 'week') currentDate.setDate(currentDate.getDate() - 7);
+                else currentDate.setDate(currentDate.getDate() - 1);
+                fetchEvents();
+            });
+            nextBtn.addEventListener('click', () => {
+                if (currentView === 'month') currentDate.setMonth(currentDate.getMonth() + 1);
+                else if (currentView === 'week') currentDate.setDate(currentDate.getDate() + 7);
+                else currentDate.setDate(currentDate.getDate() + 1);
+                fetchEvents();
+            });
+            todayBtn.addEventListener('click', () => { currentDate = new Date(); fetchEvents(); });
+            addEventBtn.addEventListener('click', () => openModal(toISODateString(currentDate)));
+            
+            // View switcher listeners
+            dashboardViewBtn.addEventListener('click', () => switchView('dashboard'));
+            dayViewBtn.addEventListener('click', () => switchView('day'));
+            weekViewBtn.addEventListener('click', () => switchView('week'));
+            monthViewBtn.addEventListener('click', () => switchView('month'));
+            analysisViewBtn.addEventListener('click', () => switchView('analysis'));
+            profileViewBtn.addEventListener('click', () => switchView('profile'));
+
+            closeModalBtn.addEventListener('click', closeModal);
+            eventModal.addEventListener('click', (e) => { if (e.target === eventModal) closeModal(); });
+            allDayCheckbox.addEventListener('change', () => { timeInputs.style.display = allDayCheckbox.checked ? 'none' : 'grid'; });
+            
+            eventForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const id = eventIdInput.value;
+                
+                const eventData = { 
+                    id: id || null, 
+                    title: eventTitleInput.value, 
+                    date: eventDateInput.value, 
+                    description: eventDescriptionInput.value,
+                    skills: eventSkillTagsInput.value,
+                    color: eventColorInput.value, 
+                    allDay: allDayCheckbox.checked,
+                    outcome: eventOutcomeSelect.value,
+                    outcomeNotes: eventOutcomeNotes.value,
+                    goalId: eventGoalLinkSelect.value
+                };
+                if (!eventData.allDay) {
+                    eventData.startTime = eventStartTimeInput.value;
+                    eventData.endTime = eventEndTimeInput.value;
+                }
+                if (id) { 
+                    updateEventAPI(eventData).then(() => {
+                        if (currentView === 'dashboard') renderDashboardView();
+                    });
+                } else { 
+                    addEventAPI(eventData).then(fetchEvents).then(fetchAiContextEvents).then(() => {
+                         if (currentView === 'dashboard') renderDashboardView();
+                    }); 
+                }
+                closeModal();
+            });
+
+            deleteEventBtn.addEventListener('click', () => {
+                const eventId = eventIdInput.value;
+                if (eventId) {
+                    showConfirm('Möchten Sie diesen Termin wirklich löschen?', () => {
+                        deleteEventAPI(eventId); 
+                        closeModal();
+                    });
+                }
+            });
+
+            // Chat event listeners
+            openChatBtn.addEventListener('click', openChat);
+            closeChatBtn.addEventListener('click', closeChat);
+            chatModal.addEventListener('click', (e) => { if (e.target === chatModal) closeChat(); });
+            chatForm.addEventListener('submit', handleChatSubmit);
+
+            // Goal modal listeners
+            manageGoalsBtn.addEventListener('click', openGoalModal);
+            closeGoalModalBtn.addEventListener('click', closeGoalModal);
+            goalModal.addEventListener('click', (e) => { if (e.target === goalModal) closeGoalModal(); });
+            goalForm.addEventListener('submit', handleGoalSubmit);
+            goalList.addEventListener('click', async (e) => {
+                const editBtn = e.target.closest('.edit-goal-btn');
+                if (editBtn) {
+                    const goal = goals.find(g => g.id === editBtn.dataset.id);
+                    if (goal) {
+                        goalIdInput.value = goal.id;
+                        goalTitleInput.value = goal.title;
+                        goalTargetInput.value = goal.target;
+                    }
+                }
+                const deleteBtn = e.target.closest('.delete-goal-btn');
+                if (deleteBtn) {
+                    const goalIdToDelete = deleteBtn.dataset.id;
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'local-dev-app';
+                    showConfirm('Möchten Sie dieses Ziel wirklich löschen? Verknüpfte Termine werden nicht gelöscht.', async () => {
+                        try {
+                            const goalDoc = doc(db, `artifacts/${appId}/users/${userId}/goals`, goalIdToDelete);
+                            await deleteDoc(goalDoc);
+                        } catch (error) {
+                            showError("Ziel konnte nicht gelöscht werden.", error);
+                        }
+                    });
+                }
+            });
+            
+            analysisForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const keyword = document.getElementById('analysis-keyword').value.trim();
+                const days = document.getElementById('analysis-range').value;
+                renderAnalysisView(keyword, parseInt(days));
+            });
+
+            // Confirmation modal listeners
+            confirmOkBtn.addEventListener('click', () => {
+                if (confirmCallback) confirmCallback();
+                confirmModal.classList.add('hidden');
+            });
+            confirmCancelBtn.addEventListener('click', () => {
+                confirmModal.classList.add('hidden');
+            });
+
+            // Dashboard event delegation for To-Dos and Briefings
+            dashboardContent.addEventListener('click', async (e) => {
+                const todoItem = e.target.closest('.todo-item');
+                if (todoItem) {
+                    const todoId = todoItem.dataset.id;
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'local-dev-app';
+                    const todoDocRef = doc(db, `artifacts/${appId}/users/${userId}/todos`, todoId);
+                    try {
+                        if (e.target.type === 'checkbox') {
+                            await updateDoc(todoDocRef, { completed: e.target.checked });
+                        } else if (e.target.closest('.delete-todo-btn')) {
+                            await deleteDoc(todoDocRef);
+                        }
+                    } catch (error) {
+                        showError("To-Do-Status konnte nicht geändert werden.", error);
+                    }
+                    return;
+                }
+
+                // Briefing Logic
+                const briefingBtn = e.target.closest('.briefing-btn');
+                if (briefingBtn) {
+                    const eventId = briefingBtn.dataset.eventId;
+                    const event = allLoadedEvents.find(e => e.id === eventId);
+                    if (event) {
+                        generateMeetingBriefing(event);
+                    }
+                }
+            });
+
+            // Briefing modal listeners
+            closeBriefingBtn.addEventListener('click', () => briefingModal.classList.add('hidden'));
+            briefingModal.addEventListener('click', (e) => { if (e.target === briefingModal) briefingModal.classList.add('hidden'); });
+
+            // --- Firebase Initialization ---
+            async function initializeAppAndFirestore() {
+                try {
+                    const firebaseConfig = {
+                        apiKey: "AIzaSyDA2pW52QXBfU17P6DWXqfUVVm4mPAIuqQ",
+                        authDomain: "sylvan-chess-418211.firebaseapp.com",
+                        projectId: "sylvan-chess-418211",
+                        storageBucket: "sylvan-chess-418211.appspot.com",
+                        messagingSenderId: "384756172708",
+                        appId: "1:384756172708:web:84caf479fca15c1831e331"
+                    };
+
+                    const app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
+
+                    onAuthStateChanged(auth, user => {
+                        if (user) {
+                            console.log("Firebase user signed in:", user.uid);
+                            userId = user.uid;
+                            // Set token for GAPI if not already set (e.g., on page refresh)
+                            if (!gapi.client.getToken()) {
+                                user.getIdToken().then(accessToken => {
+                                    gapi.client.setToken({ access_token: accessToken });
+                                });
+                            }
+                            updateSigninStatus(true);
+                        } else {
+                            console.log("Firebase user signed out.");
+                            userId = null;
+                            updateSigninStatus(false);
+                        }
+                    });
+                } catch (error) {
+                    showError("Firebase konnte nicht initialisiert werden.", error);
+                }
+            }
+            
+            function setupFirestoreListeners() {
+                if (!userId) return;
+                const appId = 'local-dev-app'; // Feste ID für lokale Entwicklung
+
+                // Detach old listeners if they exist
+                if (unsubscribeGoals) unsubscribeGoals();
+                if (unsubscribeTodos) unsubscribeTodos();
+                if (unsubscribeProfile) unsubscribeProfile();
+
+                // Profile Listener
+                const profileDocRef = doc(db, `artifacts/${appId}/users/${userId}/profile/main`);
+                unsubscribeProfile = onSnapshot(profileDocRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        userProfile = docSnap.data();
+                    } else {
+                        userProfile = {};
+                    }
+                    renderProfileView();
+                }, (error) => console.error("Error listening to profile:", error));
+
+                // Goals Listener
+                const goalsQuery = query(collection(db, `artifacts/${appId}/users/${userId}/goals`));
+                unsubscribeGoals = onSnapshot(goalsQuery, (querySnapshot) => {
+                    goals = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderGoalList();
+                    populateGoalDropdown();
+                    if (currentView === 'dashboard') renderDashboardView();
+                }, (error) => console.error("Error listening to goals:", error));
+
+                // Todos Listener
+                const todosQuery = query(collection(db, `artifacts/${appId}/users/${userId}/todos`));
+                unsubscribeTodos = onSnapshot(todosQuery, (querySnapshot) => {
+                    todos = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderTodoList();
+                }, (error) => console.error("Error listening to todos:", error));
+            }
+
+
+            // --- Initial Load ---
+            showLoader();
+            console.log("DEBUG: DOM fully loaded. Starting app initialization.");
+            // Initialize Firebase right away
+            initializeAppAndFirestore();
+
+            setTimeout(() => {
+                if (!gapiInited || !gisInited) {
+                   if (!API_KEY || API_KEY === "YOUR_API_KEY" || !CLIENT_ID || CLIENT_ID === "YOUR_CLIENT_ID") {
+                        // Error already shown, do nothing
+                   } else {
+                        handleApiInitError("Timeout: Google-Skripte konnten nicht geladen werden. Überprüfen Sie Ihre Netzwerkverbindung und Werbeblocker.");
+                   }
+                }
+            }, 10000); // 10-second timeout
+        });
+    </script>
+    <!-- The onload callbacks must be on the window object when using modules -->
+    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+</body>
+</html>
