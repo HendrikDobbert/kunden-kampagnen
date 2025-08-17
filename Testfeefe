@@ -1,0 +1,26 @@
+DEBUG: GIS client initialized.
+index copy 15.html:428 DEBUG: Initializing GAPI client...
+content.js:40 Feature is disabled
+index copy 15.html:2098 Firebase user signed in: ayaIsn0ggUMnOo5Kvu1sbPwi2fp1
+index copy 15.html:452  Termine konnten nicht geladen werden. TypeError: Cannot read properties of undefined (reading 'events')
+    at fetchEvents (index copy 15.html:679:65)
+    at updateSigninStatus (index copy 15.html:636:21)
+    at index copy 15.html:2106:29
+    at auth_impl.ts:758:47
+showError @ index copy 15.html:452
+index copy 15.html:701 DEBUG: Fetching wider range of events for AI context...
+index copy 15.html:732  Could not fetch events for AI context. TypeError: Cannot read properties of undefined (reading 'events')
+    at fetchAiContextEvents (index copy 15.html:708:65)
+    at updateSigninStatus (index copy 15.html:637:21)
+    at index copy 15.html:2106:29
+    at auth_impl.ts:758:47
+fetchAiContextEvents @ index copy 15.html:732
+index copy 15.html:434 DEBUG: GAPI client initialized successfully.
+index copy 15.html:478 DEBUG: Both GAPI and GIS are initialized. Enabling buttons.
+index copy 15.html:2152  Error listening to todos: FirebaseError: Missing or insufficient permissions.
+(anonymous) @ index copy 15.html:2152
+index copy 15.html:2136  Error listening to profile: FirebaseError: Missing or insufficient permissions.
+(anonymous) @ index copy 15.html:2136
+index copy 15.html:2145  Error listening to goals: FirebaseError: Missing or insufficient permissions.
+(anonymous) @ index copy 15.html:2145
+index copy 15.html:1  [Deprecation] -ms-high-contrast is in the process of being deprecated. Please see https://blogs.windows.com/msedgedev/2024/04/29/deprecating-ms-high-contrast/ for tips on updating to the new Forced Colors Mode standard.
