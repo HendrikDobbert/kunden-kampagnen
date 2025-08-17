@@ -11,6 +11,42 @@
     <!-- Marked.js for Markdown-Rendering in Chat -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
+    <!-- NEU: Script for Global API Callbacks -->
+    <script>
+        // This script is placed in the <head> before the Google API scripts are loaded.
+        // This ensures that these functions are in the global scope when the 'onload' callbacks fire, preventing "is not defined" errors.
+        
+        // --- Global Scope for GAPI/GIS Callbacks ---
+        // These functions will be called by the Google scripts once they are loaded.
+        
+        /**
+         * Callback after the GAPI script is loaded. It proceeds to load the GAPI client.
+         */
+        function gapiLoaded() {
+            // This function is defined globally, so the `onload` attribute in the script tag can find it.
+            console.log("LOG: GAPI script loaded successfully.");
+            // `gapi` is now available globally from the loaded script.
+            gapi.load('client', initializeGapiClient);
+        }
+
+        /**
+         * Callback after the GIS script is loaded. It initializes the token client.
+         */
+        function gisLoaded() {
+            // This function is also defined globally.
+            console.log("LOG: GIS script loaded successfully.");
+            // The `initializeGisClient` function will be called from our main module script later.
+            // We just need this entry point to exist when the script loads.
+            if (window.initializeGisClient) {
+                window.initializeGisClient();
+            }
+        }
+    </script>
+    
+    <!-- Google API Scripts -->
+    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+
     <!-- Custom Stylesheet -->
     <style>
         body {
@@ -32,9 +68,6 @@
         .week-view-grid { display: grid; grid-template-columns: 50px repeat(7, minmax(0, 1fr)); }
         .week-day-column { position: relative; border-right: 1px solid #e5e7eb; }
         .timeline-event { position: absolute; left: 4px; right: 4px; z-index: 10; overflow: hidden; display: flex; flex-direction: column; }
-        #loader { position: fixed; inset: 0; background-color: rgba(255, 255, 255, 0.7); display: flex; align-items: center; justify-content: center; z-index: 10000; }
-        .spinner { border: 4px solid rgba(0, 0, 0, 0.1); width: 36px; height: 36px; border-radius: 50%; border-left-color: #3b82f6; animation: spin 1s ease infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
         /* KI Chat Styles */
         .chat-bubble-user { background-color: #3b82f6; color: white; }
@@ -87,8 +120,8 @@
 </head>
 <body class="bg-gray-100 text-gray-800 antialiased">
 
-    <!-- Loading Spinner Overlay -->
-    <div id="loader"><div class="spinner"></div></div>
+    <!-- Nicht-blockierender Ladebalken -->
+    <div id="loader" class="fixed top-0 left-0 right-0 h-1 bg-blue-500 z-[10000] transition-transform duration-300 ease-out" style="transform: scaleX(0); transform-origin: left;"></div>
 
     <!-- The root container for our entire application -->
     <div class="container mx-auto p-4 md:p-8">
@@ -371,15 +404,10 @@
         import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, collection, query, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
-        // --- Global Scope for GAPI/GIS Callbacks ---
-        window.gapiLoaded = gapiLoaded;
-        window.gisLoaded = gisLoaded;
-
+        // --- Globals defined in the module scope ---
         let gapiInited = false;
         let gisInited = false;
         let tokenClient;
-
-        // --- Firebase Globals ---
         let db, auth, userId;
         let unsubscribeGoals, unsubscribeTodos, unsubscribeProfile;
 
@@ -391,51 +419,26 @@
         // --- Gemini API Configuration ---
         const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${API_KEY}`;
 
+        // --- Make initialization functions available to the global scope ---
+        // The global `gapiLoaded` function will call this one.
+        window.initializeGapiClient = initializeGapiClient;
+        // The global `gisLoaded` function will call this one.
+        window.initializeGisClient = initializeGisClient;
 
         /**
-         * Callback after GAPI script is loaded.
-         */
-        function gapiLoaded() {
-            console.log("DEBUG: GAPI script loaded successfully.");
-            gapi.load('client', initializeGapiClient);
-        }
-
-        /**
-         * Callback after GIS script is loaded.
-         */
-        function gisLoaded() {
-            console.log("DEBUG: GIS script loaded successfully.");
-            try {
-                // GIS client is still needed for revoking the token on sign-out
-                tokenClient = google.accounts.oauth2.initTokenClient({
-                    client_id: CLIENT_ID,
-                    scope: SCOPES,
-                    callback: '', 
-                });
-                gisInited = true;
-                console.log("DEBUG: GIS client initialized.");
-                maybeEnableButtons();
-            } catch (error) {
-                handleApiInitError("Fehler bei der Initialisierung des Google Identity Clients (GIS).", error);
-            }
-        }
-
-        /**
-         * Initializes the GAPI client.
+         * Initializes the GAPI client. This is called from the global `gapiLoaded` function.
          */
         async function initializeGapiClient() {
             try {
-                console.log("DEBUG: Initializing GAPI client...");
+                console.log("LOG: Initializing GAPI client from module...");
                 await gapi.client.init({
                     apiKey: API_KEY,
                     discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"],
                 });
-                // FIX: Explicitly load the calendar API to prevent race conditions
                 await gapi.client.load('calendar', 'v3');
                 gapiInited = true;
-                console.log("DEBUG: GAPI client and Calendar API initialized successfully.");
+                console.log("LOG: GAPI client and Calendar API initialized successfully.");
                 
-                // FIX: Resolve the promise to signal that GAPI is ready.
                 if (window.resolveGapiClientReady) {
                     window.resolveGapiClientReady();
                 }
@@ -443,6 +446,25 @@
                 maybeEnableButtons();
             } catch (error) {
                 handleApiInitError("Fehler bei der Initialisierung des Google API-Clients (GAPI).", error);
+            }
+        }
+
+        /**
+         * Initializes the GIS client. This is called from the global `gisLoaded` function.
+         */
+        function initializeGisClient() {
+             try {
+                // GIS client is still needed for revoking the token on sign-out
+                tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: CLIENT_ID,
+                    scope: SCOPES,
+                    callback: '', 
+                });
+                gisInited = true;
+                console.log("LOG: GIS client initialized from module.");
+                maybeEnableButtons();
+            } catch (error) {
+                handleApiInitError("Fehler bei der Initialisierung des Google Identity Clients (GIS).", error);
             }
         }
         
@@ -456,19 +478,14 @@
             errorMessage.textContent = message;
             errorContainer.classList.remove('hidden');
             
-            if (errorObject) {
-                console.error(message, errorObject);
-            } else {
-                console.error(message);
-            }
+            console.error("FEHLER ANGEZEIGT:", message, errorObject);
         }
 
         /**
          * Handles critical API initialization errors.
          */
         function handleApiInitError(message, error) {
-            const loader = document.getElementById('loader');
-            if(loader) loader.style.display = 'none';
+            // No need to hide the main loader as it's not a blocking overlay anymore
             showError(message + " Prüfen Sie die API-Konfiguration und die autorisierten JavaScript-Quellen in der Google Cloud Console.", error);
             document.getElementById('auth-btn').disabled = true;
             document.getElementById('auth-message').textContent = "Kalender konnte nicht initialisiert werden. Bitte überprüfen Sie die Konsole auf Fehler."
@@ -478,14 +495,8 @@
          * Enables the authentication button once both libraries are initialized.
          */
         function maybeEnableButtons() {
-            if (!API_KEY || API_KEY === "YOUR_API_KEY" || !CLIENT_ID || CLIENT_ID === "YOUR_CLIENT_ID") {
-                 handleApiInitError("API-Schlüssel und/oder Client-ID sind nicht konfiguriert. Bitte ersetzen Sie die Platzhalter im Skript.", "Konfigurationsfehler");
-                 return;
-            }
             if (gapiInited && gisInited) {
-                console.log("DEBUG: Both GAPI and GIS are initialized. Enabling buttons.");
-                const loader = document.getElementById('loader');
-                if(loader) loader.style.display = 'none';
+                console.log("LOG: Both GAPI and GIS are initialized. Enabling auth button.");
                 document.getElementById('auth-btn').disabled = false;
             }
         }
@@ -586,14 +597,32 @@
             let aiContextEvents = [];
             let allLoadedEvents = []; // Cache for all events for dashboard/briefings
             
-            // --- UI Helper Functions ---
-            const showLoader = () => { if (loader) loader.style.display = 'flex'; };
-            const hideLoader = () => { if (loader) loader.style.display = 'none'; };
+            // --- UI Helper Functions (NEU: Nicht-blockierender Ladebalken) ---
+            const showLoader = () => {
+                if (loader) {
+                    // Beginnt die Ladeanimation. Der Balken bewegt sich schnell auf 70%.
+                    loader.style.transitionDuration = '5s'; // Langsame Dauer für einen "fortschreitenden" Effekt
+                    loader.style.transform = 'scaleX(0.7)';
+                }
+            };
+            const hideLoader = () => {
+                if (loader) {
+                    // Beendet die Ladeanimation. Der Balken geht schnell auf 100%.
+                    loader.style.transitionDuration = '0.3s'; // Schnelle Dauer für den Abschluss
+                    loader.style.transform = 'scaleX(1)';
+                    // Nach einer kurzen Verzögerung wird der Balken für den nächsten Ladevorgang ausgeblendet und zurückgesetzt.
+                    setTimeout(() => {
+                        loader.style.transitionDuration = '0.3s';
+                        loader.style.transform = 'scaleX(0)';
+                    }, 500);
+                }
+            };
             
             /**
              * Handles user sign-in for Google Calendar.
              */
             async function handleAuthClick() {
+                console.log("LOG: Auth button clicked.");
                 if (!auth) {
                     showError("Firebase ist noch nicht initialisiert.");
                     return;
@@ -601,15 +630,16 @@
                 const provider = new GoogleAuthProvider();
                 provider.addScope('https://www.googleapis.com/auth/calendar');
                 try {
+                    console.log("LOG: Starting Google sign-in popup...");
                     const result = await signInWithPopup(auth, provider);
+                    console.log("LOG: Google sign-in successful.", result);
                     const credential = GoogleAuthProvider.credentialFromResult(result);
                     const accessToken = credential.accessToken;
                     
                     // Set the access token for the GAPI client to use for calendar API calls
                     gapi.client.setToken({ access_token: accessToken });
                     
-                    // The onAuthStateChanged listener will handle the rest of the UI updates.
-                    console.log("Successfully signed in with Google and set GAPI token.");
+                    console.log("LOG: Successfully set GAPI token.");
 
                 } catch (error) {
                     showError("Anmeldung mit Google fehlgeschlagen.", error);
@@ -620,6 +650,7 @@
              * Handles user sign-out.
              */
             function handleSignoutClick() {
+                console.log("LOG: Sign-out button clicked.");
                 if (auth) {
                     auth.signOut();
                 }
@@ -628,7 +659,7 @@
                 if (token && tokenClient) {
                     google.accounts.oauth2.revoke(token.access_token, () => {
                         gapi.client.setToken('');
-                        console.log("Google token revoked.");
+                        console.log("LOG: Google token revoked.");
                     });
                 }
             }
@@ -637,29 +668,31 @@
              * Updates the UI based on the user's sign-in status.
              */
             function updateSigninStatus(isSignedIn) {
-                 if (isSignedIn) {
-                    authContainer.classList.add('hidden');
-                    calendarApp.classList.remove('hidden');
-                    openChatBtn.classList.remove('hidden');
-                    fetchEvents();
-                    fetchAiContextEvents();
-                    setupFirestoreListeners(); // This will now handle loading data
-                } else {
-                    authContainer.classList.remove('hidden');
-                    calendarApp.classList.add('hidden');
-                    openChatBtn.classList.add('hidden');
-                    // Clear local state
-                    events = []; aiContextEvents = []; allLoadedEvents = [];
-                    goals = []; todos = []; userProfile = {};
-                    // Detach Firestore listeners
-                    if (unsubscribeGoals) unsubscribeGoals();
-                    if (unsubscribeTodos) unsubscribeTodos();
-                    if (unsubscribeProfile) unsubscribeProfile();
-                }
+                  console.log(`LOG: Updating sign-in status to: ${isSignedIn}`);
+                  if (isSignedIn) {
+                      authContainer.classList.add('hidden');
+                      calendarApp.classList.remove('hidden');
+                      openChatBtn.classList.remove('hidden');
+                      fetchEvents();
+                      fetchAiContextEvents();
+                      setupFirestoreListeners(); // This will now handle loading data
+                  } else {
+                      authContainer.classList.remove('hidden');
+                      calendarApp.classList.add('hidden');
+                      openChatBtn.classList.add('hidden');
+                      // Clear local state
+                      events = []; aiContextEvents = []; allLoadedEvents = [];
+                      goals = []; todos = []; userProfile = {};
+                      // Detach Firestore listeners
+                      if (unsubscribeGoals) unsubscribeGoals();
+                      if (unsubscribeTodos) unsubscribeTodos();
+                      if (unsubscribeProfile) unsubscribeProfile();
+                  }
             }
 
             // --- API Functions (CRUD Operations) ---
             const fetchEvents = async () => {
+                console.log("LOG: Fetching calendar events for view:", currentView);
                 showLoader();
                 try {
                     let timeMin, timeMax;
@@ -693,6 +726,7 @@
                         'maxResults': 250,
                         'orderBy': 'startTime'
                     });
+                    console.log("LOG: Successfully fetched events:", response.result.items.length);
                     events = response.result.items.map(googleEventToInternal);
                     render();
                 } catch (error) {
@@ -706,7 +740,7 @@
              * Fetches a wider range of events for the AI's context.
              */
             const fetchAiContextEvents = async () => {
-                console.log("DEBUG: Fetching wider range of events for AI context...");
+                console.log("LOG: Fetching wider range of events for AI context...");
                 try {
                     const timeMin = new Date();
                     timeMin.setDate(timeMin.getDate() - 90); // Last 90 days
@@ -723,10 +757,8 @@
                         'orderBy': 'startTime'
                     });
                     
-                    // Cache all events for dashboard and briefings
                     allLoadedEvents = response.result.items.map(googleEventToInternal);
 
-                    // Stores a simplified version of events for the prompt
                     aiContextEvents = allLoadedEvents.map(e => ({
                         summary: e.title,
                         description: e.description,
@@ -735,7 +767,7 @@
                         outcome: e.outcome,
                         outcomeNotes: e.outcomeNotes,
                     }));
-                    console.log(`DEBUG: Fetched ${aiContextEvents.length} events for AI context.`);
+                    console.log(`LOG: Fetched ${aiContextEvents.length} events for AI context.`);
                 } catch (error) {
                     console.error('Could not fetch events for AI context.', error);
                 }
@@ -1057,7 +1089,7 @@
                             <span>${startTime} - <strong>${event.title}</strong></span>
                             <button class="briefing-btn p-1 hover:bg-blue-200 rounded-full" data-event-id="${event.id}" title="Meeting-Briefing abrufen">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
-                                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
                                 </svg>
                             </button>
                         </li>
@@ -1346,7 +1378,7 @@
             const generateContextualAgenda = async (event) => {
                 contextualAgendaContent.innerHTML = `
                     <div class="flex items-center justify-center h-full p-4">
-                        <div class="spinner h-5 w-5 border-2"></div>
+                        <div class="w-5 h-5 border-2 border-t-blue-500 rounded-full animate-spin"></div>
                         <span class="ml-2 text-xs">Agenda wird vorbereitet...</span>
                     </div>
                 `;
@@ -1392,7 +1424,7 @@
 
                     const result = await response.json();
                      if (!result.candidates || !result.candidates[0].content.parts[0].text) {
-                         throw new Error("Unerwartete API-Antwortstruktur für Agenda.");
+                          throw new Error("Unerwartete API-Antwortstruktur für Agenda.");
                     }
                     let agendaHtml = result.candidates[0].content.parts[0].text;
                     
@@ -1879,7 +1911,7 @@
                 briefingTitle.textContent = `Briefing für: ${event.title}`;
                 briefingContent.innerHTML = `
                     <div class="flex items-center justify-center h-full p-4">
-                        <div class="spinner h-5 w-5 border-2"></div>
+                        <div class="w-5 h-5 border-2 border-t-blue-500 rounded-full animate-spin"></div>
                         <span class="ml-2 text-xs">Briefing wird erstellt...</span>
                     </div>`;
                 briefingModal.classList.remove('hidden');
@@ -2103,14 +2135,14 @@
 
                     onAuthStateChanged(auth, async (user) => {
                         if (user) {
-                            console.log("Firebase user signed in:", user.uid);
+                            console.log("LOG: Firebase user signed in:", user.uid);
                             userId = user.uid;
                             
                             await gapiClientReadyPromise;
                             
                             updateSigninStatus(true);
                         } else {
-                            console.log("Firebase user signed out.");
+                            console.log("LOG: Firebase user signed out.");
                             userId = null;
                             updateSigninStatus(false);
                         }
@@ -2159,8 +2191,7 @@
 
 
             // --- Initial Load ---
-            showLoader();
-            console.log("DEBUG: DOM fully loaded. Starting app initialization.");
+            console.log("LOG: DOM fully loaded. Starting app initialization.");
             
             let resolveGapiClientReady;
             const gapiClientReadyPromise = new Promise(resolve => {
