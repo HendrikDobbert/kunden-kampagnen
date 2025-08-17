@@ -430,8 +430,10 @@
                     apiKey: API_KEY,
                     discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"],
                 });
+                // FIX: Explicitly load the calendar API to prevent race conditions
+                await gapi.client.load('calendar', 'v3');
                 gapiInited = true;
-                console.log("DEBUG: GAPI client initialized successfully.");
+                console.log("DEBUG: GAPI client and Calendar API initialized successfully.");
                 maybeEnableButtons();
             } catch (error) {
                 handleApiInitError("Fehler bei der Initialisierung des Google API-Clients (GAPI).", error);
