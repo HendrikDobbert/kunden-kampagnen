@@ -11,10 +11,6 @@
     <!-- Marked.js for Markdown-Rendering in Chat -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
-    <!-- Google API Scripts -->
-    <script src="https://apis.google.com/js/api.js"></script>
-    <script src="https://accounts.google.com/gsi/client"></script>
-
     <!-- Custom Stylesheet -->
     <style>
         body {
@@ -2110,12 +2106,8 @@
                             console.log("Firebase user signed in:", user.uid);
                             userId = user.uid;
                             
-                            // FIX: Wait for GAPI to be fully initialized before proceeding
                             await gapiClientReadyPromise;
                             
-                            // The Google token is now handled by the signInWithPopup result.
-                            // On reload, GAPI might not have a token, which is fine.
-                            // It will be requested when an API call is made.
                             updateSigninStatus(true);
                         } else {
                             console.log("Firebase user signed out.");
@@ -2181,8 +2173,6 @@
             // Initialize Firebase right away
             initializeAppAndFirestore();
             
-            // The Google API scripts will call their respective `loaded` functions
-            // once they are ready.
         });
     </script>
 </body>
