@@ -287,9 +287,6 @@
         // User-provided Generative API Key
         const GEMINI_API_KEY = "AIzaSyAep_D8QeYlPSeZV_zkh0anfkZT-aXmxPA";
         
-        // App ID from the environment for database path
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
         // Firebase services
         let db, auth;
 
@@ -373,7 +370,8 @@
                 return;
             }
             
-            const sessionsCollectionRef = collection(db, 'artifacts', appId, 'users', userId, 'sessions');
+            // CORRECTED PATH: Removed the platform-specific '/artifacts/{appId}' prefix.
+            const sessionsCollectionRef = collection(db, 'users', userId, 'sessions');
 
             unsubscribeFromSessions = onSnapshot(sessionsCollectionRef, (snapshot) => {
                 console.log("Received Firestore data update.");
@@ -384,7 +382,7 @@
                 updateAllDynamicContent();
             }, (error) => {
                 console.error("Error fetching sessions from Firestore:", error);
-                showModal("Fehler beim Laden der Daten aus der Datenbank.");
+                showModal("Fehler beim Laden der Daten aus der Datenbank. Überprüfen Sie Ihre Firestore-Sicherheitsregeln.");
             });
         }
 
@@ -776,7 +774,7 @@
             const updatedResults = [...session.results];
             updatedResults[resultIndex].question = newText;
             
-            const sessionRef = doc(db, 'artifacts', appId, 'users', userId, 'sessions', sessionId);
+            const sessionRef = doc(db, 'users', userId, 'sessions', sessionId);
             try {
                 await updateDoc(sessionRef, { results: updatedResults });
             } catch (error) {
@@ -790,7 +788,7 @@
             if (!session) return;
 
             const updatedResults = session.results.filter((_, index) => index != resultIndex);
-            const sessionRef = doc(db, 'artifacts', appId, 'users', userId, 'sessions', sessionId);
+            const sessionRef = doc(db, 'users', userId, 'sessions', sessionId);
 
             try {
                 if (updatedResults.length === 0 && !session.document) {
@@ -808,7 +806,7 @@
             const session = allUserSessions.find(s => s.id === sessionId);
             if (!session) return;
 
-            const sessionRef = doc(db, 'artifacts', appId, 'users', userId, 'sessions', sessionId);
+            const sessionRef = doc(db, 'users', userId, 'sessions', sessionId);
             try {
                 // Create a new object for the update to remove the 'document' field.
                 const updatedSessionData = { ...session };
@@ -875,7 +873,7 @@
                     content: extractedText
                 };
 
-                const sessionRef = doc(db, 'artifacts', appId, 'users', userId, 'sessions', sessionId);
+                const sessionRef = doc(db, 'users', userId, 'sessions', sessionId);
                 await updateDoc(sessionRef, { document: newDocument });
                 showModal(`Dokument "${file.name}" wurde erfolgreich verarbeitet und gespeichert.`);
 
@@ -925,7 +923,7 @@
                 if (session) {
                     const newResults = questions.map(createNewResult);
                     const updatedResults = [...(session.results || []), ...newResults];
-                    const sessionRef = doc(db, 'artifacts', appId, 'users', userId, 'sessions', session.id);
+                    const sessionRef = doc(db, 'users', userId, 'sessions', session.id);
                     await updateDoc(sessionRef, { results: updatedResults });
                 } else {
                     const newResults = questions.map(createNewResult);
@@ -934,7 +932,7 @@
                         results: newResults,
                         document: null
                     };
-                    const sessionsCollectionRef = collection(db, 'artifacts', appId, 'users', userId, 'sessions');
+                    const sessionsCollectionRef = collection(db, 'users', userId, 'sessions');
                     await addDoc(sessionsCollectionRef, newSession);
                 }
 
@@ -1408,7 +1406,7 @@
             updatedResults[resultIndex].srs.level = currentLevel;
             updatedResults[resultIndex].srs.nextReview = nextReviewTimestamp;
             
-            const sessionRef = doc(db, 'artifacts', appId, 'users', userId, 'sessions', session.id);
+            const sessionRef = doc(db, 'users', userId, 'sessions', session.id);
             try {
                 await updateDoc(sessionRef, { results: updatedResults });
                 console.log(`Updated SRS for "${questionResult.question}": New Level ${currentLevel}, Next review in ${intervalDays} days.`);
