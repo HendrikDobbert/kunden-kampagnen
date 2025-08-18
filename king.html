@@ -135,39 +135,24 @@
         let currentUserId = null;
 
         // --- AUTHENTICATION FLOW ---
-        const redirectResultPromise = getRedirectResult(auth).then(result => {
-            if (result) {
-                console.log("Redirect result received.");
-                const credential = GoogleAuthProvider.credentialFromResult(result);
-                accessToken = credential.accessToken;
-            }
-        }).catch(error => {
-            console.error("Error handling redirect result:", error.code, error.message);
-        });
 
-        onAuthStateChanged(auth, async (user) => {
-            console.log("onAuthStateChanged triggered.");
-            await redirectResultPromise;
-            console.log("Redirect promise resolved. Continuing UI update.");
-
+        // Function to update the UI based on auth state
+        async function updateUI(user) {
             if (user) {
-                console.log("User is signed in:", user.uid);
+                console.log("UI Update: User is signed in.", user.uid);
                 currentUserId = user.uid;
-
+                loginSection.classList.add('hidden');
+                appContent.classList.remove('hidden');
+                
+                // This check is important for page reloads where we don't have the token anymore
                 if (accessToken) {
-                    console.log("Access Token is available. Showing app content.");
-                    loginSection.classList.add('hidden');
-                    appContent.classList.remove('hidden');
                     await fetchCalendarEvents();
                     addMessageToChat('agent', 'Hallo! Ich bin Ihr Kalender-Agent. Wie kann ich Ihnen helfen?');
                 } else {
-                    console.error("User is logged in, but no access token available.");
                     addMessageToChat('agent', 'Sie sind angemeldet, aber der Zugriff auf den Kalender ist abgelaufen. Bitte melden Sie sich ab und erneut an, um den Zugriff zu erneuern.');
-                    loginSection.classList.add('hidden');
-                    appContent.classList.remove('hidden');
                 }
             } else {
-                console.log("No user is signed in. Showing login screen.");
+                console.log("UI Update: No user. Showing login screen.");
                 accessToken = null;
                 currentUserId = null;
                 loginSection.classList.remove('hidden');
@@ -175,7 +160,29 @@
                 calendarEventsContainer.innerHTML = '';
                 chatHistory.innerHTML = '';
             }
-        });
+        }
+
+        // Main logic starts here
+        async function main() {
+            try {
+                console.log("Handling redirect result...");
+                const result = await getRedirectResult(auth);
+                if (result) {
+                    console.log("Redirect result received.");
+                    const credential = GoogleAuthProvider.credentialFromResult(result);
+                    accessToken = credential.accessToken;
+                }
+            } catch (error) {
+                console.error("Error handling redirect result:", error);
+            }
+
+            // NOW we attach the listener, after handling the redirect.
+            console.log("Attaching onAuthStateChanged listener.");
+            onAuthStateChanged(auth, updateUI);
+        }
+
+        // Run the main authentication flow
+        main();
 
         loginButton.addEventListener('click', () => {
             const provider = new GoogleAuthProvider();
