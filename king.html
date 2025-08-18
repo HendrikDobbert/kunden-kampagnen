@@ -144,11 +144,13 @@
                 loginSection.classList.add('hidden');
                 appContent.classList.remove('hidden');
                 
-                // This check is important for page reloads where we don't have the token anymore
                 if (accessToken) {
-                    await fetchCalendarEvents();
+                    chatHistory.innerHTML = '';
                     addMessageToChat('agent', 'Hallo! Ich bin Ihr Kalender-Agent. Wie kann ich Ihnen helfen?');
+                    await fetchCalendarEvents();
                 } else {
+                    chatHistory.innerHTML = '';
+                    calendarEventsContainer.innerHTML = '<p class="text-gray-500">Bitte melden Sie sich ab und erneut an, um den Kalenderzugriff zu erneuern.</p>';
                     addMessageToChat('agent', 'Sie sind angemeldet, aber der Zugriff auf den Kalender ist abgelaufen. Bitte melden Sie sich ab und erneut an, um den Zugriff zu erneuern.');
                 }
             } else {
@@ -162,27 +164,23 @@
             }
         }
 
-        // Main logic starts here
-        async function main() {
-            try {
-                console.log("Handling redirect result...");
-                const result = await getRedirectResult(auth);
+        // 1. Process the redirect result on page load.
+        getRedirectResult(auth)
+            .then((result) => {
                 if (result) {
-                    console.log("Redirect result received.");
+                    console.log("Redirect result successfully processed.");
                     const credential = GoogleAuthProvider.credentialFromResult(result);
                     accessToken = credential.accessToken;
                 }
-            } catch (error) {
-                console.error("Error handling redirect result:", error);
-            }
-
-            // NOW we attach the listener, after handling the redirect.
-            console.log("Attaching onAuthStateChanged listener.");
-            onAuthStateChanged(auth, updateUI);
-        }
-
-        // Run the main authentication flow
-        main();
+            })
+            .catch((error) => {
+                console.error("Error processing redirect result:", error);
+            })
+            .finally(() => {
+                // 2. Attach the listener AFTER the redirect has been processed.
+                console.log("Attaching onAuthStateChanged listener.");
+                onAuthStateChanged(auth, updateUI);
+            });
 
         loginButton.addEventListener('click', () => {
             const provider = new GoogleAuthProvider();
