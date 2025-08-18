@@ -120,7 +120,20 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-
+        // NEU: Ergebnis nach der Weiterleitung abrufen
+        getRedirectResult(auth)
+            .then((result) => {
+                if (result) {
+                    // Dieser Code wird nur ausgeführt, wenn der Benutzer gerade von Google zurückkommt.
+                    const credential = GoogleAuthProvider.credentialFromResult(result);
+                    accessToken = credential.accessToken;
+                    console.log("Erfolgreich per Redirect angemeldet!");
+                }
+            }).catch((error) => {
+                // Hier werden Fehler behandelt, die bei der Weiterleitung auftreten
+                console.error("Anmeldefehler nach Redirect:", error);
+                addMessageToChat('agent', `Anmeldung fehlgeschlagen: ${error.message}`);
+            });
         // --- DOM ELEMENTS ---
         const loginSection = document.getElementById('login-section');
         const appContent = document.getElementById('app-content');
@@ -142,16 +155,8 @@
         provider.addScope('https://www.googleapis.com/auth/calendar.readonly');
         provider.addScope('https://www.googleapis.com/auth/calendar.events');
 
-        loginButton.addEventListener('click', async () => {
-            try {
-                const result = await signInWithPopup(auth, provider);
-                const credential = GoogleAuthProvider.credentialFromResult(result);
-                accessToken = credential.accessToken;
-                // Die Benutzeroberfläche wird durch onAuthStateChanged aktualisiert
-            } catch (error) {
-                console.error("Anmeldefehler:", error);
-                addMessageToChat('agent', `Anmeldung fehlgeschlagen: ${error.message}`);
-            }
+        loginButton.addEventListener('click', () => {
+            signInWithRedirect(auth, provider);
         });
 
         logoutButton.addEventListener('click', async () => {
