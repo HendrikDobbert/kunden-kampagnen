@@ -229,7 +229,9 @@
             const timeMax = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (7 - now.getDay())).toISOString();
             
             const apiUrl = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`;
-            console.log(`LOG: Rufe Google Calendar API auf: ${apiUrl}`);
+            
+            // NEUES LOGGING: Zeigt den verwendeten AccessToken an
+            console.log(`LOG: Rufe Google Calendar API auf. AccessToken beginnt mit: ${accessToken ? accessToken.substring(0, 15) + '...' : 'NULL'}`);
 
             try {
                 const response = await fetch(apiUrl, {
@@ -386,6 +388,9 @@
 
             const apiKey = ""; // Wird von der Umgebung bereitgestellt
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+            // NEUES LOGGING: Zeigt die vollständige URL mit dem API-Schlüssel an
+            console.log(`LOG: Sende Gemini-Anfrage an URL: ${apiUrl}`);
 
             try {
                 const response = await fetch(apiUrl, {
