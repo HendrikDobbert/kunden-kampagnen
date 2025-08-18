@@ -97,19 +97,21 @@
 
    <script type="module">
         // Firebase Imports
-        import { initializeApp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signOut, onAuthStateChanged, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 
         // --- CONFIGURATION ---
         console.log("LOG: Skript wird initialisiert.");
+        // Die Konfiguration wurde mit Ihren Projektdaten aktualisiert.
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "YOUR_API_KEY", // Replace with your actual config
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyDA2pW52QXBfU17P6DWXqfUVVm4mPAIuqQ",
+            authDomain: "sylvan-chess-418211.firebaseapp.com",
+            projectId: "sylvan-chess-418211",
+            storageBucket: "sylvan-chess-418211.appspot.com",
+            messagingSenderId: "384756172708",
+            appId: "1:384756172708:web:84caf479fca15c1831e331"
         };
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
@@ -137,10 +139,8 @@
 
         // --- AUTHENTICATION FLOW ---
 
-        // Function to update the UI based on auth state
         async function updateUI(user, freshAccessToken = null) {
             console.log("LOG: updateUI aufgerufen. User-Objekt:", user);
-            // If a fresh token is provided (from the popup), set it.
             if (freshAccessToken) {
                 accessToken = freshAccessToken;
             }
@@ -173,20 +173,14 @@
             }
         }
 
-        // CORRECTED AUTH FLOW with signInWithPopup
-        // 1. A listener is set up to react to any change in login status.
         console.log("LOG: Hänge onAuthStateChanged-Listener an.");
         onAuthStateChanged(auth, (user) => {
-            // On page reload, this listener will detect the user (if logged in),
-            // but we won't have a fresh accessToken yet. updateUI will handle this correctly.
             updateUI(user);
         });
 
-        // 2. The login button starts the popup flow.
         loginButton.addEventListener('click', () => {
             console.log("LOG: Login-Button geklickt. Starte signInWithPopup.");
             const provider = new GoogleAuthProvider();
-            // Important scopes for calendar access
             provider.addScope('https://www.googleapis.com/auth/calendar.readonly');
             provider.addScope('https://www.googleapis.com/auth/calendar.events');
             
@@ -200,8 +194,6 @@
                          console.log("LOG: AccessToken aus Popup extrahiert.");
                     }
                     
-                    // We manually call updateUI with the new user AND the fresh token
-                    // to ensure the calendar loads immediately.
                     updateUI(result.user, token);
                 })
                 .catch((error) => {
@@ -209,7 +201,6 @@
                     if (error.code === 'auth/popup-blocked') {
                         addMessageToChat('agent', 'Das Anmelde-Popup wurde von Ihrem Browser blockiert. Bitte erlauben Sie Popups für diese Seite.');
                     } else if (error.code === 'auth/popup-closed-by-user') {
-                        // No message needed, user closed it intentionally
                         console.log("LOG: Anmelde-Popup vom Benutzer geschlossen.");
                     } else {
                         addMessageToChat('agent', `Ein Anmeldefehler ist aufgetreten: ${error.message}`);
@@ -234,20 +225,13 @@
             calendarEventsContainer.innerHTML = '';
 
             const now = new Date();
-            // Get the start of the current week (assuming Monday is the first day)
-            const firstDayOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1)));
-            firstDayOfWeek.setHours(0, 0, 0, 0);
-            
-            // Get the end of the current week (Sunday)
-            const lastDayOfWeek = new Date(firstDayOfWeek);
-            lastDayOfWeek.setDate(lastDayOfWeek.getDate() + 6);
-            lastDayOfWeek.setHours(23, 59, 59, 999);
-
-            const timeMin = firstDayOfWeek.toISOString();
-            const timeMax = lastDayOfWeek.toISOString();
+            const timeMin = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() + 1).toISOString();
+            const timeMax = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (7 - now.getDay())).toISOString();
             
             const apiUrl = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`;
-            console.log(`LOG: Rufe Google Calendar API auf: ${apiUrl}`);
+            
+            // NEUES LOGGING: Zeigt den verwendeten AccessToken an
+            console.log(`LOG: Rufe Google Calendar API auf. AccessToken beginnt mit: ${accessToken ? accessToken.substring(0, 15) + '...' : 'NULL'}`);
 
             try {
                 const response = await fetch(apiUrl, {
@@ -280,8 +264,8 @@
             events.forEach(event => {
                 const start = event.start.dateTime || event.start.date;
                 const startDate = new Date(start);
-                const options = { weekday: 'long', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-                const formattedDate = event.start.dateTime ? startDate.toLocaleDateString('de-DE', options) : startDate.toLocaleDateString('de-DE', { weekday: 'long', month: 'long', day: 'numeric' });
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+                const formattedDate = event.start.dateTime ? startDate.toLocaleDateString('de-DE', options) : startDate.toLocaleDateString('de-DE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
                 const eventElement = document.createElement('div');
                 eventElement.className = 'p-4 bg-gray-50 rounded-lg border border-gray-200';
@@ -322,6 +306,7 @@
                 console.log(`LOG: Google Calendar Create API Antwort-Status: ${response.status}`);
                 if (!response.ok) {
                     const errorData = await response.json();
+                    console.error("LOG: Fehlerdetails von der Calendar API:", errorData);
                     throw new Error(`Fehler beim Erstellen des Termins: ${errorData.error.message}`);
                 }
 
@@ -401,10 +386,11 @@
             };
             console.log("LOG: Sende folgenden Payload an Gemini:", JSON.stringify(payload, null, 2));
 
-            // --- FIX: Removed hardcoded API key and updated model name ---
-            const apiKey = ""; // The environment will inject the key
-            const modelName = "gemini-2.5-flash-preview-05-20";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+            const apiKey = ""; // Wird von der Umgebung bereitgestellt
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+            // NEUES LOGGING: Zeigt die vollständige URL mit dem API-Schlüssel an
+            console.log(`LOG: Sende Gemini-Anfrage an URL: ${apiUrl}`);
 
             try {
                 const response = await fetch(apiUrl, {
@@ -414,32 +400,34 @@
                 });
 
                 if (!response.ok) {
-                     const errorBody = await response.text();
-                     console.error("LOG: API-Fehler Body:", errorBody);
-                    throw new Error(`API-Fehler: ${response.status} ${response.statusText}`);
+                    const errorBody = await response.text();
+                    console.error(`LOG: API-Fehler! Status: ${response.status}. Body:`, errorBody);
+                    throw new Error(`API-Fehler: ${response.statusText}`);
                 }
 
                 const result = await response.json();
-                console.log("LOG: Antwort von Gemini API erhalten:", JSON.stringify(result, null, 2));
+                console.log("LOG: Rohe Antwort von Gemini API erhalten:", JSON.stringify(result, null, 2));
 
-                if (result.candidates && result.candidates.length > 0 && result.candidates[0].content && result.candidates[0].content.parts && result.candidates[0].content.parts.length > 0) {
-                    const agentResponseText = result.candidates[0].content.parts[0].text;
-                    try {
-                        const agentAction = JSON.parse(agentResponseText);
-                        console.log("LOG: Geparsed Agent-Aktion:", agentAction);
-                        handleAgentAction(agentAction);
-                    } catch (parseError) {
-                        console.error("LOG: Fehler beim Parsen der JSON-Antwort des Agenten:", parseError);
-                        console.error("LOG: Agenten-Antwort, die nicht geparst werden konnte:", agentResponseText);
-                        addMessageToChat('agent', 'Ich habe eine unerwartete Antwort erhalten und konnte sie nicht verarbeiten.');
-                    }
-                } else {
-                    console.error("LOG: Unerwartete oder leere Antwort von der Gemini API.", result);
-                    addMessageToChat('agent', 'Entschuldigung, ich habe keine gültige Antwort vom KI-Dienst erhalten. Möglicherweise wurde die Anfrage blockiert.');
+                if (!result.candidates || result.candidates.length === 0) {
+                       console.error("LOG: Gemini API hat keine Kandidaten in der Antwort zurückgegeben.");
+                       throw new Error("Keine gültige Antwort von der AI erhalten.");
                 }
 
+                const agentResponseText = result.candidates[0].content.parts[0].text;
+                let agentAction;
+                try {
+                    agentAction = JSON.parse(agentResponseText);
+                    console.log("LOG: Geparsed Agent-Aktion:", agentAction);
+                } catch (jsonError) {
+                    console.error("LOG: Fehler beim Parsen der AI-Antwort zu JSON.", jsonError);
+                    console.error("LOG: AI-Antwort, die den Fehler verursacht hat:", agentResponseText);
+                    throw new Error("Die AI hat in einem ungültigen Format geantwortet.");
+                }
+
+                handleAgentAction(agentAction);
+
             } catch (error) {
-                console.error("LOG: Fehler bei der Kommunikation mit dem Agenten:", error);
+                console.error("LOG: Schwerwiegender Fehler bei der Kommunikation mit dem Agenten:", error);
                 addMessageToChat('agent', 'Entschuldigung, ich habe gerade ein technisches Problem. Bitte versuchen Sie es später erneut.');
             } finally {
                 agentLoader.classList.add('hidden');
@@ -447,7 +435,7 @@
         }
 
         async function handleAgentAction(action) {
-            console.log(`LOG: handleAgentAction aufgerufen mit Aktion: ${action.action}`);
+            console.log(`LOG: handleAgentAction aufgerufen mit Aktion:`, action);
             switch (action.action) {
                 case "CREATE_EVENT":
                     if (action.summary && action.startDateTime && action.endDateTime) {
@@ -455,9 +443,10 @@
                         if (createdEvent) {
                             addMessageToChat('agent', `Ich habe den Termin "${createdEvent.summary}" für Sie erstellt.`);
                             await saveEventToFirestore(createdEvent);
-                            await fetchCalendarEvents(); // Refresh calendar view
+                            await fetchCalendarEvents(); // Kalenderansicht aktualisieren
                         }
                     } else {
+                        console.warn("LOG: Unvollständige Daten für CREATE_EVENT. Fehlende Felder:", {summary: !action.summary, start: !action.startDateTime, end: !action.endDateTime});
                         addMessageToChat('agent', 'Mir fehlen einige Informationen, um den Termin zu erstellen. Bitte geben Sie einen Titel, ein Startdatum und eine Startzeit an.');
                     }
                     break;
@@ -478,7 +467,6 @@
             messageElement.className = `chat-bubble ${sender === 'user' ? 'user-bubble' : 'agent-bubble'}`;
             messageElement.textContent = text;
             chatHistory.appendChild(messageElement);
-            // Automatically scroll to the newest message
             chatHistory.scrollTop = chatHistory.scrollHeight;
         }
 
