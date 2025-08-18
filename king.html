@@ -98,7 +98,7 @@
    <script type="module">
         // Firebase Imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signOut, onAuthStateChanged, signInWithRedirect, getRedirectResult } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, GoogleAuthProvider, signOut, onAuthStateChanged, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 
@@ -139,8 +139,13 @@
         // --- AUTHENTICATION FLOW ---
 
         // Function to update the UI based on auth state
-        async function updateUI(user) {
+        async function updateUI(user, freshAccessToken = null) {
             console.log("LOG: updateUI aufgerufen. User-Objekt:", user);
+            // If a fresh token is provided (from the popup), set it.
+            if (freshAccessToken) {
+                accessToken = freshAccessToken;
+            }
+
             if (user) {
                 console.log(`LOG: User ist angemeldet (UID: ${user.uid}). AccessToken vorhanden: ${!!accessToken}`);
                 currentUserId = user.uid;
@@ -169,38 +174,48 @@
             }
         }
 
-        // KORRIGIERTER AUTH-FLUSS
-        // 1. Zuerst das Ergebnis der Weiterleitung verarbeiten.
-        console.log("LOG: [AUTH-SCHRITT 1] Starte Verarbeitung von getRedirectResult...");
-        getRedirectResult(auth)
-            .then((result) => {
-                if (result) {
-                    // Dies wird nur ausgeführt, wenn der Benutzer gerade von der Google-Anmeldeseite zurückkehrt.
-                    console.log("LOG: [AUTH-SCHRITT 1] Erfolgreiches Redirect-Ergebnis erhalten.", result);
-                    const credential = GoogleAuthProvider.credentialFromResult(result);
-                    accessToken = credential.accessToken;
-                    console.log("LOG: [AUTH-SCHRITT 1] AccessToken erfolgreich extrahiert.");
-                } else {
-                    console.log("LOG: [AUTH-SCHRITT 1] Kein Redirect-Ergebnis gefunden. Wahrscheinlich ein normaler Seitenaufruf oder Reload.");
-                }
-            })
-            .catch((error) => {
-                console.error("LOG: [AUTH-SCHRITT 1] Fehler bei der Verarbeitung des Redirect-Ergebnisses:", error.code, error.message);
-            })
-            .finally(() => {
-                // 2. ERST JETZT, nachdem der Redirect verarbeitet wurde, den Listener anhängen.
-                // Dies ist der entscheidende Fix, um die Race Condition zu verhindern.
-                console.log("LOG: [AUTH-SCHRITT 2] Redirect-Verarbeitung abgeschlossen. Hänge jetzt onAuthStateChanged-Listener an.");
-                onAuthStateChanged(auth, updateUI);
-            });
+        // KORRIGIERTER AUTH-FLUSS mit signInWithPopup
+        // 1. Ein Listener wird eingerichtet, der auf jede Änderung des Anmeldestatus reagiert.
+        console.log("LOG: Hänge onAuthStateChanged-Listener an.");
+        onAuthStateChanged(auth, (user) => {
+            // Beim Neuladen der Seite wird dieser Listener den Benutzer erkennen (falls er angemeldet ist),
+            // aber wir haben noch keinen neuen accessToken. updateUI wird dies korrekt behandeln.
+            updateUI(user);
+        });
 
+        // 2. Der Login-Button startet den Popup-Flow.
         loginButton.addEventListener('click', () => {
-            console.log("LOG: Login-Button geklickt. Starte signInWithRedirect.");
+            console.log("LOG: Login-Button geklickt. Starte signInWithPopup.");
             const provider = new GoogleAuthProvider();
             // Wichtige Scopes für Kalenderzugriff
             provider.addScope('https://www.googleapis.com/auth/calendar.readonly');
             provider.addScope('https://www.googleapis.com/auth/calendar.events');
-            signInWithRedirect(auth, provider);
+            
+            signInWithPopup(auth, provider)
+                .then((result) => {
+                    console.log("LOG: signInWithPopup erfolgreich.", result);
+                    const credential = GoogleAuthProvider.credentialFromResult(result);
+                    const token = credential ? credential.accessToken : null;
+                    
+                    if(token) {
+                         console.log("LOG: AccessToken aus Popup extrahiert.");
+                    }
+                    
+                    // Wir rufen updateUI manuell mit dem neuen Benutzer UND dem frischen Token auf,
+                    // um sicherzustellen, dass der Kalender sofort geladen wird.
+                    updateUI(result.user, token);
+                })
+                .catch((error) => {
+                    console.error("LOG: Fehler bei signInWithPopup:", error.code, error.message);
+                    if (error.code === 'auth/popup-blocked') {
+                        addMessageToChat('agent', 'Das Anmelde-Popup wurde von Ihrem Browser blockiert. Bitte erlauben Sie Popups für diese Seite.');
+                    } else if (error.code === 'auth/popup-closed-by-user') {
+                        // Keine Nachricht nötig, der Benutzer hat es absichtlich geschlossen
+                        console.log("LOG: Anmelde-Popup vom Benutzer geschlossen.");
+                    } else {
+                        addMessageToChat('agent', `Ein Anmeldefehler ist aufgetreten: ${error.message}`);
+                    }
+                });
         });
 
         logoutButton.addEventListener('click', () => {
