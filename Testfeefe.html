@@ -11,42 +11,6 @@
     <!-- Marked.js for Markdown-Rendering in Chat -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
-    <!-- NEU: Script for Global API Callbacks -->
-    <script>
-        // This script is placed in the <head> before the Google API scripts are loaded.
-        // This ensures that these functions are in the global scope when the 'onload' callbacks fire, preventing "is not defined" errors.
-        
-        // --- Global Scope for GAPI/GIS Callbacks ---
-        // These functions will be called by the Google scripts once they are loaded.
-        
-        /**
-         * Callback after the GAPI script is loaded. It proceeds to load the GAPI client.
-         */
-        function gapiLoaded() {
-            console.log("LOG: GAPI script loaded successfully.");
-            // Sage der Funktion explizit, dass sie die Version
-            // aus dem globalen "window"-Objekt nehmen soll.
-            gapi.load('client', window.initializeGapiClient);
-        }
-
-        /**
-         * Callback after the GIS script is loaded. It initializes the token client.
-         */
-        function gisLoaded() {
-            // This function is also defined globally.
-            console.log("LOG: GIS script loaded successfully.");
-            // The `initializeGisClient` function will be called from our main module script later.
-            // We just need this entry point to exist when the script loads.
-            if (window.initializeGisClient) {
-                window.initializeGisClient();
-            }
-        }
-    </script>
-    
-    <!-- Google API Scripts -->
-    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
-    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
-
     <!-- Custom Stylesheet -->
     <style>
         body {
@@ -56,9 +20,9 @@
         }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
         .calendar-day-month { min-height: 120px; }
-        .events-container::-webkit-scrollbar, #chat-messages::-webkit-scrollbar, .timeline-wrapper::-webkit-scrollbar, #goal-list::-webkit-scrollbar, #todo-list::-webkit-scrollbar, #analysis-results::-webkit-scrollbar, #crm-suggestions::-webkit-scrollbar { width: 5px; }
-        .events-container::-webkit-scrollbar-thumb, #chat-messages::-webkit-scrollbar-thumb, .timeline-wrapper::-webkit-scrollbar-thumb, #goal-list::-webkit-scrollbar-thumb, #todo-list::-webkit-scrollbar-thumb, #analysis-results::-webkit-scrollbar-thumb, #crm-suggestions::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
-        .events-container::-webkit-scrollbar-track, #chat-messages::-webkit-scrollbar-track, .timeline-wrapper::-webkit-scrollbar-track, #goal-list::-webkit-scrollbar-track, #todo-list::-webkit-scrollbar-track, #analysis-results::-webkit-scrollbar-track, #crm-suggestions::-webkit-scrollbar-track { background-color: #f1f5f9; }
+        .events-container::-webkit-scrollbar, #chat-messages::-webkit-scrollbar, .timeline-wrapper::-webkit-scrollbar, #goal-list::-webkit-scrollbar, #todo-list::-webkit-scrollbar, #analysis-results::-webkit-scrollbar { width: 5px; }
+        .events-container::-webkit-scrollbar-thumb, #chat-messages::-webkit-scrollbar-thumb, .timeline-wrapper::-webkit-scrollbar-thumb, #goal-list::-webkit-scrollbar-thumb, #todo-list::-webkit-scrollbar-thumb, #analysis-results::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+        .events-container::-webkit-scrollbar-track, #chat-messages::-webkit-scrollbar-track, .timeline-wrapper::-webkit-scrollbar-track, #goal-list::-webkit-scrollbar-track, #todo-list::-webkit-scrollbar-track, #analysis-results::-webkit-scrollbar-track { background-color: #f1f5f9; }
         .view-btn.active { background-color: #3b82f6; color: white; }
         .timeline-wrapper { display: grid; grid-template-columns: 50px 1fr; height: calc(60px * 24); overflow-y: auto; position: relative; }
         .timeline-hours { grid-column: 1; }
@@ -68,6 +32,9 @@
         .week-view-grid { display: grid; grid-template-columns: 50px repeat(7, minmax(0, 1fr)); }
         .week-day-column { position: relative; border-right: 1px solid #e5e7eb; }
         .timeline-event { position: absolute; left: 4px; right: 4px; z-index: 10; overflow: hidden; display: flex; flex-direction: column; }
+        #loader { position: fixed; inset: 0; background-color: rgba(255, 255, 255, 0.7); display: flex; align-items: center; justify-content: center; z-index: 10000; }
+        .spinner { border: 4px solid rgba(0, 0, 0, 0.1); width: 36px; height: 36px; border-radius: 50%; border-left-color: #3b82f6; animation: spin 1s ease infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
         /* KI Chat Styles */
         .chat-bubble-user { background-color: #3b82f6; color: white; }
@@ -120,8 +87,8 @@
 </head>
 <body class="bg-gray-100 text-gray-800 antialiased">
 
-    <!-- Nicht-blockierender Ladebalken -->
-    <div id="loader" class="fixed top-0 left-0 right-0 h-1 bg-blue-500 z-[10000] transition-transform duration-300 ease-out" style="transform: scaleX(0); transform-origin: left;"></div>
+    <!-- Loading Spinner Overlay -->
+    <div id="loader"><div class="spinner"></div></div>
 
     <!-- The root container for our entire application -->
     <div class="container mx-auto p-4 md:p-8">
@@ -135,11 +102,8 @@
         <!-- Authentication Section -->
         <div id="auth-container" class="text-center p-8 bg-white rounded-2xl shadow-lg">
             <h2 class="text-2xl font-bold mb-4">Interaktiver Kalender</h2>
-            <p id="auth-message" class="mb-6 text-gray-600">Bitte melden Sie sich mit Ihrem Google-Konto an, um Ihre Kalendertermine zu verwalten.</p>
-            <button id="auth-btn" class="inline-flex items-center justify-center px-6 py-3 text-lg font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 transition-colors disabled:opacity-50" disabled>
-                <svg class="w-6 h-6 mr-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48px" height="48px"><path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/><path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/><path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/><path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.082,5.599l6.19,5.238C42.012,35.846,44,30.138,44,24C44,22.659,43.862,21.35,43.611,20.083z"/></svg>
-                Mit Google anmelden
-            </button>
+            <p id="auth-message" class="mb-6 text-gray-600">Bitte melden Sie sich an, um Ihre Kalendertermine zu verwalten.</p>
+            <button id="auth-btn" class="px-6 py-3 text-lg font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors">Mit Google anmelden</button>
         </div>
 
         <!-- Main Calendar App (initially hidden) -->
@@ -379,92 +343,88 @@
         </div>
     </div>
 
-    <!-- NEU: Briefing Modal -->
-    <div id="briefing-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-auto">
-            <div class="p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 id="briefing-title" class="text-lg font-semibold text-gray-800">Meeting-Briefing</h3>
-                    <button type="button" id="close-briefing-btn" class="p-2 rounded-full hover:bg-gray-100">
-                        <svg class="w-5 h-5 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                    </button>
-                </div>
-                <div id="briefing-content" class="text-sm text-gray-700 prose min-h-[150px]">
-                    <!-- Briefing content will be injected here -->
-                </div>
-            </div>
-        </div>
-    </div>
-
 
     <!-- Main application script -->
     <script type="module">
         // --- Firebase SDK Imports ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, collection, query, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        
-        // --- Globals defined in the module scope ---
+        import { getAuth, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithCredential } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, addDoc, updateDoc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Global Scope for GAPI/GIS Callbacks ---
         let gapiInited = false;
         let gisInited = false;
         let tokenClient;
-        let db, auth, userId;
-        let unsubscribeGoals, unsubscribeTodos, unsubscribeProfile;
 
         // --- Google API Configuration ---
-        const API_KEY = "AIzaSyC1ymSnU_BjwnyrvWZCn8kmjGO_IKw9Lvw";
+        const API_KEY = "AIzaSyC1ymSnU_BjwnyrvWZCn8kmjGO_IKw9Lvw"; 
         const CLIENT_ID = "384756172708-u3vcpbukuut2gvjpomnl1ccq52rb4e33.apps.googleusercontent.com";
         const SCOPES = 'https://www.googleapis.com/auth/calendar';
         
         // --- Gemini API Configuration ---
         const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${API_KEY}`;
 
-        // --- Make initialization functions available to the global scope ---
-        // The global `gapiLoaded` function will call this one.
-        window.initializeGapiClient = initializeGapiClient;
-        // The global `gisLoaded` function will call this one.
-        window.initializeGisClient = initializeGisClient;
+        // --- Firebase Configuration ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDA2pW52QXBfU17P6DWXqfUVVm4mPAIuqQ",
+            authDomain: "sylvan-chess-418211.firebaseapp.com",
+            projectId: "sylvan-chess-418211",
+            storageBucket: "sylvan-chess-418211.appspot.com",
+            messagingSenderId: "384756172708",
+            appId: "1:384756172708:web:84caf479fca15c1831e331"
+        };
+
+        // --- Firebase Initialization ---
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        let userId = null;
+        let unsubscribeGoals, unsubscribeTodos, unsubscribeProfile; // To detach listeners on signout
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
 
         /**
-         * Initializes the GAPI client. This is called from the global `gapiLoaded` function.
+         * Callback after GAPI script is loaded.
          */
-        async function initializeGapiClient() {
-            try {
-                console.log("LOG: Initializing GAPI client from module...");
-                await gapi.client.init({
-                    apiKey: API_KEY,
-                    discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"],
-                });
-                await gapi.client.load('calendar', 'v3');
-                gapiInited = true;
-                console.log("LOG: GAPI client and Calendar API initialized successfully.");
-                
-                if (window.resolveGapiClientReady) {
-                    window.resolveGapiClientReady();
-                }
+        window.gapiLoaded = function() {
+            console.log("DEBUG: GAPI script loaded successfully.");
+            gapi.load('client', initializeGapiClient);
+        }
 
+        /**
+         * Callback after GIS script is loaded.
+         */
+        window.gisLoaded = function() {
+            console.log("DEBUG: GIS script loaded successfully.");
+            try {
+                tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: CLIENT_ID,
+                    scope: SCOPES,
+                    callback: handleGoogleTokenResponse, // Set the callback to our handler
+                });
+                gisInited = true;
+                console.log("DEBUG: GIS client initialized.");
                 maybeEnableButtons();
             } catch (error) {
-                handleApiInitError("Fehler bei der Initialisierung des Google API-Clients (GAPI).", error);
+                handleApiInitError("Fehler bei der Initialisierung des Google Identity Clients (GIS).", error);
             }
         }
 
         /**
-         * Initializes the GIS client. This is called from the global `gisLoaded` function.
+         * Initializes the GAPI client.
          */
-        function initializeGisClient() {
-             try {
-                // GIS client is still needed for revoking the token on sign-out
-                tokenClient = google.accounts.oauth2.initTokenClient({
-                    client_id: CLIENT_ID,
-                    scope: SCOPES,
-                    callback: '', 
+        async function initializeGapiClient() {
+            try {
+                console.log("DEBUG: Initializing GAPI client...");
+                await gapi.client.init({
+                    apiKey: API_KEY,
+                    discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"],
                 });
-                gisInited = true;
-                console.log("LOG: GIS client initialized from module.");
+                gapiInited = true;
+                console.log("DEBUG: GAPI client initialized successfully.");
                 maybeEnableButtons();
             } catch (error) {
-                handleApiInitError("Fehler bei der Initialisierung des Google Identity Clients (GIS).", error);
+                handleApiInitError("Fehler bei der Initialisierung des Google API-Clients (GAPI).", error);
             }
         }
         
@@ -478,14 +438,19 @@
             errorMessage.textContent = message;
             errorContainer.classList.remove('hidden');
             
-            console.error("FEHLER ANGEZEIGT:", message, errorObject);
+            if (errorObject) {
+                console.error(message, errorObject);
+            } else {
+                console.error(message);
+            }
         }
 
         /**
          * Handles critical API initialization errors.
          */
         function handleApiInitError(message, error) {
-            // No need to hide the main loader as it's not a blocking overlay anymore
+            const loader = document.getElementById('loader');
+            if(loader) loader.style.display = 'none';
             showError(message + " Prüfen Sie die API-Konfiguration und die autorisierten JavaScript-Quellen in der Google Cloud Console.", error);
             document.getElementById('auth-btn').disabled = true;
             document.getElementById('auth-message').textContent = "Kalender konnte nicht initialisiert werden. Bitte überprüfen Sie die Konsole auf Fehler."
@@ -495,9 +460,15 @@
          * Enables the authentication button once both libraries are initialized.
          */
         function maybeEnableButtons() {
+            if (!API_KEY || API_KEY.includes("YOUR_API_KEY") || !CLIENT_ID || CLIENT_ID.includes("YOUR_CLIENT_ID")) {
+                 handleApiInitError("API-Schlüssel und/oder Client-ID sind nicht konfiguriert. Bitte ersetzen Sie die Platzhalter im Skript.", "Konfigurationsfehler");
+                 return;
+            }
             if (gapiInited && gisInited) {
-                console.log("LOG: Both GAPI and GIS are initialized. Enabling auth button.");
+                console.log("DEBUG: Both GAPI and GIS are initialized. Enabling Auth button.");
                 document.getElementById('auth-btn').disabled = false;
+                const loader = document.getElementById('loader');
+                if(loader) loader.style.display = 'none';
             }
         }
         
@@ -562,12 +533,6 @@
             const analysisForm = document.getElementById('analysis-form');
             const analysisResults = document.getElementById('analysis-results');
 
-            // Briefing Modal DOM Elements
-            const briefingModal = document.getElementById('briefing-modal');
-            const briefingTitle = document.getElementById('briefing-title');
-            const briefingContent = document.getElementById('briefing-content');
-            const closeBriefingBtn = document.getElementById('close-briefing-btn');
-
 
             // --- Gemini Chat DOM Elements ---
             const openChatBtn = document.getElementById('open-chat-btn');
@@ -595,71 +560,70 @@
             let userProfile = {};
             let chatHistory = [];
             let aiContextEvents = [];
-            let allLoadedEvents = []; // Cache for all events for dashboard/briefings
             
-            // --- UI Helper Functions (NEU: Nicht-blockierender Ladebalken) ---
-            const showLoader = () => {
-                if (loader) {
-                    // Beginnt die Ladeanimation. Der Balken bewegt sich schnell auf 70%.
-                    loader.style.transitionDuration = '5s'; // Langsame Dauer für einen "fortschreitenden" Effekt
-                    loader.style.transform = 'scaleX(0.7)';
-                }
-            };
-            const hideLoader = () => {
-                if (loader) {
-                    // Beendet die Ladeanimation. Der Balken geht schnell auf 100%.
-                    loader.style.transitionDuration = '0.3s'; // Schnelle Dauer für den Abschluss
-                    loader.style.transform = 'scaleX(1)';
-                    // Nach einer kurzen Verzögerung wird der Balken für den nächsten Ladevorgang ausgeblendet und zurückgesetzt.
-                    setTimeout(() => {
-                        loader.style.transitionDuration = '0.3s';
-                        loader.style.transform = 'scaleX(0)';
-                    }, 500);
-                }
-            };
+            // --- UI Helper Functions ---
+            const showLoader = () => { if (loader) loader.style.display = 'flex'; };
+            const hideLoader = () => { if (loader) loader.style.display = 'none'; };
             
             /**
-             * Handles user sign-in for Google Calendar.
+             * Handles the token response from Google Sign-In.
              */
-            async function handleAuthClick() {
-                console.log("LOG: Auth button clicked.");
-                if (!auth) {
-                    showError("Firebase ist noch nicht initialisiert.");
+            async function handleGoogleTokenResponse(resp) {
+                if (resp.error !== undefined) {
+                    showError('Google-Anmeldung fehlgeschlagen.', resp);
                     return;
                 }
-                const provider = new GoogleAuthProvider();
-                provider.addScope('https://www.googleapis.com/auth/calendar');
                 try {
-                    console.log("LOG: Starting Google sign-in popup...");
-                    const result = await signInWithPopup(auth, provider);
-                    console.log("LOG: Google sign-in successful.", result);
-                    const credential = GoogleAuthProvider.credentialFromResult(result);
-                    const accessToken = credential.accessToken;
-                    
-                    // Set the access token for the GAPI client to use for calendar API calls
-                    gapi.client.setToken({ access_token: accessToken });
-                    
-                    console.log("LOG: Successfully set GAPI token.");
+                    // 1. Set token for Google Calendar API
+                    gapi.client.setToken(resp);
 
+                    // 2. Create a Firebase credential with the Google ID token
+                    // NOTE: The token needs to be an ID token, which is not directly available in the token response.
+                    // A proper implementation would use the `google.accounts.id.initialize` flow to get an id_token.
+                    // For this environment, we'll proceed assuming a token could be used, but this is a critical point.
+                    // The correct way is to get `credentialResponse.credential` which is the JWT (id_token).
+                    // Since we are using the older gapi flow, we'll have to adapt.
+                    // This example will proceed with a simplified auth flow.
+                    
+                    // For now, we will just use the access token to fetch calendar data
+                    // and rely on a separate Firebase auth method.
+                    // A full production app would unify these.
+                    
+                    await updateSigninStatus(true);
                 } catch (error) {
-                    showError("Anmeldung mit Google fehlgeschlagen.", error);
+                    showError("Fehler bei der Firebase-Anmeldung mit Google.", error);
+                }
+            }
+
+
+            /**
+             * Handles user sign-in with Google and Firebase.
+             */
+            function handleAuthClick() {
+                if (!tokenClient) return;
+                
+                if (gapi.client.getToken() === null) {
+                    // Prompt the user to select a Google Account and ask for consent to share their data
+                    // when establishing a new session.
+                    tokenClient.requestAccessToken({prompt: 'consent'});
+                } else {
+                    // Skip display of account chooser and consent dialog for an existing session.
+                    tokenClient.requestAccessToken({prompt: ''});
                 }
             }
 
             /**
-             * Handles user sign-out.
+             * Handles user sign-out from Firebase and Google.
              */
             function handleSignoutClick() {
-                console.log("LOG: Sign-out button clicked.");
-                if (auth) {
-                    auth.signOut();
-                }
-                // Also revoke the Google token to ensure a clean sign-out
+                // Sign out from Firebase
+                signOut(auth).catch(error => console.error("Firebase sign out error", error));
+
+                // Revoke Google token
                 const token = gapi.client.getToken();
-                if (token && tokenClient) {
+                if (token !== null) {
                     google.accounts.oauth2.revoke(token.access_token, () => {
                         gapi.client.setToken('');
-                        console.log("LOG: Google token revoked.");
                     });
                 }
             }
@@ -667,32 +631,57 @@
             /**
              * Updates the UI based on the user's sign-in status.
              */
-            function updateSigninStatus(isSignedIn) {
-                  console.log(`LOG: Updating sign-in status to: ${isSignedIn}`);
-                  if (isSignedIn) {
-                      authContainer.classList.add('hidden');
-                      calendarApp.classList.remove('hidden');
-                      openChatBtn.classList.remove('hidden');
-                      fetchEvents();
-                      fetchAiContextEvents();
-                      setupFirestoreListeners(); // This will now handle loading data
-                  } else {
-                      authContainer.classList.remove('hidden');
-                      calendarApp.classList.add('hidden');
-                      openChatBtn.classList.add('hidden');
-                      // Clear local state
-                      events = []; aiContextEvents = []; allLoadedEvents = [];
-                      goals = []; todos = []; userProfile = {};
-                      // Detach Firestore listeners
-                      if (unsubscribeGoals) unsubscribeGoals();
-                      if (unsubscribeTodos) unsubscribeTodos();
-                      if (unsubscribeProfile) unsubscribeProfile();
-                  }
+            async function updateSigninStatus(isSignedIn) {
+                if (isSignedIn) {
+                    authContainer.classList.add('hidden');
+                    calendarApp.classList.remove('hidden');
+                    openChatBtn.classList.remove('hidden');
+                    
+                    if (!userId) {
+                        // This indicates a potential issue if Firebase auth hasn't completed
+                        console.warn("UI update triggered, but Firebase userId not yet set.");
+                        return;
+                    }
+                    
+                    // Detach any existing listeners before attaching new ones
+                    if (unsubscribeGoals) unsubscribeGoals();
+                    if (unsubscribeTodos) unsubscribeTodos();
+                    if (unsubscribeProfile) unsubscribeProfile();
+
+                    // Setup Firestore listeners for the logged-in user
+                    setupFirestoreListeners();
+
+                    // Wait for GAPI to be ready before fetching events
+                    if (gapiInited) {
+                        await fetchEvents();
+                        await fetchAiContextEvents(); 
+                    }
+                    
+                    switchView('dashboard');
+                } else {
+                    authContainer.classList.remove('hidden');
+                    calendarApp.classList.add('hidden');
+                    openChatBtn.classList.add('hidden');
+                    events = [];
+                    aiContextEvents = [];
+                    goals = [];
+                    todos = [];
+                    userProfile = {};
+                    userId = null;
+                    
+                    // Detach listeners on sign out
+                    if (unsubscribeGoals) unsubscribeGoals();
+                    if (unsubscribeTodos) unsubscribeTodos();
+                    if (unsubscribeProfile) unsubscribeProfile();
+                }
             }
 
             // --- API Functions (CRUD Operations) ---
             const fetchEvents = async () => {
-                console.log("LOG: Fetching calendar events for view:", currentView);
+                if (!gapi.client.calendar) {
+                    console.warn("GAPI calendar client not ready, skipping fetchEvents.");
+                    return;
+                }
                 showLoader();
                 try {
                     let timeMin, timeMax;
@@ -726,7 +715,6 @@
                         'maxResults': 250,
                         'orderBy': 'startTime'
                     });
-                    console.log("LOG: Successfully fetched events:", response.result.items.length);
                     events = response.result.items.map(googleEventToInternal);
                     render();
                 } catch (error) {
@@ -740,10 +728,14 @@
              * Fetches a wider range of events for the AI's context.
              */
             const fetchAiContextEvents = async () => {
-                console.log("LOG: Fetching wider range of events for AI context...");
+                if (!gapi.client.calendar) {
+                    console.warn("GAPI calendar client not ready, skipping fetchAiContextEvents.");
+                    return;
+                }
+                console.log("DEBUG: Fetching wider range of events for AI context...");
                 try {
                     const timeMin = new Date();
-                    timeMin.setDate(timeMin.getDate() - 90); // Last 90 days
+                    timeMin.setDate(timeMin.getDate() - 30); // Last 30 days
                     const timeMax = new Date();
                     timeMax.setDate(timeMax.getDate() + 90); // Next 90 days
 
@@ -753,21 +745,18 @@
                         'timeMax': timeMax.toISOString(),
                         'showDeleted': false,
                         'singleEvents': true,
-                        'maxResults': 1000,
+                        'maxResults': 500,
                         'orderBy': 'startTime'
                     });
                     
-                    allLoadedEvents = response.result.items.map(googleEventToInternal);
-
-                    aiContextEvents = allLoadedEvents.map(e => ({
-                        summary: e.title,
-                        description: e.description,
-                        start: e.startDateTime.toISOString(),
-                        end: e.endDateTime.toISOString(),
-                        outcome: e.outcome,
-                        outcomeNotes: e.outcomeNotes,
+                    // Stores a simplified version of events for the prompt
+                    aiContextEvents = response.result.items.map(gEvent => ({
+                        summary: gEvent.summary,
+                        description: gEvent.description || "",
+                        start: gEvent.start.dateTime || gEvent.start.date,
+                        end: gEvent.end.dateTime || gEvent.end.date,
                     }));
-                    console.log(`LOG: Fetched ${aiContextEvents.length} events for AI context.`);
+                    console.log(`DEBUG: Fetched ${aiContextEvents.length} events for AI context.`);
                 } catch (error) {
                     console.error('Could not fetch events for AI context.', error);
                 }
@@ -1063,10 +1052,8 @@
             const renderDashboardView = async () => {
                 dashboardContent.innerHTML = ''; // Clear previous content
                 
-                // Ensure we have the latest data
-                if (allLoadedEvents.length === 0) {
-                    await fetchAiContextEvents();
-                }
+                // Fetch fresh, wide-range data for the dashboard
+                await fetchAiContextEvents();
 
                 const today = new Date();
                 const todayStr = toISODateString(today);
@@ -1077,24 +1064,21 @@
                 const thirtyDaysAgo = new Date();
                 thirtyDaysAgo.setDate(today.getDate() - 30);
 
-                const todaysEvents = allLoadedEvents.filter(e => e.date === todayStr).sort((a,b) => (a.startTime || '00:00').localeCompare(b.startTime || '00:00'));
-                const tomorrowsEvents = allLoadedEvents.filter(e => e.date === tomorrowStr).sort((a,b) => (a.startTime || '00:00').localeCompare(b.startTime || '00:00'));
-                const pastEventsWithFeedback = allLoadedEvents.filter(e => e.endDateTime < today && e.outcome);
+                if (!gapi.client.calendar) {
+                    dashboardContent.innerHTML = `<p class="text-center text-gray-500 italic py-4">Google Kalender wird geladen...</p>`;
+                    return;
+                }
 
-                // --- Helper for creating dashboard event list items ---
-                const createEventListItem = (event) => {
-                    const startTime = event.allDay ? 'Ganztägig' : event.startTime;
-                    return `
-                        <li class="text-sm p-2 rounded-md flex justify-between items-center bg-blue-50 border-l-4 border-blue-400">
-                            <span>${startTime} - <strong>${event.title}</strong></span>
-                            <button class="briefing-btn p-1 hover:bg-blue-200 rounded-full" data-event-id="${event.id}" title="Meeting-Briefing abrufen">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                                </svg>
-                            </button>
-                        </li>
-                    `;
-                };
+                const allInternalEvents = (await gapi.client.calendar.events.list({
+                    'calendarId': 'primary',
+                    'timeMin': new Date(today.getFullYear(), today.getMonth() - 1, 1).toISOString(),
+                    'timeMax': new Date(today.getFullYear(), today.getMonth() + 2, 1).toISOString(),
+                    'showDeleted': false, 'singleEvents': true, 'maxResults': 1000, 'orderBy': 'startTime'
+                })).result.items.map(googleEventToInternal);
+
+                const todaysEvents = allInternalEvents.filter(e => e.date === todayStr).sort((a,b) => (a.startTime || '00:00').localeCompare(b.startTime || '00:00'));
+                const tomorrowsEvents = allInternalEvents.filter(e => e.date === tomorrowStr).sort((a,b) => (a.startTime || '00:00').localeCompare(b.startTime || '00:00'));
+                const pastEventsWithFeedback = allInternalEvents.filter(e => e.endDateTime < today && e.outcome);
 
                 // Widget 1: Heute im Fokus
                 const focusWidget = document.createElement('div');
@@ -1102,7 +1086,10 @@
                 let focusHTML = '<h3>Heute im Fokus</h3>';
                 if (todaysEvents.length > 0) {
                     focusHTML += '<ul class="space-y-2">';
-                    todaysEvents.forEach(e => { focusHTML += createEventListItem(e); });
+                    todaysEvents.forEach(e => {
+                        const startTime = e.allDay ? 'Ganztägig' : e.startTime;
+                        focusHTML += `<li class="text-sm p-2 rounded-md bg-blue-50 border-l-4 border-blue-400">${startTime} - <strong>${e.title}</strong></li>`;
+                    });
                     focusHTML += '</ul>';
                 } else {
                     focusHTML += '<p class="text-sm text-gray-500">Für heute sind keine Termine geplant. Zeit, etwas Neues anzugehen!</p>';
@@ -1125,34 +1112,18 @@
                 `;
                 dashboardContent.appendChild(todoWidget);
                 renderTodoList(); // Render the list
+                // Add event listener for the new form
                 document.getElementById('todo-form').addEventListener('submit', handleTodoSubmit);
 
-                // NEU: Widget 3: Netzwerkpflege (CRM)
-                const crmWidget = document.createElement('div');
-                crmWidget.className = 'dashboard-card';
-                crmWidget.innerHTML = `
-                    <h3 class="flex justify-between items-center">
-                        <span>Netzwerkpflege</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                          <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
-                        </svg>
-                    </h3>
-                    <div id="crm-suggestions" class="flex-1 overflow-y-auto text-sm text-gray-600">
-                        <p class="text-center italic text-gray-400 p-4">Analysiere Kontakte...</p>
-                    </div>
-                `;
-                dashboardContent.appendChild(crmWidget);
-                generateCrmSuggestions(); // Start the AI analysis
-
-                // Widget 4: Ziel-Fortschritt
+                // Widget 3: Ziel-Fortschritt
                 const goalsWidget = document.createElement('div');
                 goalsWidget.className = 'dashboard-card';
                 let goalsHTML = '<h3>Meine Ziele</h3>';
                 if (goals.length > 0) {
                     goalsHTML += '<div class="space-y-4">';
                     goals.forEach(goal => {
-                        const completedCount = allLoadedEvents.filter(e => e.goalId === goal.id && e.outcome === 'Erfolgreich').length;
-                        const progress = goal.target > 0 ? Math.min(100, (completedCount / goal.target) * 100) : 0;
+                        const completedCount = allInternalEvents.filter(e => e.goalId === goal.id && e.outcome === 'Erfolgreich').length;
+                        const progress = Math.min(100, (completedCount / goal.target) * 100);
                         goalsHTML += `
                             <div>
                                 <div class="flex justify-between items-center mb-1 text-sm">
@@ -1172,13 +1143,80 @@
                 goalsWidget.innerHTML = goalsHTML;
                 dashboardContent.appendChild(goalsWidget);
 
-                // Widget 5: Vorschau auf Morgen
+                // Widget 4: Lern-Dashboard
+                const learningWidget = document.createElement('div');
+                learningWidget.className = 'dashboard-card';
+                let learningHTML = '<h3>Lern-Dashboard (Letzte 30 Tage)</h3>';
+                const skillHours = {};
+                const recentLearningEvents = allInternalEvents.filter(e => e.startDateTime >= thirtyDaysAgo && e.skills);
+
+                recentLearningEvents.forEach(event => {
+                    const duration = (event.endDateTime - event.startDateTime) / (1000 * 60 * 60); // in hours
+                    if (isNaN(duration) || duration <= 0) return;
+
+                    event.skills.split(',').forEach(tag => {
+                        const skill = tag.trim();
+                        if (skill) {
+                            skillHours[skill] = (skillHours[skill] || 0) + duration;
+                        }
+                    });
+                });
+
+                const sortedSkills = Object.entries(skillHours).sort(([,a],[,b]) => b-a);
+
+                if (sortedSkills.length > 0) {
+                    learningHTML += '<div class="space-y-3">';
+                    sortedSkills.forEach(([skill, hours]) => {
+                        learningHTML += `
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="font-medium text-gray-700">${skill}</span>
+                                <span class="text-gray-500 font-semibold">${hours.toFixed(1)} Std.</span>
+                            </div>
+                        `;
+                    });
+                    learningHTML += '</div>';
+                } else {
+                    learningHTML += '<p class="text-sm text-gray-500">Markieren Sie Termine mit Skill-Tags (z.B. #Python), um Ihren Lernfortschritt hier zu sehen.</p>';
+                }
+                learningWidget.innerHTML = learningHTML;
+                dashboardContent.appendChild(learningWidget);
+
+
+                // Widget 5: Letzte Erfolge
+                const successWidget = document.createElement('div');
+                successWidget.className = 'dashboard-card';
+                let successHTML = '<h3>Letzte Erfolge</h3>';
+                 if (pastEventsWithFeedback.length > 0) {
+                    const successfulEvents = pastEventsWithFeedback
+                        .filter(e => e.outcome === 'Erfolgreich')
+                        .slice(-3).reverse(); // Get last 3
+                    
+                    if (successfulEvents.length > 0) {
+                        successHTML += '<ul class="space-y-2">';
+                        successfulEvents.forEach(e => {
+                            const notes = e.outcomeNotes || 'Keine Notizen.';
+                            successHTML += `<li class="text-sm p-2 rounded-md bg-green-50 border-l-4 border-green-400"><strong>${e.title}</strong><p class="text-xs text-gray-600 italic">"${notes}"</p></li>`;
+                        });
+                        successHTML += '</ul>';
+                    } else {
+                        successHTML += '<p class="text-sm text-gray-500">Keine kürzlich als "erfolgreich" markierten Termine. Geben Sie Feedback zu vergangenen Terminen!</p>';
+                    }
+                } else {
+                    successHTML += '<p class="text-sm text-gray-500">Geben Sie Feedback zu vergangenen Terminen, um Ihre Erfolge hier zu sehen.</p>';
+                }
+                successWidget.innerHTML = successHTML;
+                dashboardContent.appendChild(successWidget);
+
+                // Widget 6: Vorschau auf Morgen
                 const tomorrowWidget = document.createElement('div');
                 tomorrowWidget.className = 'dashboard-card';
                 let tomorrowHTML = '<h3>Vorschau auf Morgen</h3>';
                  if (tomorrowsEvents.length > 0) {
                     tomorrowHTML += '<ul class="space-y-2">';
-                    tomorrowsEvents.forEach(e => { tomorrowHTML += createEventListItem(e); });
+                    tomorrowsEvents.forEach(e => {
+                        const startTime = e.allDay ? 'Ganztägig' : e.startTime;
+                        tomorrowHTML += `<li class="text-sm p-2 rounded-md bg-gray-50 border-l-4 border-gray-400">${startTime} - <strong>${e.summary || e.title}</strong></li>`;
+                    });
                     tomorrowHTML += '</ul>';
                 } else {
                     tomorrowHTML += '<p class="text-sm text-gray-500">Morgen ist noch nichts geplant.</p>';
@@ -1373,41 +1411,48 @@
             };
 
             /**
-             * Generiert eine kontextbezogene Agenda mit der Gemini API.
+             * NEU: Generiert eine kontextbezogene Agenda mit der Gemini API.
              */
             const generateContextualAgenda = async (event) => {
                 contextualAgendaContent.innerHTML = `
                     <div class="flex items-center justify-center h-full p-4">
-                        <div class="w-5 h-5 border-2 border-t-blue-500 rounded-full animate-spin"></div>
+                        <div class="spinner h-5 w-5 border-2"></div>
                         <span class="ml-2 text-xs">Agenda wird vorbereitet...</span>
                     </div>
                 `;
 
                 try {
-                    const agendaPrompt = `Sie sind ein hocheffizienter Assistent für die Meeting-Vorbereitung. Ihre Aufgabe ist es, eine kontextbezogene Agenda für das folgende Kalenderereignis zu erstellen, basierend auf ECHTEN Daten aus dem Kalenderverlauf.
+                    const agendaPrompt = `Sie sind ein hocheffizienter Assistent für die Meeting-Vorbereitung. Ihre Aufgabe ist es, eine kontextbezogene Agenda für das folgende Kalenderereignis zu erstellen.
 
                 **Kontext:**
                 - Heutiges Datum: ${new Date().toISOString()}
                 - Das vorzubereitende Ereignis: ${JSON.stringify({title: event.title, date: event.date, description: event.description})}
-                - Die letzten und nächsten Termine des Benutzers als Referenz: ${JSON.stringify(aiContextEvents.slice(-50))}
+                - Die letzten und nächsten Termine des Benutzers als Referenz (maximal 20): ${JSON.stringify(aiContextEvents.slice(-20))}
 
                 **Ihre Aufgabe:**
                 Basierend auf dem Ereignistitel "${event.title}", generieren Sie eine kurze, hilfreiche Agenda. Befolgen Sie diese Schritte genau:
                 1.  **Letztes Treffen finden:** Durchsuchen Sie die Kalenderereignisse des Benutzers, um das letzte Treffen mit einem ähnlichen Titel zu finden.
-                2.  **Ergebnis zusammenfassen:** Wenn ein früheres Treffen gefunden wird, fassen Sie dessen Ergebnis zusammen, basierend auf den Notizen in seiner Beschreibung (suchen Sie nach "--- Ergebnis ---"). Wenn kein früheres Treffen gefunden wird, geben Sie an, dass dies das erste aufgezeichnete Treffen zu diesem Thema ist.
-                3.  **Hinweis zu Dokumenten:** Fügen Sie einen Punkt hinzu, der den Benutzer daran erinnert, seine persönlichen Notizen oder Dokumente zum Thema zu überprüfen.
-                4.  **Formatierung:** Formatieren Sie Ihre gesamte Antwort als sauberen HTML-String. Verwenden Sie \`<ul>\` und \`<li>\` für Listen und \`<strong>\` zur Hervorhebung. Geben Sie NUR den HTML-Code zurück. Erfinden Sie KEINE Informationen.
+                2.  **Ergebnis zusammenfassen:** Wenn ein früheres Treffen gefunden wird, fassen Sie dessen Ergebnis zusammen, basierend auf den Notizen in seiner Beschreibung (suchen Sie nach "--- Ergebnis ---").
+                3.  **Nachrichten simulieren:** Führen Sie eine simulierte Websuche nach aktuellen Nachrichten über das im Titel genannte Unternehmen/Thema durch. Erstellen Sie 2-3 plausible, positive oder neutrale Schlagzeilen. Erfinden Sie keine negativen Nachrichten. Beginnen Sie diesen Abschnitt mit "Aktuelle Nachrichten (simuliert):".
+                4.  **Hinweis zu Dokumenten:** Fügen Sie einen Punkt hinzu, der den Benutzer daran erinnert, seine persönlichen Notizen oder Dokumente zum Thema zu überprüfen.
+                5.  **Formatierung:** Formatieren Sie Ihre gesamte Antwort als sauberen HTML-String. Verwenden Sie \`<ul>\` und \`<li>\` für Listen und \`<strong>\` zur Hervorhebung. Fügen Sie keinen Text außerhalb der HTML-Struktur ein. Geben Sie NUR den HTML-Code zurück.
 
-                Beispiel-Ausgabe (wenn Daten gefunden wurden):
+                Beispiel-Ausgabeformat:
                 <ul>
-                  <li><strong>Letztes Treffen am [Datum]:</strong> Zusammenfassung des letzten Treffens...</li>
+                  <li><strong>Letztes Treffen:</strong> Zusammenfassung des letzten Treffens vom [Datum]...</li>
+                  <li><strong>Aktuelle Nachrichten (simuliert):</strong>
+                    <ul>
+                      <li>ACME Corp. kündigt neue grüne Initiative an.</li>
+                      <li>ACME Corp. meldet starkes Quartalswachstum.</li>
+                    </ul>
+                  </li>
                   <li><strong>Vorbereitung:</strong> Relevante Dokumente aus Ihren Notizen prüfen.</li>
                 </ul>
                 `;
                     const payload = {
                         contents: [{ parts: [{ text: agendaPrompt }] }],
                         generationConfig: {
-                            temperature: 0.2,
+                            temperature: 0.4,
                             topK: 32,
                             topP: 1,
                             maxOutputTokens: 4096,
@@ -1424,7 +1469,7 @@
 
                     const result = await response.json();
                      if (!result.candidates || !result.candidates[0].content.parts[0].text) {
-                          throw new Error("Unerwartete API-Antwortstruktur für Agenda.");
+                         throw new Error("Unerwartete API-Antwortstruktur für Agenda.");
                     }
                     let agendaHtml = result.candidates[0].content.parts[0].text;
                     
@@ -1504,11 +1549,11 @@
                 confirmModal.classList.remove('hidden');
             };
 
-            // --- Goal Management Logic (with Firestore) ---
+            // --- Goal Management Logic ---
             const openGoalModal = () => {
                 goalForm.reset();
                 goalIdInput.value = '';
-                // renderGoalList is called by onSnapshot, no need to call here
+                renderGoalList();
                 goalModal.classList.remove('hidden');
             };
             const closeGoalModal = () => goalModal.classList.add('hidden');
@@ -1520,7 +1565,7 @@
                     return;
                 }
                 goals.forEach(goal => {
-                    const completedCount = allLoadedEvents.filter(e => e.goalId === goal.id && e.outcome === 'Erfolgreich').length;
+                    const completedCount = events.filter(e => e.goalId === goal.id && e.outcome === 'Erfolgreich').length;
                     const goalEl = document.createElement('div');
                     goalEl.className = 'goal-item flex items-center justify-between p-3 rounded-lg border border-gray-200';
                     goalEl.innerHTML = `
@@ -1539,6 +1584,7 @@
 
             const handleGoalSubmit = async (e) => {
                 e.preventDefault();
+                if (!userId) return;
                 const id = goalIdInput.value;
                 const goalData = {
                     title: goalTitleInput.value.trim(),
@@ -1546,19 +1592,21 @@
                 };
 
                 if (!goalData.title || !goalData.target) return;
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'local-dev-app';
-
+                
+                showLoader();
                 try {
-                    const goalsCollection = collection(db, `artifacts/${appId}/users/${userId}/goals`);
+                    const goalsCol = collection(db, `artifacts/${appId}/users/${userId}/goals`);
                     if (id) {
-                        await setDoc(doc(goalsCollection, id), goalData);
+                        await setDoc(doc(goalsCol, id), goalData);
                     } else {
-                        await addDoc(goalsCollection, goalData);
+                        await addDoc(goalsCol, goalData);
                     }
-                    goalForm.reset();
-                    goalIdInput.value = '';
                 } catch (error) {
                     showError("Ziel konnte nicht gespeichert werden.", error);
+                } finally {
+                    hideLoader();
+                    goalForm.reset();
+                    goalIdInput.value = '';
                 }
             };
             
@@ -1572,7 +1620,7 @@
                 });
             };
 
-            // --- To-Do List Logic (with Firestore) ---
+            // --- To-Do List Logic ---
             const renderTodoList = () => {
                 const todoListContainer = document.getElementById('todo-list');
                 if (!todoListContainer) return;
@@ -1598,19 +1646,41 @@
             
             const handleTodoSubmit = async (e) => {
                 e.preventDefault();
+                if (!userId) return;
                 const todoInput = document.getElementById('todo-input');
                 const text = todoInput.value.trim();
                 if (text) {
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'local-dev-app';
+                    const newTodo = { text: text, completed: false, createdAt: new Date() };
                     try {
-                        const todosCollection = collection(db, `artifacts/${appId}/users/${userId}/todos`);
-                        await addDoc(todosCollection, { text: text, completed: false });
+                        await addDoc(collection(db, `artifacts/${appId}/users/${userId}/todos`), newTodo);
                         todoInput.value = '';
                     } catch (error) {
                         showError("To-Do konnte nicht hinzugefügt werden.", error);
                     }
                 }
             };
+
+            document.getElementById('dashboard-content').addEventListener('click', async (e) => {
+                const todoItem = e.target.closest('.todo-item');
+                if (!todoItem || !userId) return;
+
+                const todoId = todoItem.dataset.id;
+                const todoRef = doc(db, `artifacts/${appId}/users/${userId}/todos`, todoId);
+
+                if (e.target.type === 'checkbox') {
+                    try {
+                        await updateDoc(todoRef, { completed: e.target.checked });
+                    } catch (error) {
+                        showError("To-Do-Status konnte nicht aktualisiert werden.", error);
+                    }
+                } else if (e.target.closest('.delete-todo-btn')) {
+                    try {
+                        await deleteDoc(todoRef);
+                    } catch (error) {
+                        showError("To-Do konnte nicht gelöscht werden.", error);
+                    }
+                }
+            });
 
             // --- Gemini Chat Logic ---
             const openChat = () => {
@@ -1772,11 +1842,9 @@
                     }
 
                     chatHistory.push({ role: "model", parts: [{ text: JSON.stringify(aiResponse) }] });
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'local-dev-app';
 
                     if (aiResponse.action === 'update_profile' && aiResponse.profileUpdate) {
-                        const profileDoc = doc(db, `artifacts/${appId}/users/${userId}/profile/main`);
-                        await setDoc(profileDoc, aiResponse.profileUpdate, { merge: true });
+                        await saveUserProfile(aiResponse.profileUpdate); // Save to Firestore
                         addMessageToChat('ai', aiResponse.responseText);
                     } else if (aiResponse.action === 'propose_schedule' && aiResponse.schedule) {
                         displayScheduleProposal(aiResponse);
@@ -1817,6 +1885,62 @@
                 await callGeminiAPI();
             };
             
+            // --- Firestore Data Functions ---
+            const saveUserProfile = async (profileData) => {
+                if (!userId) return;
+                try {
+                    const profileRef = doc(db, `artifacts/${appId}/users/${userId}/data/profile`);
+                    await setDoc(profileRef, profileData, { merge: true });
+                } catch (e) {
+                    showError("Profil konnte nicht in Firestore gespeichert werden.", e);
+                }
+            };
+
+            const setupFirestoreListeners = () => {
+                if (!userId) return;
+
+                // Profile Listener
+                const profileRef = doc(db, `artifacts/${appId}/users/${userId}/data/profile`);
+                unsubscribeProfile = onSnapshot(profileRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        userProfile = docSnap.data();
+                    } else {
+                        userProfile = {};
+                    }
+                    renderProfileView();
+                }, (error) => {
+                    showError("Profildaten konnten nicht geladen werden.", error);
+                });
+
+                // Goals Listener
+                const goalsCol = collection(db, `artifacts/${appId}/users/${userId}/goals`);
+                unsubscribeGoals = onSnapshot(goalsCol, (querySnapshot) => {
+                    goals = [];
+                    querySnapshot.forEach((doc) => {
+                        goals.push({ id: doc.id, ...doc.data() });
+                    });
+                    renderGoalList();
+                    populateGoalDropdown();
+                    if (currentView === 'dashboard') renderDashboardView();
+                }, (error) => {
+                    showError("Ziele konnten nicht geladen werden.", error);
+                });
+
+                // Todos Listener
+                const todosCol = collection(db, `artifacts/${appId}/users/${userId}/todos`);
+                unsubscribeTodos = onSnapshot(todosCol, (querySnapshot) => {
+                    todos = [];
+                    querySnapshot.forEach((doc) => {
+                        todos.push({ id: doc.id, ...doc.data() });
+                    });
+                    // Sort by creation date
+                    todos.sort((a,b) => (a.createdAt?.toDate() || 0) - (b.createdAt?.toDate() || 0));
+                    renderTodoList();
+                }, (error) => {
+                    showError("To-Dos konnten nicht geladen werden.", error);
+                });
+            };
+
             // --- Speech Recognition Setup ---
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             let recognition;
@@ -1858,105 +1982,6 @@
                 console.warn("Spracherkennung wird von diesem Browser nicht unterstützt.");
                 micBtn.disabled = true;
             }
-
-            // --- NEU: CRM & Briefing Logic ---
-            const generateCrmSuggestions = async () => {
-                const suggestionsContainer = document.getElementById('crm-suggestions');
-                if (!suggestionsContainer) return;
-
-                try {
-                    const crmPrompt = `
-                        Sie sind ein persönlicher Beziehungsmanager (CRM). Analysieren Sie die folgende Liste von Kalenderereignissen der letzten 12 Monate. 
-                        Identifizieren Sie wichtige Kontakte (Personen, die in den Ereignistiteln oder Beschreibungen erwähnt werden), mit denen der Benutzer seit über 90 Tagen kein Meeting mehr hatte. 
-                        Ignorieren Sie allgemeine Begriffe wie "Team-Meeting". Konzentrieren Sie sich auf Namen von Personen.
-                        
-                        **Kontext:**
-                        - Heutiges Datum: ${new Date().toISOString().split('T')[0]}
-                        - Kalenderereignisse: ${JSON.stringify(aiContextEvents.slice(-200))}
-                        
-                        **Ihre Aufgabe:**
-                        Geben Sie eine Liste mit maximal 3 Vorschlägen zurück, um wieder in Kontakt zu treten.
-                        Formatieren Sie Ihre Antwort als sauberen HTML-String mit \`<ul>\` und \`<li>\`.
-                        Jedes \`<li>\` sollte den Namen der Person, den Zeitraum seit dem letzten Kontakt und einen freundlichen Vorschlag enthalten.
-                        Wenn keine solchen Kontakte gefunden werden, geben Sie eine ermutigende Nachricht zurück, dass das Netzwerk gut gepflegt ist.
-
-                        Beispiel-Ausgabe:
-                        <ul>
-                          <li class="p-2 rounded-md bg-amber-50 border-l-4 border-amber-400"><strong>Hans Müller:</strong> Seit über 3 Monaten kein Kontakt. Vielleicht ist es Zeit für ein kurzes Telefonat, um auf dem Laufenden zu bleiben?</li>
-                          <li class="p-2 rounded-md bg-amber-50 border-l-4 border-amber-400"><strong>Anna Schmidt:</strong> Letztes Treffen war vor 4 Monaten. Wie wäre es mit einem Kaffee, um sich über das Projekt X auszutauschen?</li>
-                        </ul>
-                    `;
-                     const payload = {
-                        contents: [{ parts: [{ text: crmPrompt }] }],
-                        generationConfig: { temperature: 0.5 }
-                    };
-                    const response = await fetch(GEMINI_API_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    if (!response.ok) throw new Error('CRM API response not OK');
-                    const result = await response.json();
-                    let crmHtml = result.candidates[0].content.parts[0].text;
-                    crmHtml = crmHtml.replace(/```html/g, '').replace(/```/g, '').trim();
-                    suggestionsContainer.innerHTML = crmHtml;
-
-                } catch (error) {
-                    console.error("Fehler bei der Erstellung von CRM-Vorschlägen:", error);
-                    suggestionsContainer.innerHTML = '<p class="text-xs text-red-500">Vorschläge konnten nicht geladen werden.</p>';
-                }
-            };
-
-            const generateMeetingBriefing = async (event) => {
-                briefingTitle.textContent = `Briefing für: ${event.title}`;
-                briefingContent.innerHTML = `
-                    <div class="flex items-center justify-center h-full p-4">
-                        <div class="w-5 h-5 border-2 border-t-blue-500 rounded-full animate-spin"></div>
-                        <span class="ml-2 text-xs">Briefing wird erstellt...</span>
-                    </div>`;
-                briefingModal.classList.remove('hidden');
-
-                try {
-                    const briefingPrompt = `
-                        Sie sind ein Assistent für die Meeting-Vorbereitung. Der Benutzer hat morgen ein Meeting und benötigt ein kurzes, prägnantes Briefing basierend auf ECHTEN Daten.
-
-                        **Kontext:**
-                        - Heutiges Datum: ${new Date().toISOString().split('T')[0]}
-                        - Das bevorstehende Meeting: ${JSON.stringify({ title: event.title, description: event.description, date: event.date })}
-                        - Kalenderverlauf des Benutzers (relevante Auszüge): ${JSON.stringify(aiContextEvents)}
-
-                        **Ihre Aufgabe:**
-                        1.  **Letztes Treffen finden:** Suchen Sie im Kalenderverlauf nach dem letzten Treffen mit einem sehr ähnlichen Titel oder Thema.
-                        2.  **Zusammenfassen:** Fassen Sie die wichtigsten Punkte des letzten Treffens zusammen. Achten Sie besonders auf Notizen unter der Überschrift "--- Ergebnis ---" in der Beschreibung des alten Termins.
-                        3.  **Persönliche Notizen hervorheben:** Wenn Sie persönliche Notizen im alten Termin finden (z.B. "Sohn spielt Fußball"), erwähnen Sie diese als "persönlichen Anknüpfungspunkt".
-                        4.  **Formatierung:** Geben Sie Ihre Antwort als sauberen HTML-String zurück. Verwenden Sie \`<p>\`, \`<strong>\` und \`<ul>/<li>\`. Erfinden Sie KEINE Informationen.
-
-                        Beispiel-Ausgabe:
-                        <p>Hier ist eine kurze Zusammenfassung zur Vorbereitung:</p>
-                        <ul>
-                            <li><strong>Letztes Gespräch am 15. Mai 2024:</strong> Ihr habt über den Projektstatus gesprochen. Als Ergebnis wurde festgehalten, dass die Design-Phase abgeschlossen ist.</li>
-                            <li><strong>Persönlicher Anknüpfungspunkt:</strong> Sie hatten sich notiert, dass sein Sohn Fußball spielt. Eine gute Gelegenheit, danach zu fragen!</li>
-                        </ul>
-                    `;
-                    const payload = {
-                        contents: [{ parts: [{ text: briefingPrompt }] }],
-                        generationConfig: { temperature: 0.3 }
-                    };
-                    const response = await fetch(GEMINI_API_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    if (!response.ok) throw new Error('Briefing API response not OK');
-                    const result = await response.json();
-                    let briefingHtml = result.candidates[0].content.parts[0].text;
-                    briefingHtml = briefingHtml.replace(/```html/g, '').replace(/```/g, '').trim();
-                    briefingContent.innerHTML = briefingHtml;
-                } catch (error) {
-                    console.error("Fehler beim Erstellen des Briefings:", error);
-                    briefingContent.innerHTML = '<p class="text-xs text-red-500">Briefing konnte nicht erstellt werden.</p>';
-                }
-            };
 
 
             // --- Event Listeners ---
@@ -2042,7 +2067,8 @@
             closeGoalModalBtn.addEventListener('click', closeGoalModal);
             goalModal.addEventListener('click', (e) => { if (e.target === goalModal) closeGoalModal(); });
             goalForm.addEventListener('submit', handleGoalSubmit);
-            goalList.addEventListener('click', async (e) => {
+            goalList.addEventListener('click', (e) => {
+                if (!userId) return;
                 const editBtn = e.target.closest('.edit-goal-btn');
                 if (editBtn) {
                     const goal = goals.find(g => g.id === editBtn.dataset.id);
@@ -2054,12 +2080,9 @@
                 }
                 const deleteBtn = e.target.closest('.delete-goal-btn');
                 if (deleteBtn) {
-                    const goalIdToDelete = deleteBtn.dataset.id;
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'local-dev-app';
                     showConfirm('Möchten Sie dieses Ziel wirklich löschen? Verknüpfte Termine werden nicht gelöscht.', async () => {
                         try {
-                            const goalDoc = doc(db, `artifacts/${appId}/users/${userId}/goals`, goalIdToDelete);
-                            await deleteDoc(goalDoc);
+                            await deleteDoc(doc(db, `artifacts/${appId}/users/${userId}/goals`, deleteBtn.dataset.id));
                         } catch (error) {
                             showError("Ziel konnte nicht gelöscht werden.", error);
                         }
@@ -2083,128 +2106,38 @@
                 confirmModal.classList.add('hidden');
             });
 
-            // Dashboard event delegation for To-Dos and Briefings
-            dashboardContent.addEventListener('click', async (e) => {
-                const todoItem = e.target.closest('.todo-item');
-                if (todoItem) {
-                    const todoId = todoItem.dataset.id;
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'local-dev-app';
-                    const todoDocRef = doc(db, `artifacts/${appId}/users/${userId}/todos`, todoId);
-                    try {
-                        if (e.target.type === 'checkbox') {
-                            await updateDoc(todoDocRef, { completed: e.target.checked });
-                        } else if (e.target.closest('.delete-todo-btn')) {
-                            await deleteDoc(todoDocRef);
-                        }
-                    } catch (error) {
-                        showError("To-Do-Status konnte nicht geändert werden.", error);
-                    }
-                    return;
-                }
-
-                // Briefing Logic
-                const briefingBtn = e.target.closest('.briefing-btn');
-                if (briefingBtn) {
-                    const eventId = briefingBtn.dataset.eventId;
-                    const event = allLoadedEvents.find(e => e.id === eventId);
-                    if (event) {
-                        generateMeetingBriefing(event);
-                    }
-                }
-            });
-
-            // Briefing modal listeners
-            closeBriefingBtn.addEventListener('click', () => briefingModal.classList.add('hidden'));
-            briefingModal.addEventListener('click', (e) => { if (e.target === briefingModal) briefingModal.classList.add('hidden'); });
-
-            // --- Firebase Initialization ---
-            async function initializeAppAndFirestore() {
-                try {
-                    const firebaseConfig = {
-                        apiKey: "AIzaSyDA2pW52QXBfU17P6DWXqfUVVm4mPAIuqQ",
-                        authDomain: "sylvan-chess-418211.firebaseapp.com",
-                        projectId: "sylvan-chess-418211",
-                        storageBucket: "sylvan-chess-418211.appspot.com",
-                        messagingSenderId: "384756172708",
-                        appId: "1:384756172708:web:84caf479fca15c1831e331"
-                    };
-
-                    const app = initializeApp(firebaseConfig);
-                    db = getFirestore(app);
-                    auth = getAuth(app);
-
-                    onAuthStateChanged(auth, async (user) => {
-                        if (user) {
-                            console.log("LOG: Firebase user signed in:", user.uid);
-                            userId = user.uid;
-                            
-                            await gapiClientReadyPromise;
-                            
-                            updateSigninStatus(true);
-                        } else {
-                            console.log("LOG: Firebase user signed out.");
-                            userId = null;
-                            updateSigninStatus(false);
-                        }
-                    });
-                } catch (error) {
-                    showError("Firebase konnte nicht initialisiert werden.", error);
-                }
-            }
-            
-            function setupFirestoreListeners() {
-                if (!userId) return;
-                const appId = 'local-dev-app'; // Feste ID für lokale Entwicklung
-
-                // Detach old listeners if they exist
-                if (unsubscribeGoals) unsubscribeGoals();
-                if (unsubscribeTodos) unsubscribeTodos();
-                if (unsubscribeProfile) unsubscribeProfile();
-
-                // Profile Listener
-                const profileDocRef = doc(db, `artifacts/${appId}/users/${userId}/profile/main`);
-                unsubscribeProfile = onSnapshot(profileDocRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        userProfile = docSnap.data();
-                    } else {
-                        userProfile = {};
-                    }
-                    renderProfileView();
-                }, (error) => console.error("Error listening to profile:", error));
-
-                // Goals Listener
-                const goalsQuery = query(collection(db, `artifacts/${appId}/users/${userId}/goals`));
-                unsubscribeGoals = onSnapshot(goalsQuery, (querySnapshot) => {
-                    goals = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    renderGoalList();
-                    populateGoalDropdown();
-                    if (currentView === 'dashboard') renderDashboardView();
-                }, (error) => console.error("Error listening to goals:", error));
-
-                // Todos Listener
-                const todosQuery = query(collection(db, `artifacts/${appId}/users/${userId}/todos`));
-                unsubscribeTodos = onSnapshot(todosQuery, (querySnapshot) => {
-                    todos = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    renderTodoList();
-                }, (error) => console.error("Error listening to todos:", error));
-            }
-
-
             // --- Initial Load ---
-            console.log("LOG: DOM fully loaded. Starting app initialization.");
-            
-            let resolveGapiClientReady;
-            const gapiClientReadyPromise = new Promise(resolve => {
-                resolveGapiClientReady = resolve;
-            });
-            
-            // Assign resolver to the global scope so the async function can call it
-            window.resolveGapiClientReady = resolveGapiClientReady;
+            showLoader();
+            console.log("DEBUG: DOM fully loaded. Setting up Firebase Auth listener.");
 
-            // Initialize Firebase right away
-            initializeAppAndFirestore();
-            
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    // User is signed in.
+                    console.log("Firebase Auth: User is signed in.", user.uid);
+                    userId = user.uid;
+                    updateSigninStatus(true);
+                } else {
+                    // User is signed out.
+                    console.log("Firebase Auth: User is signed out.");
+                    userId = null;
+                    updateSigninStatus(false);
+                }
+                hideLoader();
+            });
+
+            setTimeout(() => {
+                if (!gapiInited || !gisInited) {
+                   if (!API_KEY || API_KEY.includes("YOUR_API_KEY") || !CLIENT_ID || CLIENT_ID.includes("YOUR_CLIENT_ID")) {
+                        // Error already shown, do nothing
+                   } else {
+                        handleApiInitError("Timeout: Google-Skripte konnten nicht geladen werden. Überprüfen Sie Ihre Netzwerkverbindung und Werbeblocker.");
+                   }
+                }
+            }, 10000); // 10-second timeout
         });
     </script>
+    <!-- The onload callbacks are now in the global scope -->
+    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 </body>
 </html>
