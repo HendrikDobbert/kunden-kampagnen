@@ -103,8 +103,9 @@
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 
         // --- CONFIGURATION ---
+        console.log("LOG: Skript wird initialisiert.");
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "AIzaSyDA2pW52QXBfU17P6DWXqfUVVm4mPAIuqQ",
+            apiKey: "AIzaSyDA2pW52QXBfU17P6DWXqfUVVm4mPAIuqQ", // Beispiel-Key
             authDomain: "sylvan-chess-418211.firebaseapp.com",
             projectId: "sylvan-chess-418211",
             storageBucket: "sylvan-chess-418211.appspot.com",
@@ -118,6 +119,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        console.log("LOG: Firebase App und Auth initialisiert.");
 
         // --- DOM ELEMENTS ---
         const loginSection = document.getElementById('login-section');
@@ -138,25 +140,26 @@
 
         // Function to update the UI based on auth state
         async function updateUI(user) {
+            console.log("LOG: updateUI aufgerufen. User-Objekt:", user);
             if (user) {
-                console.log("UI Update: User is signed in.", user.uid);
+                console.log(`LOG: User ist angemeldet (UID: ${user.uid}). AccessToken vorhanden: ${!!accessToken}`);
                 currentUserId = user.uid;
                 loginSection.classList.add('hidden');
                 appContent.classList.remove('hidden');
                 
                 if (accessToken) {
+                    console.log("LOG: AccessToken ist vorhanden. Lade Kalender und initialisiere Chat.");
                     chatHistory.innerHTML = '';
                     addMessageToChat('agent', 'Hallo! Ich bin Ihr Kalender-Agent. Wie kann ich Ihnen helfen?');
                     await fetchCalendarEvents();
                 } else {
-                    // This case can happen if the page is reloaded after the access token has expired.
-                    // The onAuthStateChanged still sees a user, but getRedirectResult didn't provide a new token.
+                    console.warn("LOG: User ist angemeldet, aber es gibt keinen AccessToken. Dies passiert nach einem Reload ohne frische Anmeldung. Fordere Neuanmeldung an.");
                     chatHistory.innerHTML = '';
                     calendarEventsContainer.innerHTML = '<p class="text-gray-500">Bitte melden Sie sich ab und erneut an, um den Kalenderzugriff zu erneuern.</p>';
                     addMessageToChat('agent', 'Sie sind angemeldet, aber der Zugriff auf den Kalender ist abgelaufen. Bitte melden Sie sich ab und erneut an, um den Zugriff zu erneuern.');
                 }
             } else {
-                console.log("UI Update: No user. Showing login screen.");
+                console.log("LOG: Kein User angemeldet. Zeige Login-Bildschirm.");
                 accessToken = null;
                 currentUserId = null;
                 loginSection.classList.remove('hidden');
@@ -166,38 +169,50 @@
             }
         }
 
-        // 1. Process the redirect result on page load.
+        // KORRIGIERTER AUTH-FLUSS
+        // 1. Zuerst das Ergebnis der Weiterleitung verarbeiten.
+        console.log("LOG: [AUTH-SCHRITT 1] Starte Verarbeitung von getRedirectResult...");
         getRedirectResult(auth)
             .then((result) => {
                 if (result) {
-                    console.log("Redirect result successfully processed.");
+                    // Dies wird nur ausgeführt, wenn der Benutzer gerade von der Google-Anmeldeseite zurückkehrt.
+                    console.log("LOG: [AUTH-SCHRITT 1] Erfolgreiches Redirect-Ergebnis erhalten.", result);
                     const credential = GoogleAuthProvider.credentialFromResult(result);
                     accessToken = credential.accessToken;
+                    console.log("LOG: [AUTH-SCHRITT 1] AccessToken erfolgreich extrahiert.");
+                } else {
+                    console.log("LOG: [AUTH-SCHRITT 1] Kein Redirect-Ergebnis gefunden. Wahrscheinlich ein normaler Seitenaufruf oder Reload.");
                 }
             })
             .catch((error) => {
-                console.error("Error processing redirect result:", error);
+                console.error("LOG: [AUTH-SCHRITT 1] Fehler bei der Verarbeitung des Redirect-Ergebnisses:", error.code, error.message);
             })
             .finally(() => {
-                // 2. Attach the listener AFTER the redirect has been processed.
-                console.log("Attaching onAuthStateChanged listener.");
+                // 2. ERST JETZT, nachdem der Redirect verarbeitet wurde, den Listener anhängen.
+                // Dies ist der entscheidende Fix, um die Race Condition zu verhindern.
+                console.log("LOG: [AUTH-SCHRITT 2] Redirect-Verarbeitung abgeschlossen. Hänge jetzt onAuthStateChanged-Listener an.");
                 onAuthStateChanged(auth, updateUI);
             });
 
         loginButton.addEventListener('click', () => {
+            console.log("LOG: Login-Button geklickt. Starte signInWithRedirect.");
             const provider = new GoogleAuthProvider();
+            // Wichtige Scopes für Kalenderzugriff
             provider.addScope('https://www.googleapis.com/auth/calendar.readonly');
             provider.addScope('https://www.googleapis.com/auth/calendar.events');
             signInWithRedirect(auth, provider);
         });
 
         logoutButton.addEventListener('click', () => {
+            console.log("LOG: Logout-Button geklickt. Rufe signOut auf.");
             signOut(auth);
         });
 
         // --- GOOGLE CALENDAR API ---
         async function fetchCalendarEvents() {
+            console.log("LOG: fetchCalendarEvents aufgerufen.");
             if (!accessToken) {
+                console.error("LOG: fetchCalendarEvents fehlgeschlagen: Kein AccessToken vorhanden.");
                 addMessageToChat('agent', 'Authentifizierungstoken nicht gefunden. Bitte erneut anmelden.');
                 return;
             }
@@ -207,17 +222,22 @@
             const now = new Date();
             const timeMin = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() + 1).toISOString();
             const timeMax = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (7 - now.getDay())).toISOString();
+            
+            const apiUrl = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`;
+            console.log(`LOG: Rufe Google Calendar API auf: ${apiUrl}`);
 
             try {
-                const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`, {
+                const response = await fetch(apiUrl, {
                     headers: { 'Authorization': `Bearer ${accessToken}` }
                 });
 
+                console.log(`LOG: Google Calendar API Antwort-Status: ${response.status}`);
                 if (!response.ok) {
-                    throw new Error(`Fehler beim Abrufen von Kalenderdaten: ${response.statusText}`);
+                    throw new Error(`Fehler beim Abrufen von Kalenderdaten: ${response.status} ${response.statusText}`);
                 }
 
                 const data = await response.json();
+                console.log("LOG: Kalenderdaten erfolgreich empfangen:", data);
                 calendarLoader.classList.add('hidden');
                 if (data.items && data.items.length > 0) {
                     displayEvents(data.items);
@@ -225,13 +245,14 @@
                     calendarEventsContainer.innerHTML = '<p class="text-gray-500">Keine Termine für diese Woche gefunden.</p>';
                 }
             } catch (error) {
-                console.error("Fehler beim Abrufen von Kalenderereignissen:", error);
+                console.error("LOG: Fehler beim Abrufen von Kalenderereignissen:", error);
                 calendarLoader.classList.add('hidden');
                 calendarEventsContainer.innerHTML = `<p class="text-red-500">Fehler: ${error.message}</p>`;
             }
         }
 
         function displayEvents(events) {
+            console.log(`LOG: Zeige ${events.length} Termine an.`);
             calendarEventsContainer.innerHTML = '';
             events.forEach(event => {
                 const start = event.start.dateTime || event.start.date;
@@ -250,7 +271,9 @@
         }
 
         async function createCalendarEvent(summary, startDateTime, endDateTime) {
+            console.log(`LOG: createCalendarEvent aufgerufen für: "${summary}"`);
             if (!accessToken) {
+                console.error("LOG: createCalendarEvent fehlgeschlagen: Kein AccessToken vorhanden.");
                 addMessageToChat('agent', 'Authentifizierungstoken nicht gefunden. Bitte erneut anmelden.');
                 return null;
             }
@@ -260,6 +283,8 @@
                 'start': { 'dateTime': startDateTime, 'timeZone': Intl.DateTimeFormat().resolvedOptions().timeZone },
                 'end': { 'dateTime': endDateTime, 'timeZone': Intl.DateTimeFormat().resolvedOptions().timeZone },
             };
+
+            console.log("LOG: Erstelle Kalender-Event mit folgenden Daten:", event);
 
             try {
                 const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
@@ -271,16 +296,18 @@
                     body: JSON.stringify(event)
                 });
 
+                console.log(`LOG: Google Calendar Create API Antwort-Status: ${response.status}`);
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(`Fehler beim Erstellen des Termins: ${errorData.error.message}`);
                 }
 
                 const createdEvent = await response.json();
+                console.log("LOG: Termin erfolgreich erstellt:", createdEvent);
                 return createdEvent;
 
             } catch (error) {
-                console.error("Fehler beim Erstellen des Kalenderereignisses:", error);
+                console.error("LOG: Fehler beim Erstellen des Kalenderereignisses:", error);
                 addMessageToChat('agent', `Entschuldigung, ich konnte den Termin nicht erstellen. Fehler: ${error.message}`);
                 return null;
             }
@@ -288,7 +315,11 @@
 
         // --- FIRESTORE DATABASE ---
         async function saveEventToFirestore(event) {
-            if (!currentUserId || !event) return;
+            if (!currentUserId || !event) {
+                console.warn("LOG: Speichern in Firestore abgebrochen: Keine UserID oder kein Event-Objekt.");
+                return;
+            }
+            console.log(`LOG: Speichere Event ${event.id} für User ${currentUserId} in Firestore.`);
             try {
                 const eventRef = doc(collection(db, "artifacts", appId, "users", currentUserId, "calendarEvents"), event.id);
                 await setDoc(eventRef, {
@@ -299,15 +330,16 @@
                     link: event.htmlLink,
                     createdAt: serverTimestamp()
                 });
-                console.log("Ereignis in Firestore gespeichert:", event.id);
+                console.log("LOG: Ereignis in Firestore erfolgreich gespeichert:", event.id);
             } catch (error) {
-                console.error("Fehler beim Speichern des Ereignisses in Firestore:", error);
+                console.error("LOG: Fehler beim Speichern des Ereignisses in Firestore:", error);
                 addMessageToChat('agent', 'Ich habe den Termin in Ihrem Kalender erstellt, konnte ihn aber nicht in meiner Datenbank speichern.');
             }
         }
 
         // --- AI AGENT (GEMINI) ---
         async function callAgent(prompt) {
+            console.log(`LOG: callAgent aufgerufen mit Prompt: "${prompt}"`);
             addMessageToChat('user', prompt);
             agentLoader.classList.remove('hidden');
             chatInput.value = '';
@@ -344,6 +376,7 @@
                     responseSchema: schema
                 }
             };
+            console.log("LOG: Sende folgenden Payload an Gemini:", JSON.stringify(payload, null, 2));
 
             const apiKey = ""; // Wird von der Umgebung bereitgestellt
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
@@ -360,13 +393,15 @@
                 }
 
                 const result = await response.json();
+                console.log("LOG: Antwort von Gemini API erhalten:", result);
                 const agentResponseText = result.candidates[0].content.parts[0].text;
                 const agentAction = JSON.parse(agentResponseText);
+                console.log("LOG: Geparsed Agent-Aktion:", agentAction);
 
                 handleAgentAction(agentAction);
 
             } catch (error) {
-                console.error("Fehler bei der Kommunikation mit dem Agenten:", error);
+                console.error("LOG: Fehler bei der Kommunikation mit dem Agenten:", error);
                 addMessageToChat('agent', 'Entschuldigung, ich habe gerade ein technisches Problem. Bitte versuchen Sie es später erneut.');
             } finally {
                 agentLoader.classList.add('hidden');
@@ -374,6 +409,7 @@
         }
 
         async function handleAgentAction(action) {
+            console.log(`LOG: handleAgentAction aufgerufen mit Aktion: ${action.action}`);
             switch (action.action) {
                 case "CREATE_EVENT":
                     if (action.summary && action.startDateTime && action.endDateTime) {
@@ -381,7 +417,7 @@
                         if (createdEvent) {
                             addMessageToChat('agent', `Ich habe den Termin "${createdEvent.summary}" für Sie erstellt.`);
                             await saveEventToFirestore(createdEvent);
-                            await fetchCalendarEvents();
+                            await fetchCalendarEvents(); // Kalenderansicht aktualisieren
                         }
                     } else {
                         addMessageToChat('agent', 'Mir fehlen einige Informationen, um den Termin zu erstellen. Bitte geben Sie einen Titel, ein Startdatum und eine Startzeit an.');
@@ -404,6 +440,7 @@
             messageElement.className = `chat-bubble ${sender === 'user' ? 'user-bubble' : 'agent-bubble'}`;
             messageElement.textContent = text;
             chatHistory.appendChild(messageElement);
+            // Scrollt automatisch nach unten zur neuesten Nachricht
             chatHistory.scrollTop = chatHistory.scrollHeight;
         }
 
