@@ -408,12 +408,24 @@
                 }
 
                 const result = await response.json();
-                console.log("LOG: Antwort von Gemini API erhalten:", result);
-                const agentResponseText = result.candidates[0].content.parts[0].text;
-                const agentAction = JSON.parse(agentResponseText);
-                console.log("LOG: Geparsed Agent-Aktion:", agentAction);
+                console.log("LOG: Antwort von Gemini API erhalten:", JSON.stringify(result, null, 2));
 
-                handleAgentAction(agentAction);
+                // Robustere Überprüfung der API-Antwort
+                if (result.candidates && result.candidates.length > 0 && result.candidates[0].content && result.candidates[0].content.parts && result.candidates[0].content.parts.length > 0) {
+                    const agentResponseText = result.candidates[0].content.parts[0].text;
+                    try {
+                        const agentAction = JSON.parse(agentResponseText);
+                        console.log("LOG: Geparsed Agent-Aktion:", agentAction);
+                        handleAgentAction(agentAction);
+                    } catch (parseError) {
+                        console.error("LOG: Fehler beim Parsen der JSON-Antwort des Agenten:", parseError);
+                        console.error("LOG: Agenten-Antwort, die nicht geparst werden konnte:", agentResponseText);
+                        addMessageToChat('agent', 'Ich habe eine unerwartete Antwort erhalten und konnte sie nicht verarbeiten.');
+                    }
+                } else {
+                    console.error("LOG: Unerwartete oder leere Antwort von der Gemini API.", result);
+                    addMessageToChat('agent', 'Entschuldigung, ich habe keine gültige Antwort vom KI-Dienst erhalten. Möglicherweise wurde die Anfrage blockiert.');
+                }
 
             } catch (error) {
                 console.error("LOG: Fehler bei der Kommunikation mit dem Agenten:", error);
