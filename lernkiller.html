@@ -1348,11 +1348,61 @@
             }
         }
 
-        function endSession() {
-            console.log("[LOG] endSession: Session ended. Displaying stats.");
-            displaySessionStats(currentSession);
-            switchPanel('stats');
-        }
+async function endSession() {
+            console.log("[LOG] endSession: Session ended. Now attempting to save results to Firestore.");
+
+            // WICHTIG: Intelligente Trainingseinheiten haben keine einzelne Original-Session,
+            // da die Fragen aus verschiedenen Themen kommen können. Die SRS-Daten wurden bereits
+            // in updateSpacedRepetition gespeichert, daher hier nichts weiter tun.
+            if (currentSession.module === "Intelligentes Training") {
+                console.log("[LOG] endSession: SRS session detected. No final save needed. Displaying stats.");
+                displaySessionStats(currentSession);
+                switchPanel('stats');
+                return;
+            }
+
+            // Finde die originale Session in unserem lokalen Daten-Cache
+            const originalSession = allUserSessions.find(s =>
+                s.module === currentSession.module && s.topic === currentSession.topic
+            );
+
+            if (!originalSession) {
+                console.error("[LOG] endSession: Could not find original session to save results to.");
+                displaySessionStats(currentSession); // Zeige trotzdem die Stats an
+                switchPanel('stats');
+                return;
+            }
+
+            try {
+                // Erstelle eine aktualisierte Liste der Ergebnisse. Wir nehmen die Original-Liste
+                // und ersetzen die Fragen, die in dieser Session beantwortet wurden.
+                // Dies stellt sicher, dass Fragen, die nicht Teil der Session waren, nicht gelöscht werden.
+                const updatedResults = originalSession.results.map(originalResult => {
+                    const newResult = currentSession.results.find(res => res.question === originalResult.question);
+                    // Wenn eine neue Antwort für diese Frage existiert, nutze sie. Sonst behalte die alte.
+                    // Wir müssen auch die SRS-Daten aus dem Original behalten, da diese schon aktuell sind.
+                    if (newResult) {
+                        return {
+                            ...newResult,
+                            srs: originalResult.srs // Behalte die bereits aktualisierten SRS-Daten
+                        };
+                    }
+                    return originalResult;
+                });
+
+                const sessionRef = doc(db, 'users', userId, 'sessions', originalSession.id);
+                await updateDoc(sessionRef, { results: updatedResults });
+                console.log(`[LOG] endSession: Successfully saved ${currentSession.results.length} results to Firestore for session ID ${originalSession.id}.`);
+
+            } catch (error) {
+                console.error("[LOG] endSession: Error saving session results to Firestore:", error);
+                showModal("Ein Fehler ist beim Speichern der Ergebnisse aufgetreten.");
+            } finally {
+                // Zeige die Statistik-Seite an, egal ob das Speichern geklappt hat oder nicht
+                displaySessionStats(currentSession);
+                switchPanel('stats');
+            }
+        }
         
         function displaySessionStats(session) {
             console.log("[LOG] displaySessionStats: Displaying stats for session:", session);
