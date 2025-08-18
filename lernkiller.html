@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KI-Prüfungstrainer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .loader {
+            border-top-color: #3498db;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .mic-active { animation: pulse 1.5s infinite; }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+        .modal-backdrop {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); display: flex;
+            justify-content: center; align-items: center; z-index: 1000;
+            transition: opacity 0.2s ease-in-out;
+        }
+        .modal-content {
+            background-color: white; padding: 2rem; border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 90%; width: 500px;
+            transform: scale(0.95); transition: transform 0.2s ease-in-out;
+        }
+        .modal-backdrop:not(.hidden) .modal-content {
+            transform: scale(1);
+        }
+        .tab-btn.active-tab {
+            border-color: #3b82f6; color: #3b82f6; border-bottom-width: 2px;
+        }
+        .tab-btn {
+            padding: 0.5rem 1rem; border-bottom: 2px solid transparent;
+            font-weight: 500; color: #64748b;
+        }
+        .tab-panel {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Styles for collapsible module sections */
+        details > summary {
+            list-style: none;
+            cursor: pointer;
+        }
+        details > summary::-webkit-details-marker {
+            display: none;
+        }
+        details > summary::before {
+            content: '►';
+            margin-right: 0.5rem;
+            display: inline-block;
+            transition: transform 0.2s;
+        }
+        details[open] > summary::before {
+            transform: rotate(90deg);
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+
+    <div id="app-container" class="container mx-auto p-4 md:p-8 max-w-4xl">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-blue-600">🧠 KI-Prüfungstrainer</h1>
+            <p class="text-slate-500 mt-2">Dein adaptiver Lern-Coach mit Spaced Repetition</p>
+        </header>
+
+        <!-- Tabs -->
+        <div id="main-tabs" class="mb-6 border-b border-slate-200">
+            <nav class="flex space-x-2 sm:space-x-4" aria-label="Tabs">
+                <button class="tab-btn active-tab" data-target="dashboard-panel">Dashboard</button>
+                <button class="tab-btn" data-target="profile-panel">Profil</button>
+                <button class="tab-btn" data-target="setup-panel">Neue Lerneinheit</button>
+                <button class="tab-btn" data-target="questions-panel">Fragen & Dokumente</button>
+            </nav>
+        </div>
+
+        <!-- ===== DASHBOARD PANEL ===== -->
+        <div id="dashboard-panel" class="tab-panel">
+            <h2 class="text-2xl font-semibold mb-4">Deine Lern-Statistik</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-center mb-8">
+                <div class="bg-white p-4 rounded-lg shadow-md"><div class="text-3xl font-bold text-blue-700" id="db-total-time">0m</div><div class="text-slate-600">Gesamte Lernzeit</div></div>
+                <div class="bg-white p-4 rounded-lg shadow-md"><div class="text-3xl font-bold text-green-700" id="db-total-questions">0</div><div class="text-slate-600">Fragen beantwortet</div></div>
+                <div class="bg-white p-4 rounded-lg shadow-md"><div class="text-3xl font-bold text-yellow-700" id="db-avg-score">0.0</div><div class="text-slate-600">Ø Punkte</div></div>
+                <div class="bg-white p-4 rounded-lg shadow-md"><div class="text-3xl font-bold text-red-700" id="db-total-followups">0</div><div class="text-slate-600">KI-Nachfragen</div></div>
+            </div>
+            
+            <h3 class="text-xl font-semibold mb-3">Statistik nach Themen</h3>
+            <div id="db-topic-stats" class="space-y-2 bg-white p-4 rounded-lg shadow-md mb-8"></div>
+
+            <!-- NEW: SRS Progress Section -->
+            <h3 class="text-xl font-semibold mb-3">Lernfortschritt (Spaced Repetition)</h3>
+            <div id="db-srs-progress" class="space-y-4 bg-white p-4 rounded-lg shadow-md">
+                <!-- Progress will be dynamically inserted here -->
+            </div>
+        </div>
+
+        <!-- ===== PROFILE PANEL ===== -->
+        <div id="profile-panel" class="tab-panel hidden">
+            <h2 class="text-2xl font-semibold mb-4">Dein Skill-Profil</h2>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="w-full max-w-lg mx-auto"><canvas id="skill-chart"></canvas></div>
+                <div class="mt-6">
+                    <button id="generate-analysis-btn" class="w-full bg-indigo-600 text-white px-6 py-3 rounded-md font-semibold hover:bg-indigo-700 transition-colors flex items-center justify-center">
+                        <span class="btn-text">Stärken & Schwächen analysieren</span>
+                        <div class="loader btn-loader hidden w-5 h-5 border-2 border-white rounded-full"></div>
+                    </button>
+                </div>
+                <div id="skill-analysis-output" class="mt-6 bg-slate-50 p-4 rounded-md hidden"></div>
+            </div>
+        </div>
+
+        <!-- ===== SETUP PANEL (REFACTORED with SRS) ===== -->
+        <div id="setup-panel" class="tab-panel hidden">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-2xl font-semibold mb-4">Neue Lerneinheit erstellen</h2>
+                
+                <!-- Spaced Repetition Section -->
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg mb-6">
+                    <h3 class="text-lg font-semibold text-blue-800">Intelligentes Training (Spaced Repetition)</h3>
+                    <p class="text-slate-600 text-sm mt-1 mb-3">
+                        Das System merkt sich, welche Fragen du gut und welche du schlecht beantwortet hast. Schwierige Fragen werden dir dann automatisch früher und häufiger wieder vorgelegt, bis sie sitzen. Das ist eine extrem effektive Lernmethode.
+                    </p>
+                    <button id="start-srs-session-btn" class="w-full bg-blue-600 text-white px-6 py-3 rounded-md font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M4.5 12a7.5 7.5 0 0 1 15 0m-15 0a7.5 7.5 0 0 0 15 0"></path></svg>
+                        Intelligentes Training starten (<span id="srs-due-count">0</span> fällige Fragen)
+                    </button>
+                </div>
+
+                <div class="text-center my-4">
+                    <span class="text-slate-400 font-semibold">ODER</span>
+                </div>
+
+                <!-- Manual Session Section -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold text-slate-700">Manuelles Training</h3>
+                    <div>
+                        <label for="session-module" class="block text-sm font-medium text-slate-700 mb-1">1. Modul auswählen</label>
+                        <select id="session-module" class="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500"></select>
+                    </div>
+                    <div>
+                        <label for="session-topic" class="block text-sm font-medium text-slate-700 mb-1">2. Thema auswählen</label>
+                        <select id="session-topic" class="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500"></select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">3. Fragen für das Training auswählen</label>
+                        <div id="session-question-selection" class="mt-2 p-3 border border-slate-300 rounded-md h-64 overflow-y-auto space-y-2 bg-slate-50">
+                            <p class="text-slate-500">Bitte wähle zuerst ein Thema aus.</p>
+                        </div>
+                    </div>
+                    <textarea id="session-context" rows="4" placeholder="Füge hier zusätzliche Notizen für diese Lerneinheit ein (optional)..." class="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500"></textarea>
+                    <button id="start-session-btn" class="w-full bg-slate-700 text-white px-6 py-3 rounded-md font-semibold hover:bg-slate-800 transition-colors">Manuelles Training starten</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ===== QUESTIONS PANEL (REFACTORED) ===== -->
+        <div id="questions-panel" class="tab-panel hidden">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <!-- Section for Adding New Questions -->
+                <div id="add-question-section" class="mb-8 p-4 border border-slate-200 rounded-lg">
+                    <h3 class="text-xl font-semibold mb-4">Neues Thema / Fragen hinzufügen</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="add-q-module" class="block text-sm font-medium text-slate-700 mb-1">Modul auswählen oder erstellen</label>
+                            <select id="add-q-module" class="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500"></select>
+                            <input type="text" id="add-q-new-module-input" placeholder="Neues Modul anlegen" class="hidden w-full mt-2 p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label for="add-q-topic" class="block text-sm font-medium text-slate-700 mb-1">Thema auswählen oder erstellen</label>
+                            <select id="add-q-topic" class="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500"></select>
+                            <input type="text" id="add-q-new-topic-input" placeholder="Neues Thema anlegen" class="hidden w-full mt-2 p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <textarea id="add-q-textarea" rows="4" placeholder="Füge hier deine Fragen ein (eine pro Zeile)..." class="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500"></textarea>
+                        <button id="add-questions-btn" class="w-full bg-blue-600 text-white px-6 py-3 rounded-md font-semibold hover:bg-blue-700 transition-colors">Speichern</button>
+                    </div>
+                </div>
+                
+                <!-- Existing Question Manager -->
+                <h2 class="text-2xl font-semibold mb-4">Deine Themen- & Fragen-Datenbank</h2>
+                <div id="question-manager" class="space-y-6">
+                    <!-- Questions will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== QUIZ PANEL ===== -->
+        <div id="quiz-panel" class="hidden">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-semibold" id="quiz-topic"></h2>
+                    <div class="text-lg font-mono bg-slate-200 px-3 py-1 rounded">
+                        Frage <span id="current-q-num"></span> / <span id="total-q-num"></span>
+                    </div>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-md mb-4">
+                    <p class="text-lg font-medium" id="quiz-question"></p>
+                </div>
+                <textarea id="user-answer" rows="8" placeholder="Schreibe deine Antwort hier oder nutze die Diktierfunktion..." class="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500"></textarea>
+                <div class="flex items-center justify-between mt-4">
+                    <button id="speech-btn" class="p-3 bg-slate-200 rounded-full hover:bg-slate-300 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+                    </button>
+                    <div class="text-2xl font-bold text-blue-600" id="timer">00:00</div>
+                    <button id="submit-answer-btn" class="bg-green-600 text-white px-6 py-3 rounded-md font-semibold hover:bg-green-700 transition-colors flex items-center justify-center min-w-[150px]">
+                        <span class="btn-text">Antwort prüfen</span>
+                        <div class="loader btn-loader hidden w-5 h-5 border-2 border-white rounded-full"></div>
+                    </button>
+                </div>
+            </div>
+            <div id="feedback-container" class="mt-6 bg-white p-6 rounded-lg shadow-md hidden">
+                <h3 class="text-xl font-semibold mb-3">KI-Bewertung</h3>
+                <div id="feedback-content"></div>
+                <button id="next-question-btn" class="mt-4 w-full bg-blue-600 text-white px-6 py-3 rounded-md font-semibold hover:bg-blue-700 transition-colors hidden">Nächste Frage</button>
+            </div>
+        </div>
+
+        <!-- ===== STATS PANEL ===== -->
+        <div id="stats-panel" class="hidden">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-2xl font-semibold mb-4">Ergebnis: <span id="stats-topic"></span></h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-6">
+                    <div class="bg-blue-100 p-4 rounded-md"><div class="text-3xl font-bold text-blue-700" id="stats-score"></div><div class="text-slate-600">Gesamtpunkte</div></div>
+                    <div class="bg-green-100 p-4 rounded-md"><div class="text-3xl font-bold text-green-700" id="stats-time"></div><div class="text-slate-600">Gesamtzeit</div></div>
+                    <div class="bg-yellow-100 p-4 rounded-md"><div class="text-3xl font-bold text-yellow-700" id="stats-avg-score"></div><div class="text-slate-600">Punkte / Frage</div></div>
+                </div>
+                <h3 class="text-xl font-semibold mb-3">Detaillierte Auswertung</h3>
+                <div id="stats-details" class="space-y-4"></div>
+                <button id="back-to-start-btn" class="mt-6 w-full bg-slate-600 text-white px-6 py-3 rounded-md font-semibold hover:bg-slate-700 transition-colors">Zum Dashboard</button>
+            </div>
+        </div>
+        
+        <footer class="text-center mt-12 text-sm text-slate-400">
+            <p>Angemeldet als: <span id="user-id-display" class="font-mono">...wird geladen...</span></p>
+        </footer>
+    </div>
+    
+    <div id="custom-modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <div id="modal-header" class="flex justify-between items-center mb-4">
+                <h3 id="modal-title" class="text-xl font-semibold">Mitteilung</h3>
+                <button id="modal-close-btn" class="text-slate-500 hover:text-slate-800">&times;</button>
+            </div>
+            <div id="modal-body">
+                 <p id="modal-text" class="mb-4"></p>
+            </div>
+            <div id="modal-footer" class="mt-4">
+                <button id="modal-ok-btn" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // --- Firebase SDK Imports ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, collection, addDoc, updateDoc, deleteDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- CONFIG & INITIALIZATION ---
+        // User-provided Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDA2pW52QXBfU17P6DWXqfUVVm4mPAIuqQ",
+            authDomain: "sylvan-chess-418211.firebaseapp.com",
+            projectId: "sylvan-chess-418211",
+            storageBucket: "sylvan-chess-418211.firebasestorage.app",
+            messagingSenderId: "384756172708",
+            appId: "1:384756172708:web:84caf479fca15c1831e331"
+        };
+        // User-provided Generative API Key
+        const GEMINI_API_KEY = "AIzaSyAep_D8QeYlPSeZV_zkh0anfkZT-aXmxPA";
+        
+        // App ID from the environment for database path
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        // Firebase services
+        let db, auth;
+
+        // App state
+        let userId;
+        let unsubscribeFromSessions; // To detach the Firestore listener
+        let currentSession = {};
+        let allUserSessions = []; // This will be our local, real-time cache of Firestore data
+        let timerInterval;
+        let secondsElapsed = 0;
+        let skillChartInstance = null;
+        let recognition;
+        let modulesAndTopics = {};
+
+        // SRS Configuration: Intervals in days for each level
+        const SRS_INTERVALS = [1, 3, 7, 14, 30, 90, 180, 365]; 
+
+        const SKILL_LABELS = {
+            factual_knowledge: "Faktenwissen",
+            comprehension: "Verständnis",
+            analysis_transfer: "Analyse/Transfer",
+            argumentation: "Argumentation",
+            precision: "Präzision",
+            completeness: "Vollständigkeit"
+        };
+        
+        const panels = {
+            dashboard: document.getElementById('dashboard-panel'),
+            profile: document.getElementById('profile-panel'),
+            setup: document.getElementById('setup-panel'),
+            questions: document.getElementById('questions-panel'),
+            quiz: document.getElementById('quiz-panel'),
+            stats: document.getElementById('stats-panel'),
+            modal: document.getElementById('custom-modal'),
+            mainTabs: document.getElementById('main-tabs')
+        };
+        
+        // --- INITIALIZE ---
+        async function initializeAppAndAuth() {
+            addInitialEventListeners();
+            setupSpeechRecognition();
+
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                setLogLevel('debug'); // For easier debugging
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        console.log("User is signed in:", user.uid);
+                        userId = user.uid;
+                        document.getElementById('user-id-display').textContent = userId;
+                        loadDataFromFirestore();
+                    } else {
+                        console.log("No user signed in. Attempting to sign in anonymously...");
+                        try {
+                            await signInAnonymously(auth);
+                            console.log("Signed in anonymously.");
+                        } catch (error) {
+                            console.error("Error during anonymous sign-in:", error);
+                            document.getElementById('user-id-display').textContent = "Anmeldefehler.";
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error("Error initializing Firebase:", error);
+                document.getElementById('user-id-display').textContent = "Initialisierungsfehler.";
+            }
+             switchPanel('dashboard');
+        }
+        
+        // --- DATA HANDLING (FIRESTORE) ---
+        function loadDataFromFirestore() {
+            if (unsubscribeFromSessions) {
+                unsubscribeFromSessions(); // Detach any old listener
+            }
+
+            if (!userId) {
+                console.error("Cannot load data: userId is not set.");
+                return;
+            }
+            
+            const sessionsCollectionRef = collection(db, 'artifacts', appId, 'users', userId, 'sessions');
+
+            unsubscribeFromSessions = onSnapshot(sessionsCollectionRef, (snapshot) => {
+                console.log("Received Firestore data update.");
+                allUserSessions = snapshot.docs.map(doc => ({
+                    id: doc.id, // <-- Store Firestore document ID
+                    ...doc.data()
+                }));
+                updateAllDynamicContent();
+            }, (error) => {
+                console.error("Error fetching sessions from Firestore:", error);
+                showModal("Fehler beim Laden der Daten aus der Datenbank.");
+            });
+        }
+
+        // --- GEMINI API HELPER (NOW LIVE) ---
+        async function callGemini(prompt, type = 'analysis') {
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
+            
+            let fullPrompt = "";
+            let generationConfig = {};
+
+            if (type === 'feedback') {
+                fullPrompt = `
+                    You are an expert tutor. Evaluate the user's answer to the question based on the provided context.
+                    Return ONLY a valid JSON string in the following format, with no other text or markdown formatting.
+                    The feedback_html should be encouraging and constructive, using simple HTML tags like <p>, <h4>, <strong>.
+
+                    JSON Schema:
+                    {
+                      "score": number (0-10),
+                      "feedback_html": "string (HTML formatted feedback)",
+                      "follow_up_question": "string (a relevant follow-up question or empty string)",
+                      "skill_ratings": {
+                        "factual_knowledge": number (0-10), "comprehension": number (0-10), "analysis_transfer": number (0-10),
+                        "argumentation": number (0-10), "precision": number (0-10), "completeness": number (0-10)
+                      }
+                    }
+
+                    Here is the data:
+                    ${prompt}
+                `;
+                 generationConfig = { responseMimeType: "application/json" };
+            } else { // 'analysis' type
+                fullPrompt = `
+                    You are an expert learning coach. Analyze the user's skill profile based on the provided data.
+                    Provide an analysis of strengths and weaknesses, and give actionable tips for improvement.
+                    Format your response using simple HTML tags like <h4>, <ul>, <li>, <strong>. Do not include <html> or <body> tags.
+                    Use emojis to make it engaging.
+
+                    Here is the data:
+                    ${prompt}
+                `;
+            }
+
+            const payload = {
+                contents: [{ parts: [{ text: fullPrompt }] }],
+                generationConfig: generationConfig
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorBody = await response.text();
+                    console.error("API Error Response:", errorBody);
+                    throw new Error(`API request failed with status ${response.status}`);
+                }
+
+                const result = await response.json();
+                if (!result.candidates || !result.candidates[0].content.parts[0].text) {
+                    throw new Error("Invalid response structure from API");
+                }
+                return result.candidates[0].content.parts[0].text;
+            } catch (error) {
+                console.error('Error calling Gemini API:', error);
+                throw error;
+            }
+        }
+
+
+        // --- UI & STATE MANAGEMENT ---
+        function switchPanel(panelName) {
+            Object.values(panels).forEach(p => { if(p) p.classList.add('hidden'); });
+            
+            if (panels[panelName]) {
+                panels[panelName].classList.remove('hidden');
+            }
+
+            if (['dashboard', 'profile', 'setup', 'questions'].includes(panelName)) {
+                panels.mainTabs.classList.remove('hidden');
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.toggle('active-tab', btn.dataset.target === `${panelName}-panel`);
+                });
+            } else {
+                panels.mainTabs.classList.add('hidden');
+            }
+        }
+        
+        function updateAllDynamicContent() {
+            calculateAndDisplayDashboardStats(allUserSessions);
+            calculateAndDisplaySrsProgress(allUserSessions);
+            calculateAndDisplayProfileStats(allUserSessions);
+            renderQuestionManager();
+            populateSetupDropdowns();
+            populateAddQuestionForm();
+            updateSrsDueCount();
+        }
+        
+        // --- DASHBOARD & PROFILE ---
+        function calculateAndDisplayDashboardStats(sessions) {
+            const topicContainer = document.getElementById('db-topic-stats');
+            if (!sessions || sessions.length === 0) {
+                topicContainer.innerHTML = '<p class="text-slate-500">Noch keine Daten vorhanden. Starte eine Lerneinheit!</p>';
+                document.getElementById('db-total-time').textContent = '0m';
+                document.getElementById('db-total-questions').textContent = '0';
+                document.getElementById('db-avg-score').textContent = '0.0';
+                document.getElementById('db-total-followups').textContent = '0';
+                return;
+            }
+            let totalTime = 0, totalQuestions = 0, totalScore = 0, totalFollowUps = 0;
+            const topicStats = {};
+            sessions.forEach((session) => {
+                const topicKey = session.module ? `${session.module} - ${session.topic}` : session.topic;
+                if (!topicStats[topicKey]) topicStats[topicKey] = { time: 0, questions: 0, score: 0, followUps: 0, sessions: 0, originalId: session.id };
+                const currentTopic = topicStats[topicKey];
+                currentTopic.sessions += 1;
+                (session.results || []).forEach(res => {
+                    totalTime += res.time; totalQuestions++; totalScore += res.score; if (res.hadFollowUp) totalFollowUps++;
+                    currentTopic.time += res.time; currentTopic.questions++; currentTopic.score += res.score; if (res.hadFollowUp) currentTopic.followUps++;
+                });
+            });
+            document.getElementById('db-total-time').textContent = `${Math.round(totalTime / 60)}m`;
+            document.getElementById('db-total-questions').textContent = totalQuestions;
+            document.getElementById('db-avg-score').textContent = totalQuestions > 0 ? (totalScore / totalQuestions).toFixed(1) : '0.0';
+            document.getElementById('db-total-followups').textContent = totalFollowUps;
+            
+            topicContainer.innerHTML = `<div class="grid grid-cols-5 gap-4 font-semibold text-slate-600 text-sm p-2"><div class="col-span-2">Thema</div><div>Ø Punkte</div><div>Lernzeit</div><div>Nachfragen</div></div>`;
+            const sortedTopics = Object.entries(topicStats).sort(([,a],[,b]) => b.time - a.time);
+            sortedTopics.forEach(([topic, stats]) => {
+                const avgScore = stats.questions > 0 ? (stats.score / stats.questions).toFixed(1) : '0.0';
+                const timeMinutes = Math.round(stats.time / 60);
+                const topicEl = document.createElement('div');
+                topicEl.className = 'grid grid-cols-5 gap-4 items-center p-2 border-t border-slate-100 rounded-md hover:bg-blue-50 cursor-pointer transition-colors';
+                topicEl.dataset.sessionId = stats.originalId;
+                topicEl.innerHTML = `<div class="col-span-2 font-semibold text-blue-700">${topic}</div><div class="font-mono text-center">${avgScore}</div><div class="font-mono text-center">${timeMinutes} min</div><div class="font-mono text-center">${stats.followUps}</div>`;
+                topicContainer.appendChild(topicEl);
+            });
+        }
+
+        function calculateAndDisplaySrsProgress(sessions) {
+            const container = document.getElementById('db-srs-progress');
+            container.innerHTML = '';
+            if (!sessions || sessions.length === 0) {
+                container.innerHTML = '<p class="text-slate-500">Keine Daten für den Lernfortschritt vorhanden.</p>';
+                return;
+            }
+
+            const maxSrsLevel = SRS_INTERVALS.length - 1;
+            const progressByModule = {};
+
+            sessions.forEach(session => {
+                if (!session.module || !session.results) return;
+                if (!progressByModule[session.module]) {
+                    progressByModule[session.module] = { topics: {}, totalCards: 0, maxLevelCards: 0 };
+                }
+
+                const topicProgress = {
+                    totalCards: session.results.length,
+                    maxLevelCards: session.results.filter(r => r.srs && r.srs.level >= maxSrsLevel).length
+                };
+                topicProgress.percentage = topicProgress.totalCards > 0 ? (topicProgress.maxLevelCards / topicProgress.totalCards) * 100 : 0;
+                
+                progressByModule[session.module].topics[session.topic] = topicProgress;
+                progressByModule[session.module].totalCards += topicProgress.totalCards;
+                progressByModule[session.module].maxLevelCards += topicProgress.maxLevelCards;
+            });
+
+            Object.keys(progressByModule).sort().forEach(moduleName => {
+                const moduleData = progressByModule[moduleName];
+                const modulePercentage = moduleData.totalCards > 0 ? (moduleData.maxLevelCards / moduleData.totalCards) * 100 : 0;
+
+                const moduleDetails = document.createElement('details');
+                moduleDetails.className = 'bg-slate-50 border border-slate-200 rounded-lg p-4';
+                moduleDetails.open = true;
+
+                moduleDetails.innerHTML = `
+                    <summary class="text-lg font-semibold text-blue-800">
+                        <div class="flex justify-between items-center">
+                            <span>${moduleName}</span>
+                            <span class="text-sm font-normal text-slate-600">${moduleData.maxLevelCards} / ${moduleData.totalCards} Karten gemeistert</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-2.5 mt-2">
+                            <div class="bg-green-600 h-2.5 rounded-full" style="width: ${modulePercentage.toFixed(2)}%"></div>
+                        </div>
+                    </summary>
+                    <div class="mt-4 pl-4 border-l-2 border-slate-200 space-y-3">
+                        ${Object.keys(moduleData.topics).sort().map(topicName => {
+                            const topicData = moduleData.topics[topicName];
+                            return `
+                                <div>
+                                    <div class="flex justify-between items-center text-sm font-medium">
+                                        <span class="text-slate-700">${topicName}</span>
+                                        <span class="text-slate-500">${topicData.maxLevelCards} / ${topicData.totalCards}</span>
+                                    </div>
+                                    <div class="w-full bg-slate-200 rounded-full h-1.5 mt-1">
+                                        <div class="bg-blue-500 h-1.5 rounded-full" style="width: ${topicData.percentage.toFixed(2)}%"></div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+                container.appendChild(moduleDetails);
+            });
+        }
+        
+        function calculateAndDisplayProfileStats(sessions) {
+            const skillAverages = calculateSkillAverages(sessions);
+            renderSkillChart(skillAverages);
+        }
+        
+        function renderSkillChart(data) {
+            const ctx = document.getElementById('skill-chart').getContext('2d');
+            const chartData = {
+                labels: Object.values(SKILL_LABELS),
+                datasets: [{
+                    label: 'Dein Skill-Level', data: Object.values(data), fill: true,
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)', borderColor: 'rgb(59, 130, 246)',
+                    pointBackgroundColor: 'rgb(59, 130, 246)', pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff', pointHoverBorderColor: 'rgb(59, 130, 246)'
+                }]
+            };
+            if (skillChartInstance) skillChartInstance.destroy();
+            skillChartInstance = new Chart(ctx, {
+                type: 'radar', data: chartData,
+                options: {
+                    elements: { line: { borderWidth: 3 } },
+                    scales: { r: { angleLines: { display: true }, suggestedMin: 0, suggestedMax: 10, pointLabels: { font: { size: 14 } }, ticks: { backdropColor: 'white', stepSize: 2 } } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        async function generateSkillAnalysis() {
+            const analysisBtn = document.getElementById('generate-analysis-btn');
+            const outputContainer = document.getElementById('skill-analysis-output');
+            toggleButtonLoading(analysisBtn, true);
+            outputContainer.classList.remove('hidden');
+            outputContainer.innerHTML = '<p class="text-slate-500">KI analysiert dein Profil...</p>';
+            try {
+                const skillAverages = calculateSkillAverages(allUserSessions);
+                const formattedSkills = Object.entries(skillAverages)
+                    .map(([key, value]) => `${SKILL_LABELS[key]}: ${value.toFixed(1)}/10`)
+                    .join('\n');
+                const promptForAnalysis = `User's current skill levels:\n${formattedSkills}`;
+
+                const analysisHTML = await callGemini(promptForAnalysis, 'analysis');
+                outputContainer.innerHTML = analysisHTML;
+            } catch (error) {
+                console.error("Error generating analysis:", error);
+                outputContainer.innerHTML = '<p class="text-red-500">Fehler bei der Analyse.</p>';
+            } finally {
+                toggleButtonLoading(analysisBtn, false);
+            }
+        }
+        
+        // --- QUESTION MANAGEMENT ---
+        function renderQuestionManager() {
+            const container = document.getElementById('question-manager');
+            container.innerHTML = '';
+            if (allUserSessions.length === 0) {
+                container.innerHTML = '<p class="text-slate-500">Keine Themen vorhanden. Füge oben ein neues Thema hinzu.</p>';
+                return;
+            }
+
+            const groupedByModule = {};
+            allUserSessions.forEach((session) => {
+                if (!session.module) return;
+                if (!groupedByModule[session.module]) {
+                    groupedByModule[session.module] = {};
+                }
+                if (!groupedByModule[session.module][session.topic]) {
+                    groupedByModule[session.module][session.topic] = { questions: [], document: session.document, originalSessionId: session.id };
+                }
+                (session.results || []).forEach((result, resultIndex) => {
+                    groupedByModule[session.module][session.topic].questions.push({
+                        ...result,
+                        originalSessionId: session.id,
+                        originalResultIndex: resultIndex
+                    });
+                });
+            });
+
+            Object.keys(groupedByModule).sort().forEach(moduleName => {
+                const moduleDetails = document.createElement('details');
+                moduleDetails.className = 'bg-slate-50 border border-slate-200 rounded-lg p-4';
+                moduleDetails.open = true;
+
+                const moduleSummary = document.createElement('summary');
+                moduleSummary.className = 'text-xl font-semibold text-blue-800';
+                moduleSummary.textContent = moduleName;
+                moduleDetails.appendChild(moduleSummary);
+
+                const topicsContainer = document.createElement('div');
+                topicsContainer.className = 'mt-4 pl-4 space-y-4';
+
+                Object.keys(groupedByModule[moduleName]).sort().forEach(topicName => {
+                    const topicData = groupedByModule[moduleName][topicName];
+                    const topicDiv = document.createElement('div');
+                    
+                    let currentDocHTML = `<p class="text-xs text-slate-500 mb-1">Kein Dokument verknüpft.</p>`;
+                    if (topicData.document) {
+                         currentDocHTML = `
+                            <div class="flex items-center text-sm text-slate-600 mb-1 p-2 bg-blue-50 rounded-md">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 flex-shrink-0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                <span class="font-medium flex-grow">${topicData.document.name}</span>
+                                <button class="remove-doc-btn p-1 hover:bg-red-200 rounded-full" data-session-id="${topicData.originalSessionId}" title="Dokument entfernen">&times;</button>
+                            </div>
+                        `;
+                    }
+                    
+                    const documentManagementHTML = `
+                        <div class="document-manager p-3 bg-slate-100 rounded-md mt-2 border">
+                             <h5 class="text-sm font-semibold mb-2 text-slate-700">Lernmaterial verwalten</h5>
+                             ${currentDocHTML}
+                             <div class="flex items-center space-x-2">
+                                 <input type="file" class="topic-doc-upload block w-full text-sm text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer" data-session-id="${topicData.originalSessionId}">
+                                 <button class="save-doc-btn bg-blue-600 text-white px-3 py-1 text-sm rounded-md font-semibold hover:bg-blue-700 flex-shrink-0" data-session-id="${topicData.originalSessionId}">Speichern</button>
+                             </div>
+                        </div>
+                    `;
+
+                    topicDiv.innerHTML = `<h4 class="text-lg font-semibold text-slate-700">${topicName}</h4>`;
+                    topicDiv.innerHTML += documentManagementHTML;
+
+                    const questionList = document.createElement('ul');
+                    questionList.className = 'space-y-2 mt-3';
+
+                    topicData.questions.forEach(qData => {
+                        const li = document.createElement('li');
+                        li.className = 'flex items-center justify-between p-3 bg-white rounded-md border';
+                        
+                        const nextReviewDate = qData.srs ? new Date(qData.srs.nextReview * 1000).toLocaleDateString('de-DE') : 'N/A';
+                        const isDue = qData.srs ? qData.srs.nextReview <= (Date.now() / 1000) : true;
+                        const srsIndicator = `
+                            <span class="text-xs font-mono p-1 rounded ${isDue ? 'bg-yellow-200 text-yellow-800' : 'bg-slate-200 text-slate-600'}" title="Nächste Wiederholung: ${nextReviewDate}">
+                                Lvl ${qData.srs ? qData.srs.level : 0}
+                            </span>`;
+
+                        li.innerHTML = `
+                            <p class="flex-grow mr-4 text-slate-700">${qData.question}</p>
+                            <div class="flex-shrink-0 flex items-center space-x-2">
+                                ${srsIndicator}
+                                <button class="edit-btn p-2 hover:bg-slate-200 rounded-full" data-session-id="${qData.originalSessionId}" data-result-index="${qData.originalResultIndex}" title="Bearbeiten">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                </button>
+                                <button class="delete-btn p-2 hover:bg-red-200 rounded-full" data-session-id="${qData.originalSessionId}" data-result-index="${qData.originalResultIndex}" title="Löschen">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                </button>
+                            </div>
+                        `;
+                        questionList.appendChild(li);
+                    });
+                    
+                    topicDiv.appendChild(questionList);
+                    topicsContainer.appendChild(topicDiv);
+                });
+
+                moduleDetails.appendChild(topicsContainer);
+                container.appendChild(moduleDetails);
+            });
+        }
+        
+        function handleQuestionEdit(sessionId, resultIndex) {
+            const questionItem = document.querySelector(`button.edit-btn[data-session-id='${sessionId}'][data-result-index='${resultIndex}']`).closest('li');
+            const session = allUserSessions.find(s => s.id === sessionId);
+            if (!session || !session.results[resultIndex]) return;
+            const questionText = session.results[resultIndex].question;
+            
+            questionItem.innerHTML = `
+                <input type="text" value="${questionText}" class="flex-grow mr-4 p-2 border border-blue-400 rounded-md">
+                <div class="flex-shrink-0 space-x-2">
+                    <button class="save-btn px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-md hover:bg-green-700" data-session-id="${sessionId}" data-result-index="${resultIndex}">Speichern</button>
+                    <button class="cancel-btn px-4 py-2 bg-slate-500 text-white text-sm font-semibold rounded-md hover:bg-slate-600">Abbrechen</button>
+                </div>
+            `;
+        }
+
+        async function handleQuestionSave(sessionId, resultIndex, newText) {
+            const session = allUserSessions.find(s => s.id === sessionId);
+            if (!session) return;
+            
+            const updatedResults = [...session.results];
+            updatedResults[resultIndex].question = newText;
+            
+            const sessionRef = doc(db, 'artifacts', appId, 'users', userId, 'sessions', sessionId);
+            try {
+                await updateDoc(sessionRef, { results: updatedResults });
+            } catch (error) {
+                console.error("Error updating question:", error);
+                showModal("Fehler beim Speichern der Frage.");
+            }
+        }
+
+        async function handleQuestionDelete(sessionId, resultIndex) {
+            const session = allUserSessions.find(s => s.id === sessionId);
+            if (!session) return;
+
+            const updatedResults = session.results.filter((_, index) => index != resultIndex);
+            const sessionRef = doc(db, 'artifacts', appId, 'users', userId, 'sessions', sessionId);
+
+            try {
+                if (updatedResults.length === 0 && !session.document) {
+                    await deleteDoc(sessionRef);
+                } else {
+                    await updateDoc(sessionRef, { results: updatedResults });
+                }
+            } catch (error) {
+                console.error("Error deleting question:", error);
+                showModal("Fehler beim Löschen der Frage.");
+            }
+        }
+        
+        async function handleDocumentDelete(sessionId) {
+            const session = allUserSessions.find(s => s.id === sessionId);
+            if (!session) return;
+
+            const sessionRef = doc(db, 'artifacts', appId, 'users', userId, 'sessions', sessionId);
+            try {
+                if ((session.results || []).length === 0) {
+                    await deleteDoc(sessionRef);
+                } else {
+                    await updateDoc(sessionRef, { document: null });
+                }
+            } catch (error) {
+                console.error("Error removing document:", error);
+                showModal("Fehler beim Entfernen des Dokuments.");
+            }
+        }
+
+        async function handleSaveDocument(sessionId, file) {
+            if (!file) {
+                showModal("Bitte wähle zuerst eine Datei aus.");
+                return;
+            }
+            const simulatedContent = `Dies ist der simulierte Inhalt der Datei ${file.name}. Er enthält alle wichtigen Informationen zum Thema.`;
+            const newDocument = {
+                name: file.name,
+                content: simulatedContent
+            };
+
+            const sessionRef = doc(db, 'artifacts', appId, 'users', userId, 'sessions', sessionId);
+            try {
+                await updateDoc(sessionRef, { document: newDocument });
+                showModal(`Dokument "${file.name}" wurde erfolgreich gespeichert.`);
+            } catch (error) {
+                console.error("Error saving document:", error);
+                showModal("Fehler beim Speichern des Dokuments.");
+            }
+        }
+
+        async function handleAddQuestions() {
+            const moduleSelect = document.getElementById('add-q-module');
+            const topicSelect = document.getElementById('add-q-topic');
+            
+            let module = moduleSelect.value;
+            if (module === 'new_module') {
+                module = document.getElementById('add-q-new-module-input').value.trim();
+            }
+            
+            let topic = topicSelect.value;
+            if (topic === 'new_topic') {
+                topic = document.getElementById('add-q-new-topic-input').value.trim();
+            }
+
+            const questionsText = document.getElementById('add-q-textarea').value.trim();
+            const questions = questionsText.split('\n').filter(q => q.trim() !== '');
+            
+            if (!module || !topic) {
+                showModal("Bitte wähle/erstelle ein Modul und ein Thema.");
+                return;
+            }
+            
+            if (questions.length === 0) {
+                 showModal("Bitte gib mindestens eine Frage ein, um sie hinzuzufügen.");
+                return;
+            }
+
+            let session = allUserSessions.find(s => s.module === module && s.topic === topic);
+            
+            const createNewResult = (qText) => ({
+                question: qText, answer: "", score: 0, time: 0, hadFollowUp: false, skill_ratings: {},
+                srs: { level: 0, nextReview: Math.floor(Date.now() / 1000) }
+            });
+
+            try {
+                if (session) {
+                    const newResults = questions.map(createNewResult);
+                    const updatedResults = [...(session.results || []), ...newResults];
+                    const sessionRef = doc(db, 'artifacts', appId, 'users', userId, 'sessions', session.id);
+                    await updateDoc(sessionRef, { results: updatedResults });
+                } else {
+                    const newResults = questions.map(createNewResult);
+                    const newSession = {
+                        module: module, topic: topic, createdAt: { seconds: Math.floor(Date.now() / 1000) }, 
+                        results: newResults,
+                        document: null
+                    };
+                    const sessionsCollectionRef = collection(db, 'artifacts', appId, 'users', userId, 'sessions');
+                    await addDoc(sessionsCollectionRef, newSession);
+                }
+
+                document.getElementById('add-q-textarea').value = '';
+                showModal(`${questions.length} Frage(n) zum Thema "${topic}" hinzugefügt.`);
+            } catch (error) {
+                console.error("Error saving questions to Firestore:", error);
+                showModal("Fehler beim Speichern der Fragen in der Datenbank.");
+            }
+        }
+        
+        // --- DROPDOWN & SETUP LOGIC ---
+        function extractModulesAndTopics(sessions) {
+            const structuredData = {};
+            sessions.forEach(session => {
+                if (!session.module || !session.topic) return;
+                if (!structuredData[session.module]) {
+                    structuredData[session.module] = new Set();
+                }
+                structuredData[session.module].add(session.topic);
+            });
+            for (const module in structuredData) {
+                structuredData[module] = Array.from(structuredData[module]);
+            }
+            return structuredData;
+        }
+
+        function populateAddQuestionForm() {
+            modulesAndTopics = extractModulesAndTopics(allUserSessions);
+            const moduleSelect = document.getElementById('add-q-module');
+            
+            moduleSelect.innerHTML = '<option value="">Modul wählen...</option>';
+            Object.keys(modulesAndTopics).sort().forEach(module => {
+                moduleSelect.innerHTML += `<option value="${module}">${module}</option>`;
+            });
+            moduleSelect.innerHTML += '<option value="new_module">Neues Modul erstellen...</option>';
+            
+            handleAddQModuleChange();
+        }
+
+        function handleAddQModuleChange() {
+            const moduleSelect = document.getElementById('add-q-module');
+            const topicSelect = document.getElementById('add-q-topic');
+            const newModuleInput = document.getElementById('add-q-new-module-input');
+            const newTopicInput = document.getElementById('add-q-new-topic-input');
+            const selectedModule = moduleSelect.value;
+            
+            newTopicInput.classList.add('hidden');
+
+            if (selectedModule === 'new_module') {
+                newModuleInput.classList.remove('hidden');
+                topicSelect.innerHTML = '<option value="new_topic">Neues Thema erstellen...</option>';
+                topicSelect.value = 'new_topic';
+                newTopicInput.classList.remove('hidden');
+            } else if (selectedModule) {
+                newModuleInput.classList.add('hidden');
+                topicSelect.innerHTML = '<option value="">Thema wählen...</option>';
+                if(modulesAndTopics[selectedModule]) {
+                    modulesAndTopics[selectedModule].sort().forEach(topic => {
+                        topicSelect.innerHTML += `<option value="${topic}">${topic}</option>`;
+                    });
+                }
+                topicSelect.innerHTML += '<option value="new_topic">Neues Thema erstellen...</option>';
+            } else {
+                newModuleInput.classList.add('hidden');
+                topicSelect.innerHTML = '<option value="">Zuerst Modul wählen...</option>';
+            }
+        }
+
+        function handleAddQTopicChange() {
+            const topicSelect = document.getElementById('add-q-topic');
+            const newTopicInput = document.getElementById('add-q-new-topic-input');
+            const topic = topicSelect.value;
+            
+            if (topic === 'new_topic') {
+                newTopicInput.classList.remove('hidden');
+            } else {
+                newTopicInput.classList.add('hidden');
+            }
+        }
+        
+        function populateSetupDropdowns() {
+            modulesAndTopics = extractModulesAndTopics(allUserSessions);
+            const moduleSelect = document.getElementById('session-module');
+            
+            moduleSelect.innerHTML = '<option value="">Modul wählen...</option>';
+            Object.keys(modulesAndTopics).sort().forEach(module => {
+                moduleSelect.innerHTML += `<option value="${module}">${module}</option>`;
+            });
+            
+            handleModuleChange();
+        }
+
+        function handleModuleChange() {
+            const moduleSelect = document.getElementById('session-module');
+            const topicSelect = document.getElementById('session-topic');
+            const selectedModule = moduleSelect.value;
+            
+            if (selectedModule) {
+                topicSelect.innerHTML = '<option value="">Thema wählen...</option>';
+                if(modulesAndTopics[selectedModule]) {
+                    modulesAndTopics[selectedModule].sort().forEach(topic => {
+                        topicSelect.innerHTML += `<option value="${topic}">${topic}</option>`;
+                    });
+                }
+            } else {
+                topicSelect.innerHTML = '<option value="">Zuerst Modul wählen...</option>';
+            }
+            document.getElementById('session-question-selection').innerHTML = '<p class="text-slate-500">Bitte wähle zuerst ein Thema aus.</p>';
+        }
+
+        function handleTopicChange() {
+            const module = document.getElementById('session-module').value;
+            const topic = document.getElementById('session-topic').value;
+            renderQuestionSelector(module, topic);
+        }
+
+        function renderQuestionSelector(module, topic) {
+            const container = document.getElementById('session-question-selection');
+            if (!module || !topic) {
+                container.innerHTML = '<p class="text-slate-500">Bitte wähle zuerst ein Thema aus.</p>';
+                return;
+            }
+
+            const session = allUserSessions.find(s => s.module === module && s.topic === topic);
+            if (!session || (session.results || []).length === 0) {
+                container.innerHTML = `<p class="text-slate-500">Für dieses Thema wurden keine Fragen gefunden. Füge welche im "Fragen & Dokumente"-Tab hinzu.</p>`;
+                return;
+            }
+
+            container.innerHTML = `<div class="flex justify-end mb-2"><button id="select-all-q-btn" class="text-sm text-blue-600 hover:underline">Alle auswählen</button></div>`;
+            session.results.forEach((result, index) => {
+                const questionId = `q-select-${index}`;
+                const item = document.createElement('div');
+                item.className = 'flex items-center p-2 rounded-md hover:bg-slate-200';
+                item.innerHTML = `
+                    <input type="checkbox" id="${questionId}" name="session_question" value="${result.question}" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    <label for="${questionId}" class="ml-3 block text-sm text-slate-800 cursor-pointer">${result.question}</label>
+                `;
+                container.appendChild(item);
+            });
+            
+            document.getElementById('select-all-q-btn').addEventListener('click', () => {
+                 container.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+            });
+        }
+
+        // --- QUIZ & SESSION LOGIC ---
+        function startSession() {
+            const module = document.getElementById('session-module').value;
+            const topic = document.getElementById('session-topic').value;
+            
+            const selectedCheckboxes = document.querySelectorAll('#session-question-selection input[type="checkbox"]:checked');
+            const questions = Array.from(selectedCheckboxes).map(cb => cb.value);
+            
+            if (!module || !topic || questions.length === 0) {
+                showModal("Bitte wähle ein Modul, ein Thema und mindestens eine Frage für das Training aus.");
+                return;
+            }
+            
+            const originalSession = allUserSessions.find(s => s.module === module && s.topic === topic);
+
+            currentSession = {
+                module: module, topic: topic, questions: questions, results: [], currentQuestionIndex: 0,
+                documentContent: originalSession && originalSession.document ? originalSession.document.content : null,
+                additionalContext: document.getElementById('session-context').value.trim()
+            };
+
+            switchPanel('quiz');
+            displayQuestion();
+        }
+
+        function displayQuestion() {
+            const qIndex = currentSession.currentQuestionIndex;
+            const question = currentSession.questions[qIndex];
+
+            document.getElementById('quiz-topic').textContent = `${currentSession.module} - ${currentSession.topic}`;
+            document.getElementById('current-q-num').textContent = qIndex + 1;
+            document.getElementById('total-q-num').textContent = currentSession.questions.length;
+            document.getElementById('quiz-question').textContent = question;
+
+            document.getElementById('user-answer').value = '';
+            document.getElementById('feedback-container').classList.add('hidden');
+            document.getElementById('next-question-btn').classList.add('hidden');
+            document.getElementById('submit-answer-btn').disabled = false;
+            
+            startTimer();
+        }
+
+        async function submitAnswer() {
+            const answer = document.getElementById('user-answer').value.trim();
+            if (!answer) {
+                showModal("Bitte gib eine Antwort ein.");
+                return;
+            }
+            
+            stopTimer();
+            const submitBtn = document.getElementById('submit-answer-btn');
+            toggleButtonLoading(submitBtn, true);
+
+            try {
+                let context = "Kein Kontext vorhanden.";
+                const question = currentSession.questions[currentSession.currentQuestionIndex];
+                const originalQuestionData = findOriginalQuestion(question);
+                if (originalQuestionData && originalQuestionData.session.document) {
+                    context = `KONTEXT AUS DOKUMENT: ${originalQuestionData.session.document.content}`;
+                }
+                if (currentSession.additionalContext) {
+                    context += `\n\nZUSÄTZLICHE NOTIZEN: ${currentSession.additionalContext}`;
+                }
+                
+                const prompt = `Bewerte die folgende Antwort basierend auf dem Kontext.\n\n${context}\n\nFRAGE: "${question}"\n\nANTWORT: "${answer}"`;
+
+                const responseStr = await callGemini(prompt, 'feedback');
+                const feedback = JSON.parse(responseStr);
+
+                const result = {
+                    question: question,
+                    answer: answer, score: feedback.score, time: secondsElapsed,
+                    hadFollowUp: !!feedback.follow_up_question, skill_ratings: feedback.skill_ratings
+                };
+                currentSession.results.push(result);
+                
+                if (originalQuestionData) {
+                    await updateSpacedRepetition(originalQuestionData.session, originalQuestionData.resultIndex, feedback.score);
+                }
+
+                document.getElementById('feedback-content').innerHTML = feedback.feedback_html;
+                document.getElementById('feedback-container').classList.remove('hidden');
+                document.getElementById('next-question-btn').classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Error getting feedback:", error);
+                document.getElementById('feedback-content').innerHTML = '<p class="text-red-500">Fehler bei der Bewertung der Antwort. Überprüfe den API-Schlüssel und die Konsolenausgabe.</p>';
+                document.getElementById('feedback-container').classList.remove('hidden');
+                document.getElementById('next-question-btn').classList.remove('hidden');
+            } finally {
+                toggleButtonLoading(submitBtn, false);
+                submitBtn.disabled = true;
+            }
+        }
+
+        function nextQuestion() {
+            currentSession.currentQuestionIndex++;
+            if (currentSession.currentQuestionIndex < currentSession.questions.length) {
+                displayQuestion();
+            } else {
+                endSession();
+            }
+        }
+
+        function endSession() {
+            displaySessionStats(currentSession);
+            switchPanel('stats');
+        }
+        
+        function displaySessionStats(session) {
+            document.getElementById('stats-topic').textContent = session.module ? `${session.module} - ${session.topic}` : session.topic;
+            
+            const totalScore = session.results.reduce((sum, res) => sum + res.score, 0);
+            const totalTime = session.results.reduce((sum, res) => sum + res.time, 0);
+            const avgScore = session.results.length > 0 ? (totalScore / session.results.length).toFixed(1) : "0.0";
+
+            document.getElementById('stats-score').textContent = totalScore;
+            document.getElementById('stats-time').textContent = `${Math.round(totalTime / 60)}m ${totalTime % 60}s`;
+            document.getElementById('stats-avg-score').textContent = avgScore;
+
+            const detailsContainer = document.getElementById('stats-details');
+            detailsContainer.innerHTML = '';
+            session.results.forEach((res, index) => {
+                const detailEl = document.createElement('div');
+                detailEl.className = 'p-4 bg-slate-50 rounded-md';
+                detailEl.innerHTML = `
+                    <p class="font-semibold">${index + 1}. ${res.question}</p>
+                    <div class="flex justify-between items-center mt-2 text-sm text-slate-600">
+                        <span>Punkte: <span class="font-bold text-blue-600">${res.score}/10</span></span>
+                        <span>Zeit: <span class="font-bold">${res.time}s</span></span>
+                        <span>KI-Nachfrage: <span class="font-bold">${res.hadFollowUp ? 'Ja' : 'Nein'}</span></span>
+                    </div>
+                `;
+                detailsContainer.appendChild(detailEl);
+            });
+        }
+
+        function goBackToDashboard() {
+            switchPanel('dashboard');
+        }
+
+        // --- HELPER & LOGIC FUNCTIONS ---
+        function startTimer() {
+            secondsElapsed = 0;
+            const timerEl = document.getElementById('timer');
+            timerEl.textContent = '00:00';
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                const minutes = Math.floor(secondsElapsed / 60).toString().padStart(2, '0');
+                const seconds = (secondsElapsed % 60).toString().padStart(2, '0');
+                timerEl.textContent = `${minutes}:${seconds}`;
+            }, 1000);
+        }
+
+        function stopTimer() { clearInterval(timerInterval); }
+
+        function calculateSkillAverages(sessions) {
+            const skillTotals = {}; const skillCounts = {};
+            Object.keys(SKILL_LABELS).forEach(key => { skillTotals[key] = 0; skillCounts[key] = 0; });
+            sessions.forEach(session => {
+                (session.results || []).forEach(res => {
+                    if (res.skill_ratings && typeof res.skill_ratings === 'object') {
+                        Object.entries(res.skill_ratings).forEach(([key, value]) => {
+                            if (skillTotals.hasOwnProperty(key)) { skillTotals[key] += value; skillCounts[key]++; }
+                        });
+                    }
+                });
+            });
+            const skillAverages = {};
+            Object.keys(SKILL_LABELS).forEach(key => {
+                skillAverages[key] = skillCounts[key] > 0 ? (skillTotals[key] / skillCounts[key]) : 0;
+            });
+            return skillAverages;
+        }
+
+        function toggleButtonLoading(button, isLoading) {
+            const btnText = button.querySelector('.btn-text');
+            const btnLoader = button.querySelector('.btn-loader');
+            if (button) {
+                button.disabled = isLoading;
+                if (isLoading) {
+                    if(btnText) btnText.classList.add('hidden');
+                    if(btnLoader) btnLoader.classList.remove('hidden');
+                } else {
+                    if(btnText) btnText.classList.remove('hidden');
+                    if(btnLoader) btnLoader.classList.add('hidden');
+                }
+            }
+        }
+        
+        function showModal(text, title = "Mitteilung") {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-body').innerHTML = `<p>${text}</p>`;
+            document.getElementById('modal-footer').classList.remove('hidden');
+            panels.modal.classList.remove('hidden');
+        }
+
+        function showTopicDetailModal(sessionId) {
+            const session = allUserSessions.find(s => s.id === sessionId);
+            if (!session) return;
+            
+            document.getElementById('modal-title').textContent = `Details: ${session.module} - ${session.topic}`;
+            const body = document.getElementById('modal-body');
+            body.innerHTML = '';
+            
+            const detailsContainer = document.createElement('div');
+            detailsContainer.className = 'space-y-4';
+            (session.results || []).forEach((res, index) => {
+                const detailEl = document.createElement('div');
+                detailEl.className = 'p-3 bg-slate-50 rounded-md text-sm';
+                detailEl.innerHTML = `
+                    <p class="font-semibold text-slate-800">${index + 1}. ${res.question}</p>
+                    <div class="flex justify-between items-center mt-2 text-slate-600">
+                        <span>Punkte: <span class="font-bold text-blue-600">${res.score}/10</span></span>
+                        <span>Zeit: <span class="font-bold">${res.time}s</span></span>
+                        <span>KI-Nachfrage: <span class="font-bold">${res.hadFollowUp ? 'Ja' : 'Nein'}</span></span>
+                    </div>
+                `;
+                detailsContainer.appendChild(detailEl);
+            });
+            body.appendChild(detailsContainer);
+            document.getElementById('modal-footer').classList.add('hidden');
+            panels.modal.classList.remove('hidden');
+        }
+
+        function setupSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SpeechRecognition) {
+                recognition = new SpeechRecognition();
+                recognition.continuous = true; recognition.lang = 'de-DE'; recognition.interimResults = false;
+                recognition.onresult = (event) => {
+                    const transcript = event.results[event.results.length - 1][0].transcript;
+                    document.getElementById('user-answer').value += transcript.trim() + ' ';
+                };
+                recognition.onend = () => {
+                    document.getElementById('speech-btn').classList.remove('mic-active', 'bg-red-400');
+                };
+            } else {
+                document.getElementById('speech-btn').disabled = true;
+            }
+        }
+
+        // --- SRS Specific Functions ---
+        function getDueQuestions() {
+            const now = Math.floor(Date.now() / 1000);
+            const dueQuestions = [];
+            allUserSessions.forEach(session => {
+                (session.results || []).forEach(result => {
+                    if (result.srs && result.srs.nextReview <= now) {
+                        dueQuestions.push({
+                            ...result,
+                            module: session.module,
+                            topic: session.topic,
+                            documentContent: session.document ? session.document.content : null
+                        });
+                    }
+                });
+            });
+            return dueQuestions;
+        }
+
+        function updateSrsDueCount() {
+            const count = getDueQuestions().length;
+            document.getElementById('srs-due-count').textContent = count;
+        }
+
+        function startIntelligentSession() {
+            const dueQuestions = getDueQuestions();
+            if (dueQuestions.length === 0) {
+                showModal("Super!", "Du bist auf dem neuesten Stand. Keine Fragen zur Wiederholung fällig.");
+                return;
+            }
+
+            const questions = dueQuestions.map(q => q.question);
+            
+            currentSession = {
+                module: "Intelligentes Training",
+                topic: "Fällige Fragen",
+                questions: questions,
+                results: [],
+                currentQuestionIndex: 0,
+                documentContent: null,
+                additionalContext: ""
+            };
+
+            switchPanel('quiz');
+            displayQuestion();
+        }
+
+        function findOriginalQuestion(questionText) {
+            for (const session of allUserSessions) {
+                for (let i = 0; i < (session.results || []).length; i++) {
+                    if (session.results[i].question === questionText) {
+                        return { session: session, resultIndex: i };
+                    }
+                }
+            }
+            return null;
+        }
+
+        async function updateSpacedRepetition(session, resultIndex, score) {
+            const questionResult = session.results[resultIndex];
+            if (!questionResult) return;
+
+            if (!questionResult.srs) {
+                questionResult.srs = { level: 0, nextReview: Math.floor(Date.now() / 1000) };
+            }
+
+            let currentLevel = questionResult.srs.level;
+            
+            if (score >= 8) { // Good answer
+                currentLevel++;
+            } else if (score <= 5) { // Bad answer
+                currentLevel = Math.max(0, currentLevel - 2); // Penalize more heavily
+            }
+
+            const intervalDays = SRS_INTERVALS[Math.min(currentLevel, SRS_INTERVALS.length - 1)];
+            const nextReviewTimestamp = Math.floor(Date.now() / 1000) + (intervalDays * 86400);
+
+            const updatedResults = [...session.results];
+            updatedResults[resultIndex].srs.level = currentLevel;
+            updatedResults[resultIndex].srs.nextReview = nextReviewTimestamp;
+            
+            const sessionRef = doc(db, 'artifacts', appId, 'users', userId, 'sessions', session.id);
+            try {
+                await updateDoc(sessionRef, { results: updatedResults });
+                console.log(`Updated SRS for "${questionResult.question}": New Level ${currentLevel}, Next review in ${intervalDays} days.`);
+            } catch (error) {
+                console.error("Error updating SRS data in Firestore:", error);
+            }
+        }
+        
+        // --- EVENT LISTENERS ---
+        function addInitialEventListeners() {
+            document.querySelectorAll('.tab-btn').forEach(button => {
+                button.addEventListener('click', () => switchPanel(button.dataset.target.replace('-panel', '')));
+            });
+            document.getElementById('generate-analysis-btn').addEventListener('click', generateSkillAnalysis);
+            document.getElementById('start-session-btn').addEventListener('click', startSession);
+            document.getElementById('start-srs-session-btn').addEventListener('click', startIntelligentSession);
+            document.getElementById('submit-answer-btn').addEventListener('click', submitAnswer);
+            document.getElementById('next-question-btn').addEventListener('click', nextQuestion);
+            document.getElementById('back-to-start-btn').addEventListener('click', goBackToDashboard);
+
+            document.getElementById('session-module').addEventListener('change', handleModuleChange);
+            document.getElementById('session-topic').addEventListener('change', handleTopicChange);
+            
+            document.getElementById('add-q-module').addEventListener('change', handleAddQModuleChange);
+            document.getElementById('add-q-topic').addEventListener('change', handleAddQTopicChange);
+            document.getElementById('add-questions-btn').addEventListener('click', handleAddQuestions);
+
+            const closeModal = () => panels.modal.classList.add('hidden');
+            document.getElementById('modal-ok-btn').addEventListener('click', closeModal);
+            document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+            panels.modal.addEventListener('click', (e) => { if (e.target === panels.modal) closeModal(); });
+
+            document.getElementById('speech-btn').addEventListener('click', () => {
+                if (!recognition) return;
+                const btn = document.getElementById('speech-btn');
+                if (btn.classList.contains('mic-active')) {
+                    recognition.stop();
+                } else {
+                    recognition.start();
+                    btn.classList.add('mic-active', 'bg-red-400');
+                }
+            });
+
+            document.getElementById('question-manager').addEventListener('click', (e) => {
+                const editBtn = e.target.closest('.edit-btn');
+                const deleteBtn = e.target.closest('.delete-btn');
+                const saveBtn = e.target.closest('.save-btn');
+                const cancelBtn = e.target.closest('.cancel-btn');
+                const removeDocBtn = e.target.closest('.remove-doc-btn');
+                const saveDocBtn = e.target.closest('.save-doc-btn');
+
+                if (editBtn) {
+                    const { sessionId, resultIndex } = editBtn.dataset;
+                    handleQuestionEdit(sessionId, resultIndex);
+                } else if (deleteBtn) {
+                    const { sessionId, resultIndex } = deleteBtn.dataset;
+                    handleQuestionDelete(sessionId, resultIndex);
+                } else if (saveBtn) {
+                    const { sessionId, resultIndex } = saveBtn.dataset;
+                    const newText = saveBtn.closest('li').querySelector('input').value.trim();
+                    if (newText) handleQuestionSave(sessionId, resultIndex, newText);
+                } else if (cancelBtn) {
+                    renderQuestionManager();
+                } else if (removeDocBtn) {
+                    const { sessionId } = removeDocBtn.dataset;
+                    handleDocumentDelete(sessionId);
+                } else if (saveDocBtn) {
+                    const { sessionId } = saveDocBtn.dataset;
+                    const fileInput = saveDocBtn.closest('.document-manager').querySelector('.topic-doc-upload');
+                    const file = fileInput.files[0];
+                    handleSaveDocument(sessionId, file);
+                }
+            });
+
+            document.getElementById('db-topic-stats').addEventListener('click', (e) => {
+                const topicRow = e.target.closest('[data-session-id]');
+                if (topicRow) {
+                    showTopicDetailModal(topicRow.dataset.sessionId);
+                }
+            });
+        }
+
+        // --- START ---
+        initializeAppAndAuth();
+
+    </script>
+</body>
+</html>
