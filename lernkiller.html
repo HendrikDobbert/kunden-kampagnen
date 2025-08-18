@@ -6,6 +6,14 @@
     <title>KI-Prüfungstrainer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Library for parsing .docx files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <!-- Library for parsing .pdf files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script>
+        // Configure the worker for pdf.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js`;
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -264,7 +272,7 @@
         // --- Firebase SDK Imports ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, collection, addDoc, updateDoc, deleteDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, onSnapshot, collection, addDoc, updateDoc, deleteDoc, setDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- CONFIG & INITIALIZATION ---
         // User-provided Firebase configuration
@@ -272,7 +280,7 @@
             apiKey: "AIzaSyDA2pW52QXBfU17P6DWXqfUVVm4mPAIuqQ",
             authDomain: "sylvan-chess-418211.firebaseapp.com",
             projectId: "sylvan-chess-418211",
-            storageBucket: "sylvan-chess-418211.firebasestorage.app",
+            storageBucket: "sylvan-chess-418211.appspot.com",
             messagingSenderId: "384756172708",
             appId: "1:384756172708:web:84caf479fca15c1831e331"
         };
@@ -326,7 +334,7 @@
 
             try {
                 const app = initializeApp(firebaseConfig);
-                db = getFirestore(app, "lerntrainer");
+                db = getFirestore(app);
                 auth = getAuth(app);
                 setLogLevel('debug'); // For easier debugging
 
@@ -696,8 +704,11 @@
                              <h5 class="text-sm font-semibold mb-2 text-slate-700">Lernmaterial verwalten</h5>
                              ${currentDocHTML}
                              <div class="flex items-center space-x-2">
-                                 <input type="file" class="topic-doc-upload block w-full text-sm text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer" data-session-id="${topicData.originalSessionId}">
-                                 <button class="save-doc-btn bg-blue-600 text-white px-3 py-1 text-sm rounded-md font-semibold hover:bg-blue-700 flex-shrink-0" data-session-id="${topicData.originalSessionId}">Speichern</button>
+                                 <input type="file" class="topic-doc-upload block w-full text-sm text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer" data-session-id="${topicData.originalSessionId}" accept=".pdf,.docx">
+                                 <button class="save-doc-btn bg-blue-600 text-white px-3 py-1 text-sm rounded-md font-semibold hover:bg-blue-700 flex-shrink-0 flex items-center justify-center min-w-[90px]">
+                                     <span class="btn-text">Speichern</span>
+                                     <div class="loader btn-loader hidden w-4 h-4 border-2 border-white rounded-full"></div>
+                                 </button>
                              </div>
                         </div>
                     `;
@@ -799,10 +810,16 @@
 
             const sessionRef = doc(db, 'artifacts', appId, 'users', userId, 'sessions', sessionId);
             try {
+                // Create a new object for the update to remove the 'document' field.
+                const updatedSessionData = { ...session };
+                delete updatedSessionData.document;
+                delete updatedSessionData.id; // Don't save the id back into the document
+
                 if ((session.results || []).length === 0) {
                     await deleteDoc(sessionRef);
                 } else {
-                    await updateDoc(sessionRef, { document: null });
+                    // Using setDoc to overwrite and remove the field
+                    await setDoc(sessionRef, updatedSessionData);
                 }
             } catch (error) {
                 console.error("Error removing document:", error);
@@ -810,24 +827,63 @@
             }
         }
 
-        async function handleSaveDocument(sessionId, file) {
+        async function handleSaveDocument(button, sessionId, file) {
             if (!file) {
-                showModal("Bitte wähle zuerst eine Datei aus.");
+                showModal("Bitte wähle zuerst eine Datei aus (.pdf oder .docx).");
                 return;
             }
-            const simulatedContent = `Dies ist der simulierte Inhalt der Datei ${file.name}. Er enthält alle wichtigen Informationen zum Thema.`;
-            const newDocument = {
-                name: file.name,
-                content: simulatedContent
-            };
-
-            const sessionRef = doc(db, 'artifacts', appId, 'users', userId, 'sessions', sessionId);
+            
+            toggleButtonLoading(button, true);
+            
             try {
+                const reader = new FileReader();
+                let extractedText = '';
+
+                const fileReadPromise = new Promise((resolve, reject) => {
+                    reader.onload = async (event) => {
+                        const arrayBuffer = event.target.result;
+                        try {
+                            if (file.type === "application/pdf") {
+                                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                                let fullText = '';
+                                for (let i = 1; i <= pdf.numPages; i++) {
+                                    const page = await pdf.getPage(i);
+                                    const textContent = await page.getTextContent();
+                                    fullText += textContent.items.map(item => item.str).join(' ') + '\n';
+                                }
+                                extractedText = fullText;
+                            } else if (file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+                                const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+                                extractedText = result.value;
+                            } else {
+                                reject(new Error("Unsupported file type. Please use .pdf or .docx"));
+                                return;
+                            }
+                            resolve();
+                        } catch (parseError) {
+                            reject(parseError);
+                        }
+                    };
+                    reader.onerror = (error) => reject(error);
+                    reader.readAsArrayBuffer(file);
+                });
+
+                await fileReadPromise;
+
+                const newDocument = {
+                    name: file.name,
+                    content: extractedText
+                };
+
+                const sessionRef = doc(db, 'artifacts', appId, 'users', userId, 'sessions', sessionId);
                 await updateDoc(sessionRef, { document: newDocument });
-                showModal(`Dokument "${file.name}" wurde erfolgreich gespeichert.`);
+                showModal(`Dokument "${file.name}" wurde erfolgreich verarbeitet und gespeichert.`);
+
             } catch (error) {
-                console.error("Error saving document:", error);
-                showModal("Fehler beim Speichern des Dokuments.");
+                console.error("Error processing or saving document:", error);
+                showModal(`Fehler beim Verarbeiten des Dokuments: ${error.message}`);
+            } finally {
+                toggleButtonLoading(button, false);
             }
         }
 
@@ -1274,7 +1330,10 @@
             const dueQuestions = [];
             allUserSessions.forEach(session => {
                 (session.results || []).forEach(result => {
-                    if (result.srs && result.srs.nextReview <= now) {
+                    if (!result.srs) { // Initialize SRS data if missing
+                         result.srs = { level: 0, nextReview: now };
+                    }
+                    if (result.srs.nextReview <= now) {
                         dueQuestions.push({
                             ...result,
                             module: session.module,
@@ -1420,7 +1479,7 @@
                     const { sessionId } = saveDocBtn.dataset;
                     const fileInput = saveDocBtn.closest('.document-manager').querySelector('.topic-doc-upload');
                     const file = fileInput.files[0];
-                    handleSaveDocument(sessionId, file);
+                    handleSaveDocument(saveDocBtn, sessionId, file);
                 }
             });
 
