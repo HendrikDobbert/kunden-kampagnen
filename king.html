@@ -105,12 +105,12 @@
         // --- CONFIGURATION ---
         console.log("LOG: Skript wird initialisiert.");
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "YOUR_API_KEY", // Replace with your actual config
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyDA2pW52QXBfU17P6DWXqfUVVm4mPAIuqQ", // Beispiel-Key
+            authDomain: "sylvan-chess-418211.firebaseapp.com",
+            projectId: "sylvan-chess-418211",
+            storageBucket: "sylvan-chess-418211.appspot.com",
+            messagingSenderId: "384756172708",
+            appId: "1:384756172708:web:84caf479fca15c1831e331"
         };
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
@@ -174,20 +174,20 @@
             }
         }
 
-        // CORRECTED AUTH FLOW with signInWithPopup
-        // 1. A listener is set up to react to any change in login status.
+        // KORRIGIERTER AUTH-FLUSS mit signInWithPopup
+        // 1. Ein Listener wird eingerichtet, der auf jede Änderung des Anmeldestatus reagiert.
         console.log("LOG: Hänge onAuthStateChanged-Listener an.");
         onAuthStateChanged(auth, (user) => {
-            // On page reload, this listener will detect the user (if logged in),
-            // but we won't have a fresh accessToken yet. updateUI will handle this correctly.
+            // Beim Neuladen der Seite wird dieser Listener den Benutzer erkennen (falls er angemeldet ist),
+            // aber wir haben noch keinen neuen accessToken. updateUI wird dies korrekt behandeln.
             updateUI(user);
         });
 
-        // 2. The login button starts the popup flow.
+        // 2. Der Login-Button startet den Popup-Flow.
         loginButton.addEventListener('click', () => {
             console.log("LOG: Login-Button geklickt. Starte signInWithPopup.");
             const provider = new GoogleAuthProvider();
-            // Important scopes for calendar access
+            // Wichtige Scopes für Kalenderzugriff
             provider.addScope('https://www.googleapis.com/auth/calendar.readonly');
             provider.addScope('https://www.googleapis.com/auth/calendar.events');
             
@@ -201,8 +201,8 @@
                          console.log("LOG: AccessToken aus Popup extrahiert.");
                     }
                     
-                    // We manually call updateUI with the new user AND the fresh token
-                    // to ensure the calendar loads immediately.
+                    // Wir rufen updateUI manuell mit dem neuen Benutzer UND dem frischen Token auf,
+                    // um sicherzustellen, dass der Kalender sofort geladen wird.
                     updateUI(result.user, token);
                 })
                 .catch((error) => {
@@ -210,7 +210,7 @@
                     if (error.code === 'auth/popup-blocked') {
                         addMessageToChat('agent', 'Das Anmelde-Popup wurde von Ihrem Browser blockiert. Bitte erlauben Sie Popups für diese Seite.');
                     } else if (error.code === 'auth/popup-closed-by-user') {
-                        // No message needed, user closed it intentionally
+                        // Keine Nachricht nötig, der Benutzer hat es absichtlich geschlossen
                         console.log("LOG: Anmelde-Popup vom Benutzer geschlossen.");
                     } else {
                         addMessageToChat('agent', `Ein Anmeldefehler ist aufgetreten: ${error.message}`);
@@ -393,8 +393,7 @@
             };
             console.log("LOG: Sende folgenden Payload an Gemini:", JSON.stringify(payload, null, 2));
 
-            const apiKey = ""; // Provided by the environment
-            // *** UPDATE: Switched to the more powerful "Pro" model as requested. ***
+            const apiKey = ""; // Wird von der Umgebung bereitgestellt
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${apiKey}`;
 
             try {
@@ -405,18 +404,11 @@
                 });
 
                 if (!response.ok) {
-                    const errorBody = await response.text();
-                    console.error("LOG: API-Fehler Body:", errorBody);
-                    throw new Error(`API-Fehler: ${response.status} ${response.statusText}`);
+                    throw new Error(`API-Fehler: ${response.statusText}`);
                 }
 
                 const result = await response.json();
                 console.log("LOG: Antwort von Gemini API erhalten:", result);
-                
-                if (!result.candidates || !result.candidates[0].content || !result.candidates[0].content.parts[0]) {
-                    throw new Error("Unerwartete Antwortstruktur von der API.");
-                }
-
                 const agentResponseText = result.candidates[0].content.parts[0].text;
                 const agentAction = JSON.parse(agentResponseText);
                 console.log("LOG: Geparsed Agent-Aktion:", agentAction);
@@ -440,7 +432,7 @@
                         if (createdEvent) {
                             addMessageToChat('agent', `Ich habe den Termin "${createdEvent.summary}" für Sie erstellt.`);
                             await saveEventToFirestore(createdEvent);
-                            await fetchCalendarEvents(); // Refresh calendar view
+                            await fetchCalendarEvents(); // Kalenderansicht aktualisieren
                         }
                     } else {
                         addMessageToChat('agent', 'Mir fehlen einige Informationen, um den Termin zu erstellen. Bitte geben Sie einen Titel, ein Startdatum und eine Startzeit an.');
@@ -463,7 +455,7 @@
             messageElement.className = `chat-bubble ${sender === 'user' ? 'user-bubble' : 'agent-bubble'}`;
             messageElement.textContent = text;
             chatHistory.appendChild(messageElement);
-            // Automatically scroll to the newest message
+            // Scrollt automatisch nach unten zur neuesten Nachricht
             chatHistory.scrollTop = chatHistory.scrollHeight;
         }
 
