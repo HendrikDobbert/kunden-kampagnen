@@ -386,7 +386,10 @@
             };
             console.log("LOG: Sende folgenden Payload an Gemini:", JSON.stringify(payload, null, 2));
 
-            const apiKey = ""; // Wird von der Umgebung bereitgestellt
+            // *** ÄNDERUNG HIER ***
+            // Der API-Schlüssel aus Ihrem Beispiel wurde hier eingefügt.
+            const apiKey = "AIzaSyC1ymSnU_BjwnyrvWZCn8kmjGO_IKw9Lvw"; // WICHTIG: Ersetzen Sie diesen Schlüssel durch Ihren eigenen Gemini API-Schlüssel.
+            
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
             // NEUES LOGGING: Zeigt die vollständige URL mit dem API-Schlüssel an
