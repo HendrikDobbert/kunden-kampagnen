@@ -118,7 +118,8 @@
         setLogLevel('debug');
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getFirestore(app);
+        // Verbindet sich explizit mit der "boss" Datenbank
+        const db = getFirestore(app, "boss");
         console.log("LOG: Firebase App und Auth initialisiert.");
 
         // --- DOM ELEMENTS ---
