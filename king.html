@@ -53,7 +53,7 @@
             <h2 class="text-2xl font-semibold mb-4">Willkommen!</h2>
             <p class="mb-6">Bitte melden Sie sich mit Ihrem Google-Konto an, um fortzufahren.</p>
             <button id="login-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 inline-flex items-center">
-                <svg class="w-6 h-6 mr-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path><path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path><path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path><path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.574l6.19,5.238C39.986,36.68,44,31.016,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path></svg>
+                <svg class="w-6 h-6 mr-3" xmlns="http://www.w.org/2000/svg" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path><path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path><path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path><path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.574l6.19,5.238C39.986,36.68,44,31.016,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path></svg>
                 Mit Google anmelden
             </button>
         </div>
@@ -105,7 +105,7 @@
         // --- CONFIGURATION ---
         console.log("LOG: Skript wird initialisiert.");
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "YOUR_API_KEY",
+            apiKey: "YOUR_API_KEY", // Replace with your actual config
             authDomain: "YOUR_AUTH_DOMAIN",
             projectId: "YOUR_PROJECT_ID",
             storageBucket: "YOUR_STORAGE_BUCKET",
@@ -174,20 +174,20 @@
             }
         }
 
-        // KORRIGIERTER AUTH-FLUSS mit signInWithPopup
-        // 1. Ein Listener wird eingerichtet, der auf jede Änderung des Anmeldestatus reagiert.
+        // CORRECTED AUTH FLOW with signInWithPopup
+        // 1. A listener is set up that reacts to any change in the login status.
         console.log("LOG: Hänge onAuthStateChanged-Listener an.");
         onAuthStateChanged(auth, (user) => {
-            // Beim Neuladen der Seite wird dieser Listener den Benutzer erkennen (falls er angemeldet ist),
-            // aber wir haben noch keinen neuen accessToken. updateUI wird dies korrekt behandeln.
+            // When the page is reloaded, this listener will recognize the user (if logged in),
+            // but we don't have a new accessToken yet. updateUI will handle this correctly.
             updateUI(user);
         });
 
-        // 2. Der Login-Button startet den Popup-Flow.
+        // 2. The login button starts the popup flow.
         loginButton.addEventListener('click', () => {
             console.log("LOG: Login-Button geklickt. Starte signInWithPopup.");
             const provider = new GoogleAuthProvider();
-            // Wichtige Scopes für Kalenderzugriff
+            // Important scopes for calendar access
             provider.addScope('https://www.googleapis.com/auth/calendar.readonly');
             provider.addScope('https://www.googleapis.com/auth/calendar.events');
             
@@ -201,8 +201,8 @@
                          console.log("LOG: AccessToken aus Popup extrahiert.");
                     }
                     
-                    // Wir rufen updateUI manuell mit dem neuen Benutzer UND dem frischen Token auf,
-                    // um sicherzustellen, dass der Kalender sofort geladen wird.
+                    // We call updateUI manually with the new user AND the fresh token,
+                    // to ensure the calendar loads immediately.
                     updateUI(result.user, token);
                 })
                 .catch((error) => {
@@ -210,7 +210,7 @@
                     if (error.code === 'auth/popup-blocked') {
                         addMessageToChat('agent', 'Das Anmelde-Popup wurde von Ihrem Browser blockiert. Bitte erlauben Sie Popups für diese Seite.');
                     } else if (error.code === 'auth/popup-closed-by-user') {
-                        // Keine Nachricht nötig, der Benutzer hat es absichtlich geschlossen
+                        // No message needed, the user closed it intentionally
                         console.log("LOG: Anmelde-Popup vom Benutzer geschlossen.");
                     } else {
                         addMessageToChat('agent', `Ein Anmeldefehler ist aufgetreten: ${error.message}`);
@@ -394,7 +394,7 @@
             console.log("LOG: Sende folgenden Payload an Gemini:", JSON.stringify(payload, null, 2));
 
             const apiKey = ""; // Wird von der Umgebung bereitgestellt
-            // *** MODIFIZIERT: Stabileres Modell verwenden ***
+            // --- KORREKTUR: Stabileres Modell für diese Aufgabe verwenden ---
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
             try {
@@ -405,10 +405,10 @@
                 });
 
                 if (!response.ok) {
-                    // Versuch, eine detailliertere Fehlermeldung aus der API-Antwort zu erhalten
-                    const errorBody = await response.json().catch(() => null);
-                    const errorMessage = errorBody?.error?.message || response.statusText;
-                    throw new Error(`API-Fehler (${response.status}): ${errorMessage}`);
+                    // --- KORREKTUR: Detailliertere Fehlermeldung aus der API-Antwort ---
+                    const errorBody = await response.text();
+                    console.error("LOG: API-Fehler Body:", errorBody);
+                    throw new Error(`API-Fehler: ${response.status} ${response.statusText}`);
                 }
 
                 const result = await response.json();
@@ -433,8 +433,7 @@
 
             } catch (error) {
                 console.error("LOG: Fehler bei der Kommunikation mit dem Agenten:", error);
-                // *** MODIFIZIERT: Detailliertere Fehlermeldung im Chat anzeigen ***
-                addMessageToChat('agent', `Entschuldigung, ein Fehler ist aufgetreten: ${error.message}`);
+                addMessageToChat('agent', 'Entschuldigung, ich habe gerade ein technisches Problem. Bitte versuchen Sie es später erneut.');
             } finally {
                 agentLoader.classList.add('hidden');
             }
