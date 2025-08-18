@@ -326,6 +326,7 @@
         
         // --- INITIALIZE ---
         async function initializeAppAndAuth() {
+            console.log("[LOG] initializeAppAndAuth: Starting application initialization.");
             addInitialEventListeners();
             setupSpeechRecognition();
 
@@ -334,26 +335,28 @@
                 db = getFirestore(app);
                 auth = getAuth(app);
                 setLogLevel('debug'); // For easier debugging
+                console.log("[LOG] initializeAppAndAuth: Firebase app initialized successfully.");
 
                 onAuthStateChanged(auth, async (user) => {
                     if (user) {
-                        console.log("User is signed in:", user.uid);
+                        console.log(`[LOG] onAuthStateChanged: User is signed in with UID: ${user.uid}`);
                         userId = user.uid;
                         document.getElementById('user-id-display').textContent = userId;
                         loadDataFromFirestore();
                     } else {
-                        console.log("No user signed in. Attempting to sign in anonymously...");
+                        console.warn("[LOG] onAuthStateChanged: No user signed in. Attempting to sign in anonymously...");
                         try {
                             await signInAnonymously(auth);
-                            console.log("Signed in anonymously.");
+                            console.log("[LOG] onAuthStateChanged: Signed in anonymously successfully.");
+                            // The onAuthStateChanged listener will fire again with the new user object.
                         } catch (error) {
-                            console.error("Error during anonymous sign-in:", error);
+                            console.error("[LOG] onAuthStateChanged: Error during anonymous sign-in:", error);
                             document.getElementById('user-id-display').textContent = "Anmeldefehler.";
                         }
                     }
                 });
             } catch (error) {
-                console.error("Error initializing Firebase:", error);
+                console.error("[LOG] initializeAppAndAuth: FATAL Error initializing Firebase:", error);
                 document.getElementById('user-id-display').textContent = "Initialisierungsfehler.";
             }
              switchPanel('dashboard');
@@ -361,33 +364,37 @@
         
         // --- DATA HANDLING (FIRESTORE) ---
         function loadDataFromFirestore() {
+            console.log("[LOG] loadDataFromFirestore: Attempting to load data.");
             if (unsubscribeFromSessions) {
+                console.log("[LOG] loadDataFromFirestore: Unsubscribing from previous Firestore listener.");
                 unsubscribeFromSessions(); // Detach any old listener
             }
 
             if (!userId) {
-                console.error("Cannot load data: userId is not set.");
+                console.error("[LOG] loadDataFromFirestore: Cannot load data because userId is not set.");
                 return;
             }
             
-            // CORRECTED PATH: Removed the platform-specific '/artifacts/{appId}' prefix.
             const sessionsCollectionRef = collection(db, 'users', userId, 'sessions');
+            console.log(`[LOG] loadDataFromFirestore: Attaching snapshot listener to collection 'users/${userId}/sessions'.`);
 
             unsubscribeFromSessions = onSnapshot(sessionsCollectionRef, (snapshot) => {
-                console.log("Received Firestore data update.");
+                console.log(`[LOG] onSnapshot: Received Firestore data update. Number of documents: ${snapshot.docs.length}.`);
                 allUserSessions = snapshot.docs.map(doc => ({
                     id: doc.id, // <-- Store Firestore document ID
                     ...doc.data()
                 }));
+                console.log("[LOG] onSnapshot: Local cache 'allUserSessions' updated.", allUserSessions);
                 updateAllDynamicContent();
             }, (error) => {
-                console.error("Error fetching sessions from Firestore:", error);
+                console.error("[LOG] onSnapshot: Error fetching sessions from Firestore:", error);
                 showModal("Fehler beim Laden der Daten aus der Datenbank. Überprüfen Sie Ihre Firestore-Sicherheitsregeln.");
             });
         }
 
         // --- GEMINI API HELPER (NOW LIVE) ---
         async function callGemini(prompt, type = 'analysis') {
+            console.log(`[LOG] callGemini: Called with type '${type}'.`);
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
             
             let fullPrompt = "";
@@ -430,6 +437,7 @@
                 contents: [{ parts: [{ text: fullPrompt }] }],
                 generationConfig: generationConfig
             };
+            console.log("[LOG] callGemini: Sending payload to API:", payload);
 
             try {
                 const response = await fetch(apiUrl, {
@@ -440,17 +448,20 @@
 
                 if (!response.ok) {
                     const errorBody = await response.text();
-                    console.error("API Error Response:", errorBody);
+                    console.error("[LOG] callGemini: API Error Response Body:", errorBody);
                     throw new Error(`API request failed with status ${response.status}`);
                 }
 
                 const result = await response.json();
+                console.log("[LOG] callGemini: Received raw API response:", result);
                 if (!result.candidates || !result.candidates[0].content.parts[0].text) {
                     throw new Error("Invalid response structure from API");
                 }
-                return result.candidates[0].content.parts[0].text;
+                const responseText = result.candidates[0].content.parts[0].text;
+                console.log("[LOG] callGemini: Extracted response text:", responseText);
+                return responseText;
             } catch (error) {
-                console.error('Error calling Gemini API:', error);
+                console.error('[LOG] callGemini: Error calling Gemini API:', error);
                 throw error;
             }
         }
@@ -458,10 +469,13 @@
 
         // --- UI & STATE MANAGEMENT ---
         function switchPanel(panelName) {
+            console.log(`[LOG] switchPanel: Switching to panel '${panelName}'.`);
             Object.values(panels).forEach(p => { if(p) p.classList.add('hidden'); });
             
             if (panels[panelName]) {
                 panels[panelName].classList.remove('hidden');
+            } else {
+                 console.warn(`[LOG] switchPanel: Panel '${panelName}' not found.`);
             }
 
             if (['dashboard', 'profile', 'setup', 'questions'].includes(panelName)) {
@@ -475,6 +489,7 @@
         }
         
         function updateAllDynamicContent() {
+            console.log("[LOG] updateAllDynamicContent: Starting full UI refresh based on local data.");
             calculateAndDisplayDashboardStats(allUserSessions);
             calculateAndDisplaySrsProgress(allUserSessions);
             calculateAndDisplayProfileStats(allUserSessions);
@@ -482,12 +497,15 @@
             populateSetupDropdowns();
             populateAddQuestionForm();
             updateSrsDueCount();
+            console.log("[LOG] updateAllDynamicContent: UI refresh complete.");
         }
         
         // --- DASHBOARD & PROFILE ---
         function calculateAndDisplayDashboardStats(sessions) {
+            console.log("[LOG] calculateAndDisplayDashboardStats: Calculating dashboard stats.");
             const topicContainer = document.getElementById('db-topic-stats');
             if (!sessions || sessions.length === 0) {
+                console.warn("[LOG] calculateAndDisplayDashboardStats: No session data available. Displaying empty state.");
                 topicContainer.innerHTML = '<p class="text-slate-500">Noch keine Daten vorhanden. Starte eine Lerneinheit!</p>';
                 document.getElementById('db-total-time').textContent = '0m';
                 document.getElementById('db-total-questions').textContent = '0';
@@ -507,6 +525,7 @@
                     currentTopic.time += res.time; currentTopic.questions++; currentTopic.score += res.score; if (res.hadFollowUp) currentTopic.followUps++;
                 });
             });
+            console.log("[LOG] calculateAndDisplayDashboardStats: Calculated totals:", { totalTime, totalQuestions, totalScore, totalFollowUps });
             document.getElementById('db-total-time').textContent = `${Math.round(totalTime / 60)}m`;
             document.getElementById('db-total-questions').textContent = totalQuestions;
             document.getElementById('db-avg-score').textContent = totalQuestions > 0 ? (totalScore / totalQuestions).toFixed(1) : '0.0';
@@ -523,9 +542,11 @@
                 topicEl.innerHTML = `<div class="col-span-2 font-semibold text-blue-700">${topic}</div><div class="font-mono text-center">${avgScore}</div><div class="font-mono text-center">${timeMinutes} min</div><div class="font-mono text-center">${stats.followUps}</div>`;
                 topicContainer.appendChild(topicEl);
             });
+             console.log("[LOG] calculateAndDisplayDashboardStats: Dashboard rendering complete.");
         }
 
         function calculateAndDisplaySrsProgress(sessions) {
+            console.log("[LOG] calculateAndDisplaySrsProgress: Calculating SRS progress.");
             const container = document.getElementById('db-srs-progress');
             container.innerHTML = '';
             if (!sessions || sessions.length === 0) {
@@ -552,6 +573,7 @@
                 progressByModule[session.module].totalCards += topicProgress.totalCards;
                 progressByModule[session.module].maxLevelCards += topicProgress.maxLevelCards;
             });
+            console.log("[LOG] calculateAndDisplaySrsProgress: Calculated progress data:", progressByModule);
 
             Object.keys(progressByModule).sort().forEach(moduleName => {
                 const moduleData = progressByModule[moduleName];
@@ -590,14 +612,17 @@
                 `;
                 container.appendChild(moduleDetails);
             });
+            console.log("[LOG] calculateAndDisplaySrsProgress: SRS progress rendering complete.");
         }
         
         function calculateAndDisplayProfileStats(sessions) {
+            console.log("[LOG] calculateAndDisplayProfileStats: Calculating and displaying profile stats.");
             const skillAverages = calculateSkillAverages(sessions);
             renderSkillChart(skillAverages);
         }
         
         function renderSkillChart(data) {
+            console.log("[LOG] renderSkillChart: Rendering skill chart with data:", data);
             const ctx = document.getElementById('skill-chart').getContext('2d');
             const chartData = {
                 labels: Object.values(SKILL_LABELS),
@@ -608,7 +633,10 @@
                     pointHoverBackgroundColor: '#fff', pointHoverBorderColor: 'rgb(59, 130, 246)'
                 }]
             };
-            if (skillChartInstance) skillChartInstance.destroy();
+            if (skillChartInstance) {
+                console.log("[LOG] renderSkillChart: Destroying existing chart instance.");
+                skillChartInstance.destroy();
+            }
             skillChartInstance = new Chart(ctx, {
                 type: 'radar', data: chartData,
                 options: {
@@ -617,9 +645,11 @@
                     plugins: { legend: { display: false } }
                 }
             });
+            console.log("[LOG] renderSkillChart: Chart rendered successfully.");
         }
 
         async function generateSkillAnalysis() {
+            console.log("[LOG] generateSkillAnalysis: Starting skill analysis generation.");
             const analysisBtn = document.getElementById('generate-analysis-btn');
             const outputContainer = document.getElementById('skill-analysis-output');
             toggleButtonLoading(analysisBtn, true);
@@ -631,11 +661,13 @@
                     .map(([key, value]) => `${SKILL_LABELS[key]}: ${value.toFixed(1)}/10`)
                     .join('\n');
                 const promptForAnalysis = `User's current skill levels:\n${formattedSkills}`;
+                console.log("[LOG] generateSkillAnalysis: Sending prompt to Gemini for analysis:", promptForAnalysis);
 
                 const analysisHTML = await callGemini(promptForAnalysis, 'analysis');
                 outputContainer.innerHTML = analysisHTML;
+                console.log("[LOG] generateSkillAnalysis: Analysis received and displayed.");
             } catch (error) {
-                console.error("Error generating analysis:", error);
+                console.error("[LOG] generateSkillAnalysis: Error generating analysis:", error);
                 outputContainer.innerHTML = '<p class="text-red-500">Fehler bei der Analyse.</p>';
             } finally {
                 toggleButtonLoading(analysisBtn, false);
@@ -644,9 +676,11 @@
         
         // --- QUESTION MANAGEMENT ---
         function renderQuestionManager() {
+            console.log("[LOG] renderQuestionManager: Starting to render the question manager.");
             const container = document.getElementById('question-manager');
             container.innerHTML = '';
             if (allUserSessions.length === 0) {
+                console.warn("[LOG] renderQuestionManager: No sessions available. Displaying empty state.");
                 container.innerHTML = '<p class="text-slate-500">Keine Themen vorhanden. Füge oben ein neues Thema hinzu.</p>';
                 return;
             }
@@ -668,6 +702,7 @@
                     });
                 });
             });
+            console.log("[LOG] renderQuestionManager: Data grouped by module and topic:", groupedByModule);
 
             Object.keys(groupedByModule).sort().forEach(moduleName => {
                 const moduleDetails = document.createElement('details');
@@ -750,12 +785,17 @@
                 moduleDetails.appendChild(topicsContainer);
                 container.appendChild(moduleDetails);
             });
+            console.log("[LOG] renderQuestionManager: Rendering complete.");
         }
         
         function handleQuestionEdit(sessionId, resultIndex) {
+            console.log(`[LOG] handleQuestionEdit: Editing question. Session ID: ${sessionId}, Result Index: ${resultIndex}.`);
             const questionItem = document.querySelector(`button.edit-btn[data-session-id='${sessionId}'][data-result-index='${resultIndex}']`).closest('li');
             const session = allUserSessions.find(s => s.id === sessionId);
-            if (!session || !session.results[resultIndex]) return;
+            if (!session || !session.results[resultIndex]) {
+                console.error("[LOG] handleQuestionEdit: Session or question not found for editing.");
+                return;
+            }
             const questionText = session.results[resultIndex].question;
             
             questionItem.innerHTML = `
@@ -768,8 +808,12 @@
         }
 
         async function handleQuestionSave(sessionId, resultIndex, newText) {
+            console.log(`[LOG] handleQuestionSave: Saving question. Session ID: ${sessionId}, Index: ${resultIndex}, New Text: "${newText}".`);
             const session = allUserSessions.find(s => s.id === sessionId);
-            if (!session) return;
+            if (!session) {
+                console.error("[LOG] handleQuestionSave: Session not found.");
+                return;
+            }
             
             const updatedResults = [...session.results];
             updatedResults[resultIndex].question = newText;
@@ -777,34 +821,46 @@
             const sessionRef = doc(db, 'users', userId, 'sessions', sessionId);
             try {
                 await updateDoc(sessionRef, { results: updatedResults });
+                console.log("[LOG] handleQuestionSave: Question updated successfully in Firestore.");
             } catch (error) {
-                console.error("Error updating question:", error);
+                console.error("[LOG] handleQuestionSave: Error updating question:", error);
                 showModal("Fehler beim Speichern der Frage.");
             }
         }
 
         async function handleQuestionDelete(sessionId, resultIndex) {
+            console.log(`[LOG] handleQuestionDelete: Deleting question. Session ID: ${sessionId}, Index: ${resultIndex}.`);
             const session = allUserSessions.find(s => s.id === sessionId);
-            if (!session) return;
+            if (!session) {
+                console.error("[LOG] handleQuestionDelete: Session not found.");
+                return;
+            }
 
             const updatedResults = session.results.filter((_, index) => index != resultIndex);
             const sessionRef = doc(db, 'users', userId, 'sessions', sessionId);
 
             try {
                 if (updatedResults.length === 0 && !session.document) {
+                    console.log("[LOG] handleQuestionDelete: Last question and no document, deleting entire session document.");
                     await deleteDoc(sessionRef);
                 } else {
+                    console.log("[LOG] handleQuestionDelete: Updating session with removed question.");
                     await updateDoc(sessionRef, { results: updatedResults });
                 }
+                 console.log("[LOG] handleQuestionDelete: Deletion successful.");
             } catch (error) {
-                console.error("Error deleting question:", error);
+                console.error("[LOG] handleQuestionDelete: Error deleting question:", error);
                 showModal("Fehler beim Löschen der Frage.");
             }
         }
         
         async function handleDocumentDelete(sessionId) {
+            console.log(`[LOG] handleDocumentDelete: Removing document from session ID: ${sessionId}.`);
             const session = allUserSessions.find(s => s.id === sessionId);
-            if (!session) return;
+            if (!session) {
+                console.error("[LOG] handleDocumentDelete: Session not found.");
+                return;
+            }
 
             const sessionRef = doc(db, 'users', userId, 'sessions', sessionId);
             try {
@@ -814,18 +870,22 @@
                 delete updatedSessionData.id; // Don't save the id back into the document
 
                 if ((session.results || []).length === 0) {
+                     console.log("[LOG] handleDocumentDelete: No questions left, deleting entire session document.");
                     await deleteDoc(sessionRef);
                 } else {
+                    console.log("[LOG] handleDocumentDelete: Removing 'document' field from session.");
                     // Using setDoc to overwrite and remove the field
                     await setDoc(sessionRef, updatedSessionData);
                 }
+                console.log("[LOG] handleDocumentDelete: Document removal successful.");
             } catch (error) {
-                console.error("Error removing document:", error);
+                console.error("[LOG] handleDocumentDelete: Error removing document:", error);
                 showModal("Fehler beim Entfernen des Dokuments.");
             }
         }
 
         async function handleSaveDocument(button, sessionId, file) {
+            console.log(`[LOG] handleSaveDocument: Saving document for session ID: ${sessionId}. File:`, file);
             if (!file) {
                 showModal("Bitte wähle zuerst eine Datei aus (.pdf oder .docx).");
                 return;
@@ -842,6 +902,7 @@
                         const arrayBuffer = event.target.result;
                         try {
                             if (file.type === "application/pdf") {
+                                console.log("[LOG] handleSaveDocument: Parsing PDF file.");
                                 const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
                                 let fullText = '';
                                 for (let i = 1; i <= pdf.numPages; i++) {
@@ -851,12 +912,14 @@
                                 }
                                 extractedText = fullText;
                             } else if (file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+                                console.log("[LOG] handleSaveDocument: Parsing DOCX file.");
                                 const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
                                 extractedText = result.value;
                             } else {
                                 reject(new Error("Unsupported file type. Please use .pdf or .docx"));
                                 return;
                             }
+                            console.log(`[LOG] handleSaveDocument: Extracted text length: ${extractedText.length}`);
                             resolve();
                         } catch (parseError) {
                             reject(parseError);
@@ -875,10 +938,11 @@
 
                 const sessionRef = doc(db, 'users', userId, 'sessions', sessionId);
                 await updateDoc(sessionRef, { document: newDocument });
+                console.log("[LOG] handleSaveDocument: Document saved successfully to Firestore.");
                 showModal(`Dokument "${file.name}" wurde erfolgreich verarbeitet und gespeichert.`);
 
             } catch (error) {
-                console.error("Error processing or saving document:", error);
+                console.error("[LOG] handleSaveDocument: Error processing or saving document:", error);
                 showModal(`Fehler beim Verarbeiten des Dokuments: ${error.message}`);
             } finally {
                 toggleButtonLoading(button, false);
@@ -886,6 +950,7 @@
         }
 
         async function handleAddQuestions() {
+            console.log("[LOG] handleAddQuestions: Attempting to add new questions.");
             const moduleSelect = document.getElementById('add-q-module');
             const topicSelect = document.getElementById('add-q-topic');
             
@@ -901,6 +966,7 @@
 
             const questionsText = document.getElementById('add-q-textarea').value.trim();
             const questions = questionsText.split('\n').filter(q => q.trim() !== '');
+            console.log(`[LOG] handleAddQuestions: Module: '${module}', Topic: '${topic}', Questions count: ${questions.length}`);
             
             if (!module || !topic) {
                 showModal("Bitte wähle/erstelle ein Modul und ein Thema.");
@@ -921,11 +987,13 @@
 
             try {
                 if (session) {
+                    console.log(`[LOG] handleAddQuestions: Found existing session (ID: ${session.id}). Appending questions.`);
                     const newResults = questions.map(createNewResult);
                     const updatedResults = [...(session.results || []), ...newResults];
                     const sessionRef = doc(db, 'users', userId, 'sessions', session.id);
                     await updateDoc(sessionRef, { results: updatedResults });
                 } else {
+                    console.log("[LOG] handleAddQuestions: No existing session found. Creating a new one.");
                     const newResults = questions.map(createNewResult);
                     const newSession = {
                         module: module, topic: topic, createdAt: { seconds: Math.floor(Date.now() / 1000) }, 
@@ -935,17 +1003,18 @@
                     const sessionsCollectionRef = collection(db, 'users', userId, 'sessions');
                     await addDoc(sessionsCollectionRef, newSession);
                 }
-
+                console.log("[LOG] handleAddQuestions: Questions saved successfully.");
                 document.getElementById('add-q-textarea').value = '';
                 showModal(`${questions.length} Frage(n) zum Thema "${topic}" hinzugefügt.`);
             } catch (error) {
-                console.error("Error saving questions to Firestore:", error);
+                console.error("[LOG] handleAddQuestions: Error saving questions to Firestore:", error);
                 showModal("Fehler beim Speichern der Fragen in der Datenbank.");
             }
         }
         
         // --- DROPDOWN & SETUP LOGIC ---
         function extractModulesAndTopics(sessions) {
+            console.log("[LOG] extractModulesAndTopics: Extracting structure from sessions.");
             const structuredData = {};
             sessions.forEach(session => {
                 if (!session.module || !session.topic) return;
@@ -957,10 +1026,12 @@
             for (const module in structuredData) {
                 structuredData[module] = Array.from(structuredData[module]);
             }
+            console.log("[LOG] extractModulesAndTopics: Extracted data:", structuredData);
             return structuredData;
         }
 
         function populateAddQuestionForm() {
+            console.log("[LOG] populateAddQuestionForm: Populating dropdowns in 'Add Question' form.");
             modulesAndTopics = extractModulesAndTopics(allUserSessions);
             const moduleSelect = document.getElementById('add-q-module');
             
@@ -975,10 +1046,11 @@
 
         function handleAddQModuleChange() {
             const moduleSelect = document.getElementById('add-q-module');
+            const selectedModule = moduleSelect.value;
+            console.log(`[LOG] handleAddQModuleChange: Module changed to '${selectedModule}'.`);
             const topicSelect = document.getElementById('add-q-topic');
             const newModuleInput = document.getElementById('add-q-new-module-input');
             const newTopicInput = document.getElementById('add-q-new-topic-input');
-            const selectedModule = moduleSelect.value;
             
             newTopicInput.classList.add('hidden');
 
@@ -1006,6 +1078,7 @@
             const topicSelect = document.getElementById('add-q-topic');
             const newTopicInput = document.getElementById('add-q-new-topic-input');
             const topic = topicSelect.value;
+            console.log(`[LOG] handleAddQTopicChange: Topic changed to '${topic}'.`);
             
             if (topic === 'new_topic') {
                 newTopicInput.classList.remove('hidden');
@@ -1015,6 +1088,7 @@
         }
         
         function populateSetupDropdowns() {
+            console.log("[LOG] populateSetupDropdowns: Populating dropdowns in 'Setup' panel.");
             modulesAndTopics = extractModulesAndTopics(allUserSessions);
             const moduleSelect = document.getElementById('session-module');
             
@@ -1028,8 +1102,9 @@
 
         function handleModuleChange() {
             const moduleSelect = document.getElementById('session-module');
-            const topicSelect = document.getElementById('session-topic');
             const selectedModule = moduleSelect.value;
+            console.log(`[LOG] handleModuleChange: Module changed to '${selectedModule}'.`);
+            const topicSelect = document.getElementById('session-topic');
             
             if (selectedModule) {
                 topicSelect.innerHTML = '<option value="">Thema wählen...</option>';
@@ -1047,10 +1122,12 @@
         function handleTopicChange() {
             const module = document.getElementById('session-module').value;
             const topic = document.getElementById('session-topic').value;
+            console.log(`[LOG] handleTopicChange: Topic changed to '${topic}' for module '${module}'.`);
             renderQuestionSelector(module, topic);
         }
 
         function renderQuestionSelector(module, topic) {
+            console.log(`[LOG] renderQuestionSelector: Rendering question selector for module '${module}' and topic '${topic}'.`);
             const container = document.getElementById('session-question-selection');
             if (!module || !topic) {
                 container.innerHTML = '<p class="text-slate-500">Bitte wähle zuerst ein Thema aus.</p>';
@@ -1059,6 +1136,7 @@
 
             const session = allUserSessions.find(s => s.module === module && s.topic === topic);
             if (!session || (session.results || []).length === 0) {
+                console.warn("[LOG] renderQuestionSelector: No questions found for this topic.");
                 container.innerHTML = `<p class="text-slate-500">Für dieses Thema wurden keine Fragen gefunden. Füge welche im "Fragen & Dokumente"-Tab hinzu.</p>`;
                 return;
             }
@@ -1074,6 +1152,7 @@
                 `;
                 container.appendChild(item);
             });
+            console.log(`[LOG] renderQuestionSelector: Rendered ${session.results.length} questions.`);
             
             document.getElementById('select-all-q-btn').addEventListener('click', () => {
                  container.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
@@ -1082,6 +1161,7 @@
 
         // --- QUIZ & SESSION LOGIC ---
         function startSession() {
+            console.log("[LOG] startSession: Starting manual training session.");
             const module = document.getElementById('session-module').value;
             const topic = document.getElementById('session-topic').value;
             
@@ -1089,6 +1169,7 @@
             const questions = Array.from(selectedCheckboxes).map(cb => cb.value);
             
             if (!module || !topic || questions.length === 0) {
+                console.warn("[LOG] startSession: Validation failed - module, topic, or questions missing.");
                 showModal("Bitte wähle ein Modul, ein Thema und mindestens eine Frage für das Training aus.");
                 return;
             }
@@ -1100,6 +1181,7 @@
                 documentContent: originalSession && originalSession.document ? originalSession.document.content : null,
                 additionalContext: document.getElementById('session-context').value.trim()
             };
+            console.log("[LOG] startSession: Session created:", currentSession);
 
             switchPanel('quiz');
             displayQuestion();
@@ -1108,6 +1190,7 @@
         function displayQuestion() {
             const qIndex = currentSession.currentQuestionIndex;
             const question = currentSession.questions[qIndex];
+            console.log(`[LOG] displayQuestion: Displaying question ${qIndex + 1}/${currentSession.questions.length}: "${question}"`);
 
             document.getElementById('quiz-topic').textContent = `${currentSession.module} - ${currentSession.topic}`;
             document.getElementById('current-q-num').textContent = qIndex + 1;
@@ -1124,6 +1207,7 @@
 
         async function submitAnswer() {
             const answer = document.getElementById('user-answer').value.trim();
+            console.log(`[LOG] submitAnswer: Submitting answer: "${answer}"`);
             if (!answer) {
                 showModal("Bitte gib eine Antwort ein.");
                 return;
@@ -1145,9 +1229,11 @@
                 }
                 
                 const prompt = `Bewerte die folgende Antwort basierend auf dem Kontext.\n\n${context}\n\nFRAGE: "${question}"\n\nANTWORT: "${answer}"`;
+                console.log("[LOG] submitAnswer: Sending prompt to Gemini for feedback.");
 
                 const responseStr = await callGemini(prompt, 'feedback');
                 const feedback = JSON.parse(responseStr);
+                console.log("[LOG] submitAnswer: Received and parsed feedback:", feedback);
 
                 const result = {
                     question: question,
@@ -1165,7 +1251,7 @@
                 document.getElementById('next-question-btn').classList.remove('hidden');
 
             } catch (error) {
-                console.error("Error getting feedback:", error);
+                console.error("[LOG] submitAnswer: Error getting feedback:", error);
                 document.getElementById('feedback-content').innerHTML = '<p class="text-red-500">Fehler bei der Bewertung der Antwort. Überprüfe den API-Schlüssel und die Konsolenausgabe.</p>';
                 document.getElementById('feedback-container').classList.remove('hidden');
                 document.getElementById('next-question-btn').classList.remove('hidden');
@@ -1178,23 +1264,28 @@
         function nextQuestion() {
             currentSession.currentQuestionIndex++;
             if (currentSession.currentQuestionIndex < currentSession.questions.length) {
+                console.log("[LOG] nextQuestion: Moving to the next question.");
                 displayQuestion();
             } else {
+                console.log("[LOG] nextQuestion: All questions answered. Ending session.");
                 endSession();
             }
         }
 
         function endSession() {
+            console.log("[LOG] endSession: Session ended. Displaying stats.");
             displaySessionStats(currentSession);
             switchPanel('stats');
         }
         
         function displaySessionStats(session) {
+            console.log("[LOG] displaySessionStats: Displaying stats for session:", session);
             document.getElementById('stats-topic').textContent = session.module ? `${session.module} - ${session.topic}` : session.topic;
             
             const totalScore = session.results.reduce((sum, res) => sum + res.score, 0);
             const totalTime = session.results.reduce((sum, res) => sum + res.time, 0);
             const avgScore = session.results.length > 0 ? (totalScore / session.results.length).toFixed(1) : "0.0";
+            console.log("[LOG] displaySessionStats: Calculated stats:", { totalScore, totalTime, avgScore });
 
             document.getElementById('stats-score').textContent = totalScore;
             document.getElementById('stats-time').textContent = `${Math.round(totalTime / 60)}m ${totalTime % 60}s`;
@@ -1218,11 +1309,13 @@
         }
 
         function goBackToDashboard() {
+            console.log("[LOG] goBackToDashboard: Returning to dashboard.");
             switchPanel('dashboard');
         }
 
         // --- HELPER & LOGIC FUNCTIONS ---
         function startTimer() {
+            console.log("[LOG] startTimer: Timer started.");
             secondsElapsed = 0;
             const timerEl = document.getElementById('timer');
             timerEl.textContent = '00:00';
@@ -1234,9 +1327,13 @@
             }, 1000);
         }
 
-        function stopTimer() { clearInterval(timerInterval); }
+        function stopTimer() {
+            console.log(`[LOG] stopTimer: Timer stopped after ${secondsElapsed} seconds.`);
+            clearInterval(timerInterval);
+        }
 
         function calculateSkillAverages(sessions) {
+            console.log("[LOG] calculateSkillAverages: Calculating average skill ratings.");
             const skillTotals = {}; const skillCounts = {};
             Object.keys(SKILL_LABELS).forEach(key => { skillTotals[key] = 0; skillCounts[key] = 0; });
             sessions.forEach(session => {
@@ -1252,25 +1349,31 @@
             Object.keys(SKILL_LABELS).forEach(key => {
                 skillAverages[key] = skillCounts[key] > 0 ? (skillTotals[key] / skillCounts[key]) : 0;
             });
+            console.log("[LOG] calculateSkillAverages: Calculated averages:", skillAverages);
             return skillAverages;
         }
 
         function toggleButtonLoading(button, isLoading) {
+            if (!button) {
+                console.warn("[LOG] toggleButtonLoading: Button element not found.");
+                return;
+            }
+            console.log(`[LOG] toggleButtonLoading: Setting loading state to ${isLoading} for button:`, button);
             const btnText = button.querySelector('.btn-text');
             const btnLoader = button.querySelector('.btn-loader');
-            if (button) {
-                button.disabled = isLoading;
-                if (isLoading) {
-                    if(btnText) btnText.classList.add('hidden');
-                    if(btnLoader) btnLoader.classList.remove('hidden');
-                } else {
-                    if(btnText) btnText.classList.remove('hidden');
-                    if(btnLoader) btnLoader.classList.add('hidden');
-                }
+            
+            button.disabled = isLoading;
+            if (isLoading) {
+                if(btnText) btnText.classList.add('hidden');
+                if(btnLoader) btnLoader.classList.remove('hidden');
+            } else {
+                if(btnText) btnText.classList.remove('hidden');
+                if(btnLoader) btnLoader.classList.add('hidden');
             }
         }
         
         function showModal(text, title = "Mitteilung") {
+            console.log(`[LOG] showModal: Displaying modal. Title: "${title}", Text: "${text}"`);
             document.getElementById('modal-title').textContent = title;
             document.getElementById('modal-body').innerHTML = `<p>${text}</p>`;
             document.getElementById('modal-footer').classList.remove('hidden');
@@ -1278,8 +1381,12 @@
         }
 
         function showTopicDetailModal(sessionId) {
+            console.log(`[LOG] showTopicDetailModal: Showing details for session ID: ${sessionId}`);
             const session = allUserSessions.find(s => s.id === sessionId);
-            if (!session) return;
+            if (!session) {
+                console.error(`[LOG] showTopicDetailModal: Session with ID ${sessionId} not found.`);
+                return;
+            }
             
             document.getElementById('modal-title').textContent = `Details: ${session.module} - ${session.topic}`;
             const body = document.getElementById('modal-body');
@@ -1308,22 +1415,27 @@
         function setupSpeechRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (SpeechRecognition) {
+                console.log("[LOG] setupSpeechRecognition: Speech Recognition API is supported.");
                 recognition = new SpeechRecognition();
                 recognition.continuous = true; recognition.lang = 'de-DE'; recognition.interimResults = false;
                 recognition.onresult = (event) => {
                     const transcript = event.results[event.results.length - 1][0].transcript;
+                    console.log("[LOG] SpeechRecognition onresult: Transcript received:", transcript);
                     document.getElementById('user-answer').value += transcript.trim() + ' ';
                 };
                 recognition.onend = () => {
+                    console.log("[LOG] SpeechRecognition onend: Recognition service disconnected.");
                     document.getElementById('speech-btn').classList.remove('mic-active', 'bg-red-400');
                 };
             } else {
+                console.warn("[LOG] setupSpeechRecognition: Speech Recognition API not supported. Disabling button.");
                 document.getElementById('speech-btn').disabled = true;
             }
         }
 
         // --- SRS Specific Functions ---
         function getDueQuestions() {
+            console.log("[LOG] getDueQuestions: Searching for due questions for SRS session.");
             const now = Math.floor(Date.now() / 1000);
             const dueQuestions = [];
             allUserSessions.forEach(session => {
@@ -1341,17 +1453,21 @@
                     }
                 });
             });
+            console.log(`[LOG] getDueQuestions: Found ${dueQuestions.length} due questions.`);
             return dueQuestions;
         }
 
         function updateSrsDueCount() {
             const count = getDueQuestions().length;
+            console.log(`[LOG] updateSrsDueCount: Updating due count display to ${count}.`);
             document.getElementById('srs-due-count').textContent = count;
         }
 
         function startIntelligentSession() {
+            console.log("[LOG] startIntelligentSession: Starting SRS session.");
             const dueQuestions = getDueQuestions();
             if (dueQuestions.length === 0) {
+                console.log("[LOG] startIntelligentSession: No due questions. Aborting session start.");
                 showModal("Super!", "Du bist auf dem neuesten Stand. Keine Fragen zur Wiederholung fällig.");
                 return;
             }
@@ -1367,27 +1483,36 @@
                 documentContent: null,
                 additionalContext: ""
             };
+            console.log("[LOG] startIntelligentSession: Created SRS session with questions:", currentSession);
 
             switchPanel('quiz');
             displayQuestion();
         }
 
         function findOriginalQuestion(questionText) {
+            console.log(`[LOG] findOriginalQuestion: Searching for original data for question: "${questionText}"`);
             for (const session of allUserSessions) {
                 for (let i = 0; i < (session.results || []).length; i++) {
                     if (session.results[i].question === questionText) {
+                        console.log(`[LOG] findOriginalQuestion: Found match in session ID ${session.id} at index ${i}.`);
                         return { session: session, resultIndex: i };
                     }
                 }
             }
+            console.warn(`[LOG] findOriginalQuestion: No match found.`);
             return null;
         }
 
         async function updateSpacedRepetition(session, resultIndex, score) {
+            console.log(`[LOG] updateSpacedRepetition: Updating SRS data for question in session ${session.id}, index ${resultIndex} with score ${score}.`);
             const questionResult = session.results[resultIndex];
-            if (!questionResult) return;
+            if (!questionResult) {
+                console.error("[LOG] updateSpacedRepetition: Question result not found at given index.");
+                return;
+            }
 
             if (!questionResult.srs) {
+                console.warn("[LOG] updateSpacedRepetition: SRS object missing, initializing it now.");
                 questionResult.srs = { level: 0, nextReview: Math.floor(Date.now() / 1000) };
             }
 
@@ -1398,6 +1523,7 @@
             } else if (score <= 5) { // Bad answer
                 currentLevel = Math.max(0, currentLevel - 2); // Penalize more heavily
             }
+            // Medium answers (6-7) keep the same level.
 
             const intervalDays = SRS_INTERVALS[Math.min(currentLevel, SRS_INTERVALS.length - 1)];
             const nextReviewTimestamp = Math.floor(Date.now() / 1000) + (intervalDays * 86400);
@@ -1409,14 +1535,15 @@
             const sessionRef = doc(db, 'users', userId, 'sessions', session.id);
             try {
                 await updateDoc(sessionRef, { results: updatedResults });
-                console.log(`Updated SRS for "${questionResult.question}": New Level ${currentLevel}, Next review in ${intervalDays} days.`);
+                console.log(`[LOG] updateSpacedRepetition: Updated SRS for "${questionResult.question}": New Level ${currentLevel}, Next review in ${intervalDays} days.`);
             } catch (error) {
-                console.error("Error updating SRS data in Firestore:", error);
+                console.error("[LOG] updateSpacedRepetition: Error updating SRS data in Firestore:", error);
             }
         }
         
         // --- EVENT LISTENERS ---
         function addInitialEventListeners() {
+            console.log("[LOG] addInitialEventListeners: Adding all initial event listeners.");
             document.querySelectorAll('.tab-btn').forEach(button => {
                 button.addEventListener('click', () => switchPanel(button.dataset.target.replace('-panel', '')));
             });
@@ -1443,8 +1570,10 @@
                 if (!recognition) return;
                 const btn = document.getElementById('speech-btn');
                 if (btn.classList.contains('mic-active')) {
+                    console.log("[LOG] Speech Button: Stopping recognition.");
                     recognition.stop();
                 } else {
+                    console.log("[LOG] Speech Button: Starting recognition.");
                     recognition.start();
                     btn.classList.add('mic-active', 'bg-red-400');
                 }
@@ -1469,15 +1598,14 @@
                     const newText = saveBtn.closest('li').querySelector('input').value.trim();
                     if (newText) handleQuestionSave(sessionId, resultIndex, newText);
                 } else if (cancelBtn) {
-                    renderQuestionManager();
+                    renderQuestionManager(); // Re-render to cancel edit
                 } else if (removeDocBtn) {
                     const { sessionId } = removeDocBtn.dataset;
                     handleDocumentDelete(sessionId);
                 } else if (saveDocBtn) {
-                    const { sessionId } = saveDocBtn.dataset;
                     const fileInput = saveDocBtn.closest('.document-manager').querySelector('.topic-doc-upload');
                     const file = fileInput.files[0];
-                    handleSaveDocument(saveDocBtn, sessionId, file);
+                    handleSaveDocument(saveDocBtn, saveDocBtn.closest('.document-manager').querySelector('.topic-doc-upload').dataset.sessionId, file);
                 }
             });
 
