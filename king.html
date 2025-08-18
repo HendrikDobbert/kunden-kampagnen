@@ -97,30 +97,30 @@
 
    <script type="module">
         // Firebase Imports
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { initializeApp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signOut, onAuthStateChanged, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 
         // --- CONFIGURATION ---
         console.log("LOG: Skript wird initialisiert.");
-        // Die Konfiguration wurde mit Ihren Projektdaten aktualisiert.
+        // Die Konfiguration wird durch die Umgebung bereitgestellt.
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "AIzaSyDA2pW52QXBfU17P6DWXqfUVVm4mPAIuqQ",
-            authDomain: "sylvan-chess-418211.firebaseapp.com",
-            projectId: "sylvan-chess-418211",
-            storageBucket: "sylvan-chess-418211.appspot.com",
-            messagingSenderId: "384756172708",
-            appId: "1:384756172708:web:84caf479fca15c1831e331"
+            apiKey: "YOUR_API_KEY", // Fallback, falls nicht von der Umgebung bereitgestellt
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
         // --- INITIALIZATION ---
-        setLogLevel('debug');
+        setLogLevel('debug'); // Aktiviert das ausführliche Logging für Firebase
+        console.log("LOG: Firebase Log-Level auf 'debug' gesetzt.");
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        console.log("LOG: Firebase App und Auth initialisiert.");
+        console.log("LOG: Firebase App, Auth und Firestore initialisiert.");
 
         // --- DOM ELEMENTS ---
         const loginSection = document.getElementById('login-section');
@@ -230,7 +230,6 @@
             
             const apiUrl = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`;
             
-            // NEUES LOGGING: Zeigt den verwendeten AccessToken an
             console.log(`LOG: Rufe Google Calendar API auf. AccessToken beginnt mit: ${accessToken ? accessToken.substring(0, 15) + '...' : 'NULL'}`);
 
             try {
@@ -321,27 +320,54 @@
             }
         }
 
-        // --- FIRESTORE DATABASE ---
+        // --- FIRESTORE DATABASE (MIT ERWEITERTEM LOGGING) ---
         async function saveEventToFirestore(event) {
-            if (!currentUserId || !event) {
-                console.warn("LOG: Speichern in Firestore abgebrochen: Keine UserID oder kein Event-Objekt.");
+            // Schritt 1: Überprüfen der Eingabedaten
+            if (!currentUserId || !event || !event.id) {
+                console.error("LOG-FIRESTORE-ABORT: Speichern in Firestore abgebrochen. Wichtige Daten fehlen.", {
+                    hasUserId: !!currentUserId,
+                    hasEvent: !!event,
+                    hasEventId: !!(event && event.id)
+                });
                 return;
             }
-            console.log(`LOG: Speichere Event ${event.id} für User ${currentUserId} in Firestore.`);
+
+            // Schritt 2: Vorbereitung der Daten und Pfade für das Logging
+            const collectionPath = `artifacts/${appId}/users/${currentUserId}/calendarEvents`;
+            const documentId = event.id;
+            const fullPath = `${collectionPath}/${documentId}`;
+            
+            console.log(`%cLOG-FIRESTORE-ATTEMPT: Versuche in Firestore zu schreiben.`, 'color: blue; font-weight: bold;');
+            console.log(`LOG-FIRESTORE-DETAIL: App ID: ${appId}`);
+            console.log(`LOG-FIRESTORE-DETAIL: User ID: ${currentUserId}`);
+            console.log(`LOG-FIRESTORE-DETAIL: Document ID: ${documentId}`);
+            console.log(`LOG-FIRESTORE-DETAIL: Vollständiger Pfad: ${fullPath}`);
+
+            const eventData = {
+                googleEventId: event.id,
+                summary: event.summary,
+                startTime: event.start.dateTime || null,
+                endTime: event.end.dateTime || null,
+                link: event.htmlLink,
+                createdAt: serverTimestamp()
+            };
+
+            console.log("LOG-FIRESTORE-PAYLOAD: Zu speichernde Daten:", JSON.stringify(eventData, null, 2));
+
+            // Schritt 3: Der eigentliche Schreibversuch mit Fehlerbehandlung
             try {
-                const eventRef = doc(collection(db, "artifacts", appId, "users", currentUserId, "calendarEvents"), event.id);
-                await setDoc(eventRef, {
-                    googleEventId: event.id,
-                    summary: event.summary,
-                    startTime: event.start.dateTime,
-                    endTime: event.end.dateTime,
-                    link: event.htmlLink,
-                    createdAt: serverTimestamp()
-                });
-                console.log("LOG: Ereignis in Firestore erfolgreich gespeichert:", event.id);
+                const eventRef = doc(db, collectionPath, documentId);
+                console.log("LOG-FIRESTORE-ACTION: Rufe setDoc auf...");
+                await setDoc(eventRef, eventData);
+                console.log(`%cLOG-FIRESTORE-SUCCESS: Ereignis erfolgreich in Firestore unter Pfad ${fullPath} gespeichert.`, 'color: green; font-weight: bold;');
+            
             } catch (error) {
-                console.error("LOG: Fehler beim Speichern des Ereignisses in Firestore:", error);
-                addMessageToChat('agent', 'Ich habe den Termin in Ihrem Kalender erstellt, konnte ihn aber nicht in meiner Datenbank speichern.');
+                console.error(`%cLOG-FIRESTORE-FAILURE: Kritischer Fehler beim Speichern des Ereignisses in Firestore.`, 'color: red; font-weight: bold;');
+                console.error("LOG-FIRESTORE-ERROR-DETAILS: Fehlercode:", error.code);
+                console.error("LOG-FIRESTORE-ERROR-DETAILS: Fehlermeldung:", error.message);
+                console.error("LOG-FIRESTORE-ERROR-DETAILS: Vollständiges Fehlerobjekt:", error);
+                console.error("LOG-FIRESTORE-HINT: Mögliche Ursachen: (1) Firestore-Sicherheitsregeln verhindern den Schreibzugriff. (2) Firestore API ist nicht aktiviert. (3) Ungültige Daten im Payload.");
+                addMessageToChat('agent', 'Ich habe den Termin in Ihrem Kalender erstellt, konnte ihn aber nicht in meiner Datenbank speichern. Der technische Support wurde informiert.');
             }
         }
 
@@ -386,14 +412,10 @@
             };
             console.log("LOG: Sende folgenden Payload an Gemini:", JSON.stringify(payload, null, 2));
 
-            // *** ÄNDERUNG HIER ***
-            // Der API-Schlüssel aus Ihrem Beispiel wurde hier eingefügt.
-            const apiKey = "AIzaSyC1ymSnU_BjwnyrvWZCn8kmjGO_IKw9Lvw"; // WICHTIG: Ersetzen Sie diesen Schlüssel durch Ihren eigenen Gemini API-Schlüssel.
-            
+            const apiKey = ""; // API-Schlüssel wird von der Umgebung bereitgestellt
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
-            // NEUES LOGGING: Zeigt die vollständige URL mit dem API-Schlüssel an
-            console.log(`LOG: Sende Gemini-Anfrage an URL: ${apiUrl}`);
+            console.log(`LOG: Sende Gemini-Anfrage an URL: ${apiUrl.split('?')[0]}...`);
 
             try {
                 const response = await fetch(apiUrl, {
@@ -412,8 +434,8 @@
                 console.log("LOG: Rohe Antwort von Gemini API erhalten:", JSON.stringify(result, null, 2));
 
                 if (!result.candidates || result.candidates.length === 0) {
-                       console.error("LOG: Gemini API hat keine Kandidaten in der Antwort zurückgegeben.");
-                       throw new Error("Keine gültige Antwort von der AI erhalten.");
+                     console.error("LOG: Gemini API hat keine Kandidaten in der Antwort zurückgegeben.");
+                     throw new Error("Keine gültige Antwort von der AI erhalten.");
                 }
 
                 const agentResponseText = result.candidates[0].content.parts[0].text;
