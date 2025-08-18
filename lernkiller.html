@@ -326,7 +326,7 @@
 
             try {
                 const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
+                db = getFirestore(app, "lerntrainer");
                 auth = getAuth(app);
                 setLogLevel('debug'); // For easier debugging
 
