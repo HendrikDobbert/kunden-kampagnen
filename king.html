@@ -149,6 +149,8 @@
                     addMessageToChat('agent', 'Hallo! Ich bin Ihr Kalender-Agent. Wie kann ich Ihnen helfen?');
                     await fetchCalendarEvents();
                 } else {
+                    // This case can happen if the page is reloaded after the access token has expired.
+                    // The onAuthStateChanged still sees a user, but getRedirectResult didn't provide a new token.
                     chatHistory.innerHTML = '';
                     calendarEventsContainer.innerHTML = '<p class="text-gray-500">Bitte melden Sie sich ab und erneut an, um den Kalenderzugriff zu erneuern.</p>';
                     addMessageToChat('agent', 'Sie sind angemeldet, aber der Zugriff auf den Kalender ist abgelaufen. Bitte melden Sie sich ab und erneut an, um den Zugriff zu erneuern.');
