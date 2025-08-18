@@ -104,13 +104,14 @@
 
         // --- CONFIGURATION ---
         console.log("LOG: Skript wird initialisiert.");
+        // Die Konfiguration wurde mit Ihren Projektdaten aktualisiert.
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "YOUR_API_KEY", // Replace with your actual config
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyDA2pW52QXBfU17P6DWXqfUVVm4mPAIuqQ",
+            authDomain: "sylvan-chess-418211.firebaseapp.com",
+            projectId: "sylvan-chess-418211",
+            storageBucket: "sylvan-chess-418211.appspot.com",
+            messagingSenderId: "384756172708",
+            appId: "1:384756172708:web:84caf479fca15c1831e331"
         };
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
@@ -190,7 +191,7 @@
                     const token = credential ? credential.accessToken : null;
                     
                     if(token) {
-                        console.log("LOG: AccessToken aus Popup extrahiert.");
+                         console.log("LOG: AccessToken aus Popup extrahiert.");
                     }
                     
                     updateUI(result.user, token);
@@ -303,6 +304,7 @@
                 console.log(`LOG: Google Calendar Create API Antwort-Status: ${response.status}`);
                 if (!response.ok) {
                     const errorData = await response.json();
+                    console.error("LOG: Fehlerdetails von der Calendar API:", errorData);
                     throw new Error(`Fehler beim Erstellen des Termins: ${errorData.error.message}`);
                 }
 
@@ -348,29 +350,38 @@
             agentLoader.classList.remove('hidden');
             chatInput.value = '';
 
-            // **KORREKTUR**: Wir entfernen die komplexe Schema-Konfiguration und bitten die KI direkt im Prompt um eine JSON-Antwort.
-            const systemPrompt = `Du bist ein Kalender-Agent. Deine Aufgabe ist es, die Absicht des Benutzers zu analysieren und eine Aktion auszuführen.
-            Heutiges Datum ist: ${new Date().toISOString()}.
-            Antworte NUR mit einem JSON-Objekt. Das JSON-Objekt muss folgendes Format haben:
-            {
-              "action": "CREATE_EVENT" | "READ_EVENTS" | "UNSUPPORTED",
-              "summary": "string" | null,
-              "startDateTime": "string (ISO 8601 Format)" | null,
-              "endDateTime": "string (ISO 8601 Format)" | null
-            }
-
-            - Wenn der Benutzer einen Termin erstellen möchte, setze 'action' auf 'CREATE_EVENT' und fülle 'summary', 'startDateTime' und 'endDateTime'. Ein Termin dauert standardmäßig eine Stunde, wenn keine Endzeit angegeben ist.
-            - Wenn der Benutzer seine Termine sehen möchte, setze 'action' auf 'READ_EVENTS'.
-            - Wenn du die Anfrage nicht verstehst, setze 'action' auf 'UNSUPPORTED'.
-
-            Analysiere den folgenden Benutzer-Prompt: "${prompt}"`;
+            const schema = {
+                type: "OBJECT",
+                properties: {
+                    action: {
+                        type: "STRING",
+                        enum: ["CREATE_EVENT", "READ_EVENTS", "UNSUPPORTED"]
+                    },
+                    summary: { type: "STRING" },
+                    startDateTime: { type: "STRING" },
+                    endDateTime: { type: "STRING" }
+                },
+                required: ["action"]
+            };
 
             const payload = {
                 contents: [{
-                    parts: [{ text: systemPrompt }]
-                }]
+                    parts: [{
+                        text: `Du bist ein Kalender-Agent. Deine Aufgabe ist es, die Absicht des Benutzers zu analysieren und entweder einen Kalendertermin zu erstellen oder bestehende Termine zu lesen.
+                        Heutiges Datum ist: ${new Date().toISOString()}.
+                        Analysiere den folgenden Benutzer-Prompt und gib eine JSON-Antwort zurück, die dem Schema entspricht.
+                        - Wenn der Benutzer einen Termin erstellen möchte, setze 'action' auf 'CREATE_EVENT' und extrahiere 'summary', 'startDateTime' und 'endDateTime' (im ISO 8601 Format). Ein Termin dauert standardmäßig eine Stunde, wenn keine Endzeit angegeben ist.
+                        - Wenn der Benutzer seine Termine sehen möchte, setze 'action' auf 'READ_EVENTS'.
+                        - Wenn du die Anfrage nicht verstehst, setze 'action' auf 'UNSUPPORTED'.
+                        
+                        Benutzer-Prompt: "${prompt}"`
+                    }]
+                }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: schema
+                }
             };
-            
             console.log("LOG: Sende folgenden Payload an Gemini:", JSON.stringify(payload, null, 2));
 
             const apiKey = ""; // Wird von der Umgebung bereitgestellt
@@ -384,35 +395,34 @@
                 });
 
                 if (!response.ok) {
+                    const errorBody = await response.text();
+                    console.error(`LOG: API-Fehler! Status: ${response.status}. Body:`, errorBody);
                     throw new Error(`API-Fehler: ${response.statusText}`);
                 }
 
                 const result = await response.json();
-                console.log("LOG: Antwort von Gemini API erhalten:", result);
+                console.log("LOG: Rohe Antwort von Gemini API erhalten:", JSON.stringify(result, null, 2));
 
-                if (!result.candidates || !result.candidates[0].content.parts[0].text) {
-                    throw new Error("Unerwartete Antwortstruktur von der API.");
+                if (!result.candidates || result.candidates.length === 0) {
+                       console.error("LOG: Gemini API hat keine Kandidaten in der Antwort zurückgegeben.");
+                       throw new Error("Keine gültige Antwort von der AI erhalten.");
                 }
 
                 const agentResponseText = result.candidates[0].content.parts[0].text;
-                console.log("LOG: Rohe Text-Antwort vom Agenten:", agentResponseText);
-
-                // **KORREKTUR**: Wir parsen die Text-Antwort, die das JSON enthalten sollte.
                 let agentAction;
                 try {
-                    // Manchmal fügt die KI ```json ... ``` um den Code hinzu, das entfernen wir.
-                    const cleanedText = agentResponseText.replace(/```json/g, '').replace(/```/g, '').trim();
-                    agentAction = JSON.parse(cleanedText);
-                } catch (parseError) {
-                    console.error("LOG: Fehler beim Parsen der JSON-Antwort des Agenten:", parseError);
-                    throw new Error("Der Agent hat keine gültige JSON-Antwort gegeben.");
+                    agentAction = JSON.parse(agentResponseText);
+                    console.log("LOG: Geparsed Agent-Aktion:", agentAction);
+                } catch (jsonError) {
+                    console.error("LOG: Fehler beim Parsen der AI-Antwort zu JSON.", jsonError);
+                    console.error("LOG: AI-Antwort, die den Fehler verursacht hat:", agentResponseText);
+                    throw new Error("Die AI hat in einem ungültigen Format geantwortet.");
                 }
-                
-                console.log("LOG: Geparsed Agent-Aktion:", agentAction);
+
                 handleAgentAction(agentAction);
 
             } catch (error) {
-                console.error("LOG: Fehler bei der Kommunikation mit dem Agenten:", error);
+                console.error("LOG: Schwerwiegender Fehler bei der Kommunikation mit dem Agenten:", error);
                 addMessageToChat('agent', 'Entschuldigung, ich habe gerade ein technisches Problem. Bitte versuchen Sie es später erneut.');
             } finally {
                 agentLoader.classList.add('hidden');
@@ -420,7 +430,7 @@
         }
 
         async function handleAgentAction(action) {
-            console.log(`LOG: handleAgentAction aufgerufen mit Aktion: ${action.action}`);
+            console.log(`LOG: handleAgentAction aufgerufen mit Aktion:`, action);
             switch (action.action) {
                 case "CREATE_EVENT":
                     if (action.summary && action.startDateTime && action.endDateTime) {
@@ -431,6 +441,7 @@
                             await fetchCalendarEvents(); // Kalenderansicht aktualisieren
                         }
                     } else {
+                        console.warn("LOG: Unvollständige Daten für CREATE_EVENT. Fehlende Felder:", {summary: !action.summary, start: !action.startDateTime, end: !action.endDateTime});
                         addMessageToChat('agent', 'Mir fehlen einige Informationen, um den Termin zu erstellen. Bitte geben Sie einen Titel, ein Startdatum und eine Startzeit an.');
                     }
                     break;
