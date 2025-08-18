@@ -105,12 +105,12 @@
         // --- CONFIGURATION ---
         console.log("LOG: Skript wird initialisiert.");
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "AIzaSyDA2pW52QXBfU17P6DWXqfUVVm4mPAIuqQ", // Beispiel-Key
-            authDomain: "sylvan-chess-418211.firebaseapp.com",
-            projectId: "sylvan-chess-418211",
-            storageBucket: "sylvan-chess-418211.appspot.com",
-            messagingSenderId: "384756172708",
-            appId: "1:384756172708:web:84caf479fca15c1831e331"
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
@@ -394,7 +394,8 @@
             console.log("LOG: Sende folgenden Payload an Gemini:", JSON.stringify(payload, null, 2));
 
             const apiKey = ""; // Wird von der Umgebung bereitgestellt
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${apiKey}`;
+            // *** MODIFIZIERT: Stabileres Modell verwenden ***
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
             try {
                 const response = await fetch(apiUrl, {
@@ -404,7 +405,10 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`API-Fehler: ${response.statusText}`);
+                    // Versuch, eine detailliertere Fehlermeldung aus der API-Antwort zu erhalten
+                    const errorBody = await response.json().catch(() => null);
+                    const errorMessage = errorBody?.error?.message || response.statusText;
+                    throw new Error(`API-Fehler (${response.status}): ${errorMessage}`);
                 }
 
                 const result = await response.json();
@@ -429,7 +433,8 @@
 
             } catch (error) {
                 console.error("LOG: Fehler bei der Kommunikation mit dem Agenten:", error);
-                addMessageToChat('agent', 'Entschuldigung, ich habe gerade ein technisches Problem. Bitte versuchen Sie es später erneut.');
+                // *** MODIFIZIERT: Detailliertere Fehlermeldung im Chat anzeigen ***
+                addMessageToChat('agent', `Entschuldigung, ein Fehler ist aufgetreten: ${error.message}`);
             } finally {
                 agentLoader.classList.add('hidden');
             }
