@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="de" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ihr Spezialist für Warensicherung | adswarensicherung</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* =================================================================
+         * CORPORATE IDENTITY STYLES
+         * ================================================================= */
+        :root {
+            --steel-blue-base: #4682B4;
+            --steel-blue-hover-base: #3A709A;
+            --off-white: #F8F9FA;
+            --light-gray: #E9ECEF;
+            --white: #FFFFFF;
+            --success-green-base: #28a745;
+            --warning-orange-base: #fd7e14;
+            --bg-primary: var(--off-white);
+            --bg-secondary: var(--white);
+            --bg-card: var(--white);
+            --bg-interactive: var(--light-gray);
+            --bg-interactive-hover: #DDE2E7;
+            --border-color: var(--light-gray);
+            --text-primary: #1A202C;
+            --text-secondary: #4A5568;
+            --text-on-accent: var(--white);
+            --accent-primary: var(--steel-blue-base);
+            --accent-primary-hover: var(--steel-blue-hover-base);
+            --status-success: var(--success-green-base);
+            --status-warning: var(--warning-orange-base);
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        .brand-heading { font-weight: 700; letter-spacing: -0.01em; color: var(--text-primary); }
+        .btn { font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 0.5rem; transition: all 0.3s ease; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; cursor: pointer; border: 2px solid transparent; }
+        .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+        .btn-cta { background-color: var(--accent-primary); color: var(--text-on-accent); }
+        .btn-cta:hover:not(:disabled) { background-color: var(--accent-primary-hover); }
+        .btn-secondary { background-color: var(--bg-interactive); color: var(--text-primary); }
+        .btn-secondary:hover:not(:disabled) { background-color: var(--bg-interactive-hover); }
+        .btn-success { background-color: var(--status-success); color: var(--text-on-accent); }
+        .btn-success:hover:not(:disabled) { background-color: #218838; }
+        :focus-visible { outline: 3px solid var(--accent-primary); outline-offset: 2px; border-radius: 0.375rem; }
+        .text-link { color: var(--accent-primary); font-weight: 600; text-decoration: none; transition: color 0.2s ease; }
+        .text-link:hover { text-decoration: underline; color: var(--accent-primary-hover); }
+        .hero-gradient-overlay { background: linear-gradient(to right, rgba(13, 27, 42, 0.85) 0%, rgba(13, 27, 42, 0.6) 40%, rgba(13, 27, 42, 0) 100%); }
+        
+        .logged-out-view, .logged-in-view { display: none; }
+        body.is-logged-out .logged-out-view { display: flex; }
+        body.is-logged-in .logged-in-view { display: flex; }
+        
+        .toggle-checkbox:checked { right: 0; border-color: var(--accent-primary); }
+        .toggle-checkbox:checked + .toggle-label { background-color: var(--accent-primary); }
+
+        @keyframes slideInUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes slideOutDown { from { transform: translateY(0); opacity: 1; } to { transform: translateY(100%); opacity: 0; } }
+        .social-proof-popup.show { animation: slideInUp 0.5s ease-out forwards; }
+        .social-proof-popup.hide { animation: slideOutDown 0.5s ease-in forwards; }
+
+        .modal-overlay { transition: opacity 0.3s ease; }
+
+        /* CRO: Gamification - Spin Wheel Styles */
+        #spin-wheel-container { transition: transform 5s cubic-bezier(0.25, 0.1, 0.25, 1); }
+        #spin-wheel-container .segment {
+            position: absolute;
+            width: 50%;
+            height: 50%;
+            top: 0;
+            left: 50%;
+            transform-origin: 0 100%;
+            clip-path: polygon(0 0, 100% 0, 100% 1.5%, 0 100%); /* Creates a thin triangle */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+            text-align: center;
+            padding-right: 2rem;
+        }
+        
+        /* Configurator Styles */
+        .configurator-step { display: none; }
+        .configurator-step.active { display: block; }
+
+        /* Gemini Chat Widget Styles */
+        #chat-widget-container {
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+        }
+
+    </style>
+</head>
+<body class="antialiased is-logged-out">
+
+    <div id="urgency-banner" class="bg-accent-primary text-white text-sm text-center p-2 relative">
+        <span>Bestellen Sie innerhalb der nächsten <strong>2 Stunden</strong> für eine garantierte Lieferung bis morgen!</span>
+        <button id="close-banner-btn" class="absolute top-1/2 right-4 -translate-y-1/2 text-2xl leading-none">&times;</button>
+    </div>
+
+    <header class="sticky top-0 bg-bg-secondary/90 backdrop-blur-lg shadow-sm z-50 border-b border-border-color">
+        <div class="container mx-auto px-4 md:px-8 max-w-7xl">
+            <div class="flex justify-between items-center py-4">
+                <a href="#" class="flex items-center gap-2" aria-label="Zur Startseite">
+                    <svg class="w-8 h-8 text-accent-primary" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-8-3zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V13H5V6.3l7-3.11v9.8z"/></svg>
+                    <span class="brand-heading text-lg hidden sm:inline">adswarensicherung</span>
+                </a>
+                <nav class="hidden md:flex justify-center items-center">
+                   <ul class="flex space-x-8 font-semibold text-sm text-text-secondary">
+                        <li><a href="#configurator-section" class="hover:text-accent-primary transition-colors py-2">Bedarfs-Konfigurator</a></li>
+                        <li><a href="#produkte" class="hover:text-accent-primary transition-colors py-2">Unsere Produkte</a></li>
+                        <li><a href="#haendler-werden" class="hover:text-accent-primary transition-colors py-2">Händler werden</a></li>
+                        <li><a href="#kontakt" class="hover:text-accent-primary transition-colors py-2">Über uns / Kontakt</a></li>
+                   </ul>
+                </nav>
+                <div class="flex items-center gap-4 md:gap-6 text-sm">
+                    <a href="#" class="text-text-secondary hover:text-accent-primary transition-colors flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        <span class="hidden md:inline">Login</span>
+                    </a>
+                    <a href="#" class="text-text-secondary hover:text-accent-primary transition-colors flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                        <span class="hidden md:inline">Warenkorb</span>
+                        <span id="cart-count" class="bg-accent-primary text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">0</span>
+                    </a>
+                    <button id="mobile-menu-button" class="md:hidden p-2 rounded-md text-text-secondary hover:text-accent-primary hover:bg-bg-interactive" aria-label="Menü öffnen">
+                        <svg id="menu-open-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 md:px-8 max-w-7xl mt-8">
+
+        <section class="rounded-lg overflow-hidden relative text-white min-h-[400px] flex items-center p-8 md:p-16">
+            <div class="absolute inset-0 z-0">
+                <img src="https://storage.googleapis.com/gemini-prod-us-west1-assets/images/cb_hero_image_adsware.jpg" 
+                     alt="Übersicht über ein kuratiertes Sortiment von Warensicherungs-Produkten." 
+                     class="w-full h-full object-cover">
+            </div>
+            <div class="absolute inset-0 z-10 hero-gradient-overlay"></div>
+            <div class="relative z-20 max-w-2xl">
+                <h1 class="text-4xl md:text-5xl font-bold tracking-tight">Ihr Spezialist für Warensicherung: 40 handverlesene Produkte für Ihren Erfolg.</h1>
+                <p class="mt-4 text-lg text-gray-200">Maximale Effizienz für Händler. Registrieren Sie sich jetzt und sichern Sie sich exklusive Konditionen.</p>
+                <a href="#haendler-werden" class="btn btn-cta mt-8 !text-base !py-3 !px-8">Jetzt als Händler registrieren</a>
+            </div>
+        </section>
+
+        <!-- =================================================================== -->
+        <!-- NEW FEATURE: Bedarfs-Konfigurator                                   -->
+        <!-- =================================================================== -->
+        <section id="configurator-section" class="mt-16 bg-bg-card rounded-lg border border-border-color p-8 md:p-12">
+            <div class="max-w-3xl mx-auto text-center">
+                 <h2 class="text-3xl brand-heading mb-4">Welches System passt zu mir?</h2>
+                 <p class="text-text-secondary text-lg mb-8">Finden Sie in 60 Sekunden die perfekte Sicherungslösung für Ihr Geschäft. Beantworten Sie einfach 4 kurze Fragen.</p>
+            </div>
+
+            <div id="configurator-container" class="max-w-3xl mx-auto">
+                <!-- Step 1: Branche -->
+                <div id="step-1" class="configurator-step active">
+                    <h3 class="font-semibold text-xl text-center mb-6">1. In welcher Branche sind Sie tätig?</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <button data-value="Mode" class="config-btn btn btn-secondary !py-4 !text-base w-full">Mode</button>
+                        <button data-value="Elektronik" class="config-btn btn btn-secondary !py-4 !text-base w-full">Elektronik</button>
+                        <button data-value="Supermarkt" class="config-btn btn btn-secondary !py-4 !text-base w-full">Supermarkt</button>
+                        <button data-value="Drogerie" class="config-btn btn btn-secondary !py-4 !text-base w-full">Drogerie</button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Eingangsbereich -->
+                <div id="step-2" class="configurator-step">
+                    <h3 class="font-semibold text-xl text-center mb-6">2. Wie breit ist Ihr Eingangsbereich?</h3>
+                    <div class="flex flex-col items-center">
+                         <input type="range" id="entrance-width-slider" min="1" max="5" value="2.5" step="0.1" class="w-full max-w-md">
+                         <p class="mt-4 font-bold text-2xl text-accent-primary"><span id="width-display">2.5</span> m</p>
+                         <button id="next-step-2" class="btn btn-cta mt-8">Weiter</button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Produkte -->
+                <div id="step-3" class="configurator-step">
+                    <h3 class="font-semibold text-xl text-center mb-6">3. Welche Art von Produkten möchten Sie primär sichern?</h3>
+                    <div class="space-y-4 max-w-md mx-auto">
+                        <label class="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-bg-interactive"><input type="checkbox" name="product-type" value="Kleidung" class="h-5 w-5 mr-4 text-accent-primary focus:ring-accent-primary"> Kleidung & Textilien</label>
+                        <label class="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-bg-interactive"><input type="checkbox" name="product-type" value="Flaschen" class="h-5 w-5 mr-4 text-accent-primary focus:ring-accent-primary"> Flaschen & Spirituosen</label>
+                        <label class="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-bg-interactive"><input type="checkbox" name="product-type" value="Elektronik" class="h-5 w-5 mr-4 text-accent-primary focus:ring-accent-primary"> Verpackte Elektronik</label>
+                        <label class="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-bg-interactive"><input type="checkbox" name="product-type" value="Metall" class="h-5 w-5 mr-4 text-accent-primary focus:ring-accent-primary"> Metallische Produkte</label>
+                    </div>
+                    <div class="text-center">
+                        <button id="next-step-3" class="btn btn-cta mt-8">Weiter</button>
+                    </div>
+                </div>
+                
+                <!-- Step 4: Design -->
+                <div id="step-4" class="configurator-step">
+                    <h3 class="font-semibold text-xl text-center mb-6">4. Legen Sie Wert auf ein unauffälliges Design der Antennen?</h3>
+                    <div class="flex justify-center gap-4">
+                        <button data-value="Ja" class="config-btn btn btn-secondary !py-4 !px-12 !text-base">Ja</button>
+                        <button data-value="Nein" class="config-btn btn btn-secondary !py-4 !px-12 !text-base">Nein</button>
+                    </div>
+                </div>
+
+                <!-- Results -->
+                <div id="configurator-results" class="hidden">
+                    <div class="text-center">
+                        <h2 class="text-3xl brand-heading mb-4">Ihre persönliche Empfehlung</h2>
+                        <p class="text-text-secondary text-lg mb-8">Basierend auf Ihren Angaben haben wir das ideale Starterpaket für Sie zusammengestellt.</p>
+                    </div>
+                    <div id="recommendation-output" class="bg-bg-interactive p-8 rounded-lg">
+                        <!-- Recommendation will be injected here -->
+                    </div>
+                    <div class="text-center mt-8 bg-bg-card border border-border-color p-6 rounded-lg">
+                         <h3 class="font-semibold text-xl mb-3">Angebot anfordern</h3>
+                         <p class="text-text-secondary mb-4">Lassen Sie sich Ihre Konfiguration unverbindlich als PDF per E-Mail zusenden.</p>
+                         <form class="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
+                              <input type="email" placeholder="Ihre E-Mail-Adresse" class="w-full p-3 border border-border-color rounded-md bg-bg-primary" required>
+                              <button type="submit" class="btn btn-cta">PDF anfordern</button>
+                         </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <section class="mt-12 bg-bg-card rounded-lg border border-border-color p-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-center">
+                <div class="flex items-center justify-center gap-4"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-accent-primary flex-shrink-0"><path d="M12.89 1.45l8 4A2 2 0 0 1 22 7.24v9.53a2 2 0 0 1-1.11 1.79l-8 4a2 2 0 0 1-1.79 0l-8-4a2 2 0 0 1-1.1-1.79V7.24a2 2 0 0 1 1.11-1.79l8-4a2 2 0 0 1 1.78 0z"></path><polyline points="2.32 6.16 12 11 21.68 6.16"></polyline><line x1="12" y1="22.76" x2="12" y2="11"></line></svg><span class="font-semibold text-sm">Exklusives Sortiment</span></div>
+                <div class="flex items-center justify-center gap-4"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-accent-primary flex-shrink-0"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg><span class="font-semibold text-sm">Attraktive Händlermargen</span></div>
+                <div class="flex items-center justify-center gap-4"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-accent-primary flex-shrink-0"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg><span class="font-semibold text-sm">Persönlicher Marketing-Support</span></div>
+                <div class="flex items-center justify-center gap-4"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-accent-primary flex-shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg><span class="font-semibold text-sm">100% Zufriedenheitsgarantie</span></div>
+            </div>
+        </section>
+
+        <div id="produkte" class="mt-16 space-y-16">
+            <section>
+                <div class="text-center max-w-3xl mx-auto">
+                    <h2 class="text-3xl brand-heading mb-4">Unser Sortiment auf einen Blick</h2>
+                    <p class="text-text-secondary text-lg">Keine überflüssigen Klicks, kein langes Suchen. Klicken Sie auf ein Produkt, um es zu Ihrer "Zuletzt angesehen"-Liste hinzuzufügen.</p>
+                </div>
+
+                <div class="flex justify-center items-center my-8 gap-4">
+                    <span class="font-semibold text-text-secondary">Besucher-Ansicht</span>
+                    <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="toggle" id="login-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                        <label for="login-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                    </div>
+                    <span class="font-semibold text-accent-primary">Händler-Ansicht (simuliert)</span>
+                </div>
+
+                <div class="mt-8">
+                    <div class="flex justify-center gap-2 mb-8 flex-wrap">
+                        <button class="btn btn-secondary !py-2 !px-4 !text-sm !bg-accent-primary !text-white">Alle Produkte</button>
+                        <button class="btn btn-secondary !py-2 !px-4 !text-sm">RF-Systeme</button>
+                        <button class="btn btn-secondary !py-2 !px-4 !text-sm">Hartetiketten</button>
+                        <button class="btn btn-secondary !py-2 !px-4 !text-sm">Klebeetiketten</button>
+                        <button class="btn btn-secondary !py-2 !px-4 !text-sm">Zubehör</button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="product-grid">
+                        
+                        <div class="product-card bg-bg-card rounded-lg border border-border-color overflow-hidden flex flex-col relative cursor-pointer" data-sku="45-RF-G5" data-name="Warensicherung &quot;ADS-Gate 5&quot;" data-img="https://placehold.co/400x300/e9ecef/1a202c?text=ADS-Gate+5">
+                            <div class="absolute top-2 right-2 bg-warning-orange-base text-white text-xs font-bold px-2 py-1 rounded-md z-10">Bestseller</div>
+                            <img src="https://placehold.co/400x300/e9ecef/1a202c?text=ADS-Gate+5" alt="Produktbild ADS-Gate 5" class="w-full h-48 object-cover pointer-events-none">
+                            <div class="p-4 flex flex-col flex-grow pointer-events-none">
+                                <h3 class="font-semibold text-text-primary">Warensicherung "ADS-Gate 5"</h3>
+                                <p class="text-sm text-text-secondary mt-1">SKU: 45-RF-G5</p>
+                                <p class="text-sm text-text-secondary mt-2 flex-grow">Modernes RF-System mit hoher Detektionsrate für breite Eingänge.</p>
+                                <div class="logged-in-view flex-col mt-4 pointer-events-auto">
+                                    <p class="font-bold text-xl text-text-primary mb-3">1.150,00 € <span class="text-sm font-normal text-text-secondary">(Netto)</span></p>
+                                    <div class="flex items-center gap-2 mb-3">
+                                        <button class="quantity-btn p-2 border rounded-md" data-action="decrease">-</button>
+                                        <input type="number" value="1" min="1" class="w-16 text-center border-t border-b h-10">
+                                        <button class="quantity-btn p-2 border rounded-md" data-action="increase">+</button>
+                                    </div>
+                                    <button class="btn btn-cta w-full add-to-cart-btn">In den Warenkorb</button>
+                                </div>
+                                <div class="logged-out-view flex-col mt-4 pointer-events-auto">
+                                    <a href="#haendler-werden" class="btn btn-secondary w-full text-center">Für Preisauskunft anmelden</a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="product-card bg-bg-card rounded-lg border border-border-color overflow-hidden flex flex-col cursor-pointer" data-sku="12-RF-MSQ" data-name="RF-Hartetikett &quot;Mini Square&quot;" data-img="https://placehold.co/400x300/e9ecef/1a202c?text=Mini+Square">
+                            <img src="https://placehold.co/400x300/e9ecef/1a202c?text=Mini+Square" alt="Produktbild Mini Square" class="w-full h-48 object-cover pointer-events-none">
+                            <div class="p-4 flex flex-col flex-grow pointer-events-none">
+                                <h3 class="font-semibold text-text-primary">RF-Hartetikett "Mini Square"</h3>
+                                <p class="text-sm text-text-secondary mt-1">SKU: 12-RF-MSQ</p>
+                                <p class="text-sm text-text-secondary mt-2 flex-grow">Klein, leicht und effektiv. Packung à 1000 Stück.</p>
+                                <div class="logged-in-view flex-col mt-4 pointer-events-auto">
+                                    <p class="font-bold text-xl text-text-primary mb-1">165,00 € <span class="text-sm font-normal text-text-secondary">(Netto)</span></p>
+                                    <p class="text-sm text-red-600 font-semibold mb-2">Nur noch 5 Stück auf Lager!</p>
+                                    <div class="flex items-center gap-2 mb-3">
+                                        <button class="quantity-btn p-2 border rounded-md" data-action="decrease">-</button>
+                                        <input type="number" value="1" min="1" class="w-16 text-center border-t border-b h-10">
+                                        <button class="quantity-btn p-2 border rounded-md" data-action="increase">+</button>
+                                    </div>
+                                    <button class="btn btn-cta w-full add-to-cart-btn">In den Warenkorb</button>
+                                </div>
+                                <div class="logged-out-view flex-col mt-4 pointer-events-auto">
+                                    <a href="#haendler-werden" class="btn btn-secondary w-full text-center">Für Preisauskunft anmelden</a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="product-card bg-bg-card rounded-lg border border-border-color overflow-hidden flex flex-col cursor-pointer" data-sku="99-ZUB-SL" data-name="Super-Magnetlöser" data-img="https://placehold.co/400x300/e9ecef/1a202c?text=Super-Löser">
+                            <img src="https://placehold.co/400x300/e9ecef/1a202c?text=Super-Löser" alt="Produktbild Super-Magnetlöser" class="w-full h-48 object-cover pointer-events-none">
+                            <div class="p-4 flex flex-col flex-grow pointer-events-none">
+                                <h3 class="font-semibold text-text-primary">Super-Magnetlöser</h3>
+                                <p class="text-sm text-text-secondary mt-1">SKU: 99-ZUB-SL</p>
+                                <p class="text-sm text-text-secondary mt-2 flex-grow">Universell für alle Standard-Hartetiketten.</p>
+                                <div class="logged-in-view flex-col mt-4 pointer-events-auto">
+                                    <p class="font-bold text-xl text-text-primary mb-3">69,00 € <span class="text-sm font-normal text-text-secondary">(Netto)</span></p>
+                                    <div class="flex items-center gap-2 mb-3">
+                                        <button class="quantity-btn p-2 border rounded-md" data-action="decrease">-</button>
+                                        <input type="number" value="1" min="1" class="w-16 text-center border-t border-b h-10">
+                                        <button class="quantity-btn p-2 border rounded-md" data-action="increase">+</button>
+                                    </div>
+                                    <button class="btn btn-cta w-full add-to-cart-btn">In den Warenkorb</button>
+                                </div>
+                                <div class="logged-out-view flex-col mt-4 pointer-events-auto">
+                                    <a href="#haendler-werden" class="btn btn-secondary w-full text-center">Für Preisauskunft anmelden</a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                         <div class="product-card bg-bg-card rounded-lg border border-border-color overflow-hidden flex flex-col cursor-pointer" data-sku="25-RF-KL44" data-name="RF-Klebeetiketten 4x4cm" data-img="https://placehold.co/400x300/e9ecef/1a202c?text=Barcode-Etikett">
+                             <img src="https://placehold.co/400x300/e9ecef/1a202c?text=Barcode-Etikett" alt="Produktbild RF-Klebeetiketten" class="w-full h-48 object-cover pointer-events-none">
+                             <div class="p-4 flex flex-col flex-grow pointer-events-none">
+                                 <h3 class="font-semibold text-text-primary">RF-Klebeetiketten 4x4cm</h3>
+                                 <p class="text-sm text-text-secondary mt-1">SKU: 25-RF-KL44</p>
+                                 <p class="text-sm text-text-secondary mt-2 flex-grow">Unauffällige Sicherung. Rolle à 1000 Stück.</p>
+                                 <div class="logged-in-view flex-col mt-4 pointer-events-auto">
+                                     <p class="font-bold text-xl text-text-primary mb-3">35,50 € <span class="text-sm font-normal text-text-secondary">(Netto)</span></p>
+                                     <div class="flex items-center gap-2 mb-3">
+                                         <button class="quantity-btn p-2 border rounded-md" data-action="decrease">-</button>
+                                         <input type="number" value="1" min="1" class="w-16 text-center border-t border-b h-10">
+                                         <button class="quantity-btn p-2 border rounded-md" data-action="increase">+</button>
+                                     </div>
+                                     <button class="btn btn-cta w-full add-to-cart-btn">In den Warenkorb</button>
+                                 </div>
+                                 <div class="logged-out-view flex-col mt-4 pointer-events-auto">
+                                     <a href="#haendler-werden" class="btn btn-secondary w-full text-center">Für Preisauskunft anmelden</a>
+                                 </div>
+                             </div>
+                         </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- =================================================================== -->
+            <!-- CRO ELEMENT 9: PERSONALISIERUNG / "Zuletzt angesehen"             -->
+            <!-- Erhöht die Relevanz und erleichtert die Navigation.               -->
+            <!-- =================================================================== -->
+            <section id="recently-viewed-section" class="hidden">
+                <h2 class="text-3xl brand-heading mb-8 text-center">Zuletzt angesehen</h2>
+                <div id="recently-viewed-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Products will be injected here by JavaScript -->
+                </div>
+            </section>
+
+            <section id="haendler-werden" class="bg-bg-card rounded-lg border border-border-color p-8 md:p-12">
+                <div class="grid md:grid-cols-2 gap-8 items-center">
+                    <div>
+                        <h2 class="text-3xl brand-heading mb-4">Ihre Vorteile als unser Partner</h2>
+                        <p class="text-text-secondary mb-6">Wir verkaufen nicht nur Produkte, wir schaffen Partnerschaften. Wenn Sie Händler bei adswarensicherung werden, profitieren Sie von einem Service, der weit über den Standard hinausgeht.</p>
+                        <ul class="space-y-4 text-text-secondary">
+                            <li class="flex items-start gap-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-status-success mt-1 flex-shrink-0"><polyline points="20 6 9 17 4 12"></polyline></svg><span><strong>Marketingmaterial & POS-Support:</strong> Wir stellen Ihnen hochwertige Bilder, Texte und auf Wunsch auch Display-Material für Ihr Geschäft zur Verfügung.</span></li>
+                            <li class="flex items-start gap-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-status-success mt-1 flex-shrink-0"><polyline points="20 6 9 17 4 12"></polyline></svg><span><strong>Persönlicher Ansprechpartner:</strong> Kein Callcenter. Sie haben einen festen Experten, der Ihre Bedürfnisse kennt und Sie proaktiv berät.</span></li>
+                             <li class="flex items-start gap-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-status-success mt-1 flex-shrink-0"><polyline points="20 6 9 17 4 12"></polyline></svg><span><strong>Schneller & einfacher Bestellprozess:</strong> Unsere Website ist für maximale Effizienz optimiert, damit Sie sich auf Ihr Kerngeschäft konzentrieren können.</span></li>
+                        </ul>
+                    </div>
+                    <div class="bg-bg-interactive p-8 rounded-lg">
+                        <h3 class="text-xl font-bold mb-4">Werden Sie jetzt Partner!</h3>
+                        <form class="space-y-4">
+                            <input type="text" placeholder="Firma" class="w-full p-3 border border-border-color rounded-md bg-bg-primary" required>
+                            <input type="email" placeholder="Ihre E-Mail-Adresse" class="w-full p-3 border border-border-color rounded-md bg-bg-primary" required>
+                            <textarea placeholder="Ihre Nachricht (optional)" rows="3" class="w-full p-3 border border-border-color rounded-md bg-bg-primary"></textarea>
+                            <button type="submit" class="btn btn-cta w-full">Jetzt Partner-Vorteile sichern</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h2 class="text-3xl brand-heading mb-8 text-center">Das sagen zufriedene Händler</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="bg-bg-card p-6 rounded-lg border border-border-color text-center"><p class="text-text-secondary italic">"Das kuratierte Sortiment ist ein Segen. Ich finde sofort, was ich brauche, und die Bestellung ist in zwei Minuten erledigt. So muss B2B funktionieren!"</p><p class="font-semibold mt-4">- A. Weber, Inhaberin Modeboutique</p></div>
+                    <div class="bg-bg-card p-6 rounded-lg border border-border-color text-center"><p class="text-text-secondary italic">"Endlich ein Lieferant, der meine Zeit respektiert. Einloggen, scrollen, bestellen, fertig. Die Qualität der Produkte ist sowieso über jeden Zweifel erhaben."</p><p class="font-semibold mt-4">- M. Schmidt, Filialleiter</p></div>
+                    <div class="bg-bg-card p-6 rounded-lg border border-border-color text-center"><p class="text-text-secondary italic">"Der persönliche Support hat uns geholfen, die perfekte Lösung für unsere neue Filiale zu finden. Die Partnerschaft mit adswarensicherung ist ein echter Mehrwert."</p><p class="font-semibold mt-4">- T. Huber, Sicherheitstechnik</p></div>
+                </div>
+            </section>
+
+            <!-- =================================================================== -->
+            <!-- CRO ELEMENT 10: USER-GENERATED CONTENT (SIMULIERT)                -->
+            <!-- Schafft Authentizität und zeigt Produkte im realen Einsatz.       -->
+            <!-- =================================================================== -->
+            <section>
+                <h2 class="text-3xl brand-heading mb-2 text-center">Unsere Produkte im Einsatz</h2>
+                <p class="text-center text-text-secondary mb-8">Sehen Sie, wie unsere Partner adswarensicherung erfolgreich nutzen.</p>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="group relative overflow-hidden rounded-lg"><img src="https://placehold.co/400x400/cccccc/666666?text=Modeboutique" alt="Warensicherung in einer Modeboutique" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"><div class="absolute inset-0 bg-black/20"></div></div>
+                    <div class="group relative overflow-hidden rounded-lg"><img src="https://placehold.co/400x400/cccccc/666666?text=Elektronikmarkt" alt="Warensicherung in einem Elektronikmarkt" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"><div class="absolute inset-0 bg-black/20"></div></div>
+                    <div class="group relative overflow-hidden rounded-lg"><img src="https://placehold.co/400x400/cccccc/666666?text=Supermarkt" alt="Warensicherung in einem Supermarkt" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"><div class="absolute inset-0 bg-black/20"></div></div>
+                    <div class="group relative overflow-hidden rounded-lg"><img src="https://placehold.co/400x400/cccccc/666666?text=Drogerie" alt="Warensicherung in einer Drogerie" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"><div class="absolute inset-0 bg-black/20"></div></div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <section class="container mx-auto p-4 md:px-8 max-w-7xl">
+        <div class="bg-bg-card rounded-lg border border-border-color p-8">
+            <h3 class="text-center text-lg font-semibold text-text-secondary mb-6">Sicher & Vertrauenswürdig</h3>
+            <div class="flex justify-center items-center gap-8 md:gap-12 flex-wrap grayscale opacity-75">
+                <img src="https://placehold.co/120x40/e9ecef/4A5568?text=Trusted+Shops" alt="Trusted Shops Logo" class="h-8">
+                <img src="https://placehold.co/100x40/e9ecef/4A5568?text=TÜV+Saarland" alt="TÜV Saarland Logo" class="h-8">
+                <img src="https://placehold.co/150x40/e9ecef/4A5568?text=SSL+Verschlüsselt" alt="SSL Verschlüsselt Siegel" class="h-8">
+                <img src="https://placehold.co/120x40/e9ecef/4A5568?text=Made+in+EU" alt="Made in EU Siegel" class="h-8">
+            </div>
+        </div>
+    </section>
+
+    <footer id="kontakt" class="bg-bg-secondary border-t border-border-color mt-16">
+        <div class="container mx-auto p-8 max-w-7xl">
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 text-text-secondary">
+                <div class="col-span-2 md:col-span-4 lg:col-span-1 mb-6 lg:mb-0">
+                    <a href="#" class="flex items-center gap-2 mb-3" aria-label="Zur Startseite"><svg class="w-8 h-8 text-accent-primary" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-8-3zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V13H5V6.3l7-3.11v9.8z"/></svg><span class="brand-heading text-lg">adswarensicherung</span></a>
+                    <p class="text-sm">Ihr Partner für innovative Warensicherung und Diebstahlschutz im Einzelhandel.</p>
+                </div>
+                <div><h4 class="font-semibold mb-3 text-text-primary">Unternehmen</h4><ul class="space-y-2 text-sm"><li><a href="#" class="text-link">Über uns</a></li><li><a href="#" class="text-link">Kontakt</a></li><li><a href="#" class="text-link">Presse</a></li></ul></div>
+                <div><h4 class="font-semibold mb-3 text-text-primary">Für Händler</h4><ul class="space-y-2 text-sm"><li><a href="#" class="text-link">Händler werden</a></li><li><a href="#" class="text-link">FAQ</a></li><li><a href="#" class="text-link">PDF-Katalog Download</a></li></ul></div>
+                <div><h4 class="font-semibold mb-3 text-text-primary">Rechtliches</h4><ul class="space-y-2 text-sm"><li><a href="#" class="text-link">Impressum</a></li><li><a href="#" class="text-link">Datenschutz</a></li><li><a href="#" class="text-link">AGB</a></li></ul></div>
+                <div><h4 class="font-semibold mb-3 text-text-primary">Folgen Sie uns</h4><div class="flex space-x-4"><a href="#" aria-label="LinkedIn" class="text-text-secondary hover:text-accent-primary"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg></a></div></div>
+            </div>
+            <div class="border-t border-border-color mt-8 pt-6 text-center">
+                 <p class="text-sm text-text-secondary">&copy; 2024 adswarensicherung. Alle Rechte vorbehalten.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- =================================================================== -->
+    <!-- NEW FEATURE: Gemini Live Chat                                     -->
+    <!-- =================================================================== -->
+    <button id="chat-toggle-button" class="fixed bottom-5 right-5 bg-accent-primary text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center z-50 hover:bg-accent-primary-hover transition-all transform hover:scale-110">
+        <svg id="chat-open-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        <svg id="chat-close-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    </button>
+
+    <div id="chat-widget-container" class="fixed bottom-24 right-5 w-80 sm:w-96 h-[60vh] max-h-[500px] bg-white rounded-lg shadow-2xl border border-border-color flex flex-col z-50 transform translate-y-8 opacity-0 pointer-events-none">
+        <!-- Chat Header -->
+        <div class="flex-shrink-0 p-4 bg-bg-interactive border-b border-border-color rounded-t-lg">
+            <h3 class="font-bold text-lg text-text-primary">Live-Chat</h3>
+            <p class="text-sm text-text-secondary">Fragen? Unser KI-Assistent hilft Ihnen.</p>
+        </div>
+        <!-- Chat Messages -->
+        <div id="chat-messages" class="flex-grow p-4 overflow-y-auto space-y-4">
+            <!-- Initial Bot Message -->
+            <div class="flex justify-start">
+                <div class="bg-bg-interactive text-text-primary p-3 rounded-lg max-w-xs">
+                    Hallo! Wie kann ich Ihnen heute helfen? Fragen Sie mich alles über unsere Produkte oder wie Sie Händler werden können.
+                </div>
+            </div>
+        </div>
+        <!-- Chat Input -->
+        <div class="flex-shrink-0 p-3 bg-bg-interactive border-t border-border-color rounded-b-lg">
+            <form id="chat-form" class="flex items-center gap-2">
+                <input type="text" id="chat-input" placeholder="Nachricht eingeben..." class="w-full p-2 border border-border-color rounded-md bg-bg-primary focus:ring-2 focus:ring-accent-primary focus:outline-none" autocomplete="off">
+                <button type="submit" class="btn btn-cta !p-2.5" aria-label="Nachricht senden">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+            </form>
+        </div>
+    </div>
+    <!-- =================================================================== -->
+    
+    <div id="social-proof-popup" class="social-proof-popup fixed bottom-5 left-5 bg-white p-4 rounded-lg shadow-lg border border-border-color z-50 hidden max-w-xs">
+        <p class="text-sm font-semibold">Jemand aus <strong id="city-name" class="text-accent-primary">Berlin</strong></p>
+        <p class="text-sm text-text-secondary">hat gerade <strong id="product-name">RF-Hartetikett "Mini Square"</strong> gekauft.</p>
+    </div>
+
+    <div id="exit-intent-modal" class="modal-overlay fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none">
+        <div id="modal-content" class="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full text-center relative transform scale-95 transition-transform duration-300">
+            <button id="close-modal-btn" class="absolute top-3 right-3 text-text-secondary hover:text-text-primary text-2xl leading-none">&times;</button>
+            <h2 class="text-2xl brand-heading mb-3">Moment, nicht so schnell!</h2>
+            <p class="text-text-secondary mb-6">Werden Sie jetzt Händler und erhalten Sie <strong>10% Rabatt</strong> auf Ihre erste Bestellung. Wir senden Ihnen alle Informationen unverbindlich per E-Mail zu.</p>
+            <form class="space-y-4">
+                <input type="email" placeholder="Ihre E-Mail-Adresse" class="w-full p-3 border border-border-color rounded-md bg-bg-primary" required>
+                <button type="submit" class="btn btn-cta w-full !py-3">Rabatt sichern & Infos anfordern</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- CRO ELEMENT 11: GAMIFICATION - SPIN TO WIN MODAL                    -->
+    <!-- Erhöht die Interaktion und generiert Leads auf spielerische Weise. -->
+    <!-- =================================================================== -->
+    <div id="spin-wheel-modal" class="modal-overlay fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none">
+        <div id="spin-modal-content" class="bg-white rounded-lg shadow-2xl p-8 max-w-lg w-full text-center relative transform scale-95 transition-transform duration-300">
+            <button id="close-spin-modal-btn" class="absolute top-3 right-3 text-text-secondary hover:text-text-primary text-2xl leading-none">&times;</button>
+            <div id="spin-form-view">
+                <h2 class="text-2xl brand-heading mb-3">Drehen & Gewinnen!</h2>
+                <p class="text-text-secondary mb-6">Geben Sie Ihre E-Mail ein und drehen Sie am Rad, um einen exklusiven Rabatt für Ihre erste Bestellung zu gewinnen!</p>
+                <form id="spin-email-form" class="space-y-4 max-w-sm mx-auto">
+                    <input type="email" id="spin-email-input" placeholder="Ihre E-Mail-Adresse" class="w-full p-3 border border-border-color rounded-md bg-bg-primary" required>
+                    <button type="submit" class="btn btn-cta w-full !py-3">Jetzt drehen!</button>
+                </form>
+            </div>
+            <div id="spin-wheel-view" class="hidden">
+                <div class="relative w-64 h-64 md:w-80 md:h-80 mx-auto mb-6">
+                    <div id="spin-wheel-container" class="w-full h-full rounded-full border-4 border-accent-primary-hover shadow-lg overflow-hidden">
+                        <!-- Segments will be injected here -->
+                    </div>
+                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full w-0 h-0 border-x-8 border-x-transparent border-b-16 border-b-red-600 z-10" style="transform: translateX(-50%) translateY(-100%) rotate(180deg);"></div>
+                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-white rounded-full border-4 border-accent-primary-hover"></div>
+                </div>
+                <p id="spin-result" class="text-lg font-semibold h-6"></p>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const body = document.body;
+            const loginToggle = document.getElementById('login-toggle');
+            loginToggle.addEventListener('change', () => {
+                body.classList.toggle('is-logged-in');
+                body.classList.toggle('is-logged-out');
+            });
+
+            const productGrid = document.getElementById('product-grid');
+            productGrid.addEventListener('click', (event) => {
+                const target = event.target;
+                if (target.classList.contains('quantity-btn')) {
+                    handleQuantityButtons(target);
+                } else if (target.classList.contains('add-to-cart-btn')) {
+                    handleAddToCart(target);
+                } else if (target.closest('.product-card')) {
+                    handleProductView(target.closest('.product-card'));
+                }
+            });
+
+            function handleQuantityButtons(button) {
+                const action = button.dataset.action;
+                const input = button.parentElement.querySelector('input[type="number"]');
+                let currentValue = parseInt(input.value, 10);
+                if (action === 'increase') input.value = currentValue + 1;
+                else if (action === 'decrease' && currentValue > 1) input.value = currentValue - 1;
+            }
+
+            function handleAddToCart(button) {
+                const cartCountEl = document.getElementById('cart-count');
+                let currentCount = parseInt(cartCountEl.textContent, 10);
+                cartCountEl.textContent = currentCount + 1;
+                
+                button.textContent = 'Hinzugefügt ✓';
+                button.classList.add('btn-success');
+                button.disabled = true;
+                setTimeout(() => {
+                    button.textContent = 'In den Warenkorb';
+                    button.classList.remove('btn-success');
+                    button.disabled = false;
+                }, 2000);
+            }
+
+            /* =================================================================== */
+            /* CONFIGURATOR JAVASCRIPT LOGIC                                       */
+            /* =================================================================== */
+            const configuratorContainer = document.getElementById('configurator-container');
+            const steps = configuratorContainer.querySelectorAll('.configurator-step');
+            const resultsContainer = document.getElementById('configurator-results');
+            const recommendationOutput = document.getElementById('recommendation-output');
+            let currentStep = 1;
+            const userAnswers = {};
+
+            function goToStep(stepNumber) {
+                steps.forEach(step => step.classList.remove('active'));
+                const nextStep = document.getElementById(`step-${stepNumber}`);
+                if (nextStep) {
+                    nextStep.classList.add('active');
+                    currentStep = stepNumber;
+                } else {
+                    showResults();
+                }
+            }
+
+            function showResults() {
+                steps.forEach(step => step.classList.remove('active'));
+                resultsContainer.classList.remove('hidden');
+                generateRecommendation();
+            }
+            
+            // Event Listeners for each step
+            document.getElementById('step-1').addEventListener('click', e => {
+                if (e.target.matches('.config-btn')) {
+                    userAnswers.industry = e.target.dataset.value;
+                    goToStep(2);
+                }
+            });
+
+            const widthSlider = document.getElementById('entrance-width-slider');
+            const widthDisplay = document.getElementById('width-display');
+            widthSlider.addEventListener('input', () => {
+                widthDisplay.textContent = parseFloat(widthSlider.value).toFixed(1);
+            });
+            document.getElementById('next-step-2').addEventListener('click', () => {
+                userAnswers.width = parseFloat(widthSlider.value);
+                goToStep(3);
+            });
+
+            document.getElementById('next-step-3').addEventListener('click', () => {
+                userAnswers.products = Array.from(document.querySelectorAll('input[name="product-type"]:checked')).map(cb => cb.value);
+                goToStep(4);
+            });
+            
+            document.getElementById('step-4').addEventListener('click', e => {
+                if (e.target.matches('.config-btn')) {
+                    userAnswers.design = e.target.dataset.value;
+                    showResults();
+                }
+            });
+            
+            function generateRecommendation() {
+                // This is a simplified logic model. A real application would have more complex rules.
+                let system = { name: 'Warensicherung "ADS-Gate 5"', sku: '45-RF-G5' };
+                let tags = [];
+                let accessories = [{ name: 'Super-Magnetlöser', sku: '99-ZUB-SL' }];
+
+                if (userAnswers.industry === 'Mode' || userAnswers.products.includes('Kleidung')) {
+                    tags.push({ name: 'RF-Hartetikett "Mini Square"', sku: '12-RF-MSQ' });
+                }
+                if (userAnswers.industry === 'Supermarkt' || userAnswers.industry === 'Drogerie' || userAnswers.products.includes('Elektronik')) {
+                     tags.push({ name: 'RF-Klebeetiketten 4x4cm', sku: '25-RF-KL44' });
+                }
+                if (tags.length === 0) {
+                     tags.push({ name: 'RF-Hartetikett "Mini Square"', sku: '12-RF-MSQ' });
+                }
+
+                // Create HTML output
+                let html = `<h3 class="font-bold text-xl mb-4">Hauptsystem:</h3>
+                                <p class="mb-6">Für Ihre Branche (${userAnswers.industry}) und eine Eingangsbreite von ${userAnswers.width.toFixed(1)}m empfehlen wir:</p>
+                                <div class="bg-bg-card p-4 rounded-lg border border-border-color mb-6">
+                                    <a href="#produkte" onclick="document.querySelector('[data-sku=\\'${system.sku}\\']').scrollIntoView()" class="font-semibold text-link">${system.name}</a>
+                                    <p class="text-sm text-text-secondary">Ein robustes und zuverlässiges RF-System, ideal für mittlere bis breite Eingänge.</p>
+                                </div>
+                                
+                                <h3 class="font-bold text-xl mb-4">Passende Etiketten:</h3>
+                                <div class="space-y-4 mb-6">`;
+                
+                tags.forEach(tag => {
+                    html += `<div class="bg-bg-card p-4 rounded-lg border border-border-color">
+                                     <a href="#produkte" onclick="document.querySelector('[data-sku=\\'${tag.sku}\\']').scrollIntoView()" class="font-semibold text-link">${tag.name}</a>
+                                   </div>`;
+                });
+
+                html += `</div>
+                               <h3 class="font-bold text-xl mb-4">Empfohlenes Zubehör:</h3>
+                               <div class="bg-bg-card p-4 rounded-lg border border-border-color">
+                                   <a href="#produkte" onclick="document.querySelector('[data-sku=\\'${accessories[0].sku}\\']').scrollIntoView()" class="font-semibold text-link">${accessories[0].name}</a>
+                               </div>`;
+
+                recommendationOutput.innerHTML = html;
+            }
+
+
+            /* =================================================================== */
+            /* CRO JAVASCRIPT LOGIC                                                */
+            /* =================================================================== */
+
+            // 1. Urgency Banner
+            document.getElementById('close-banner-btn')?.addEventListener('click', (e) => {
+                e.target.parentElement.style.display = 'none';
+            });
+
+            // 2. Social Proof Pop-up
+            const socialProofPopup = document.getElementById('social-proof-popup');
+            const cityNameEl = document.getElementById('city-name');
+            const productNameEl = document.getElementById('product-name');
+            const cities = ['Hamburg', 'München', 'Köln', 'Frankfurt', 'Stuttgart'];
+            const products = ['Warensicherung "ADS-Gate 5"', 'Super-Magnetlöser', 'RF-Klebeetiketten 4x4cm'];
+            
+            function showSocialProof() {
+                cityNameEl.textContent = cities[Math.floor(Math.random() * cities.length)];
+                productNameEl.textContent = products[Math.floor(Math.random() * products.length)];
+                socialProofPopup.style.display = 'block';
+                socialProofPopup.classList.add('show');
+                setTimeout(() => socialProofPopup.classList.remove('show'), 5000);
+            }
+            setTimeout(() => setInterval(showSocialProof, 12000), 4000);
+
+            // 3. Exit-Intent Modal
+            const modal = document.getElementById('exit-intent-modal');
+            const modalContent = document.getElementById('modal-content');
+            let modalShown = false;
+            const showModal = () => {
+                if (modalShown) return;
+                modal.classList.remove('pointer-events-none', 'opacity-0');
+                modalContent.classList.add('scale-100');
+                modalShown = true;
+            };
+            const hideModal = () => {
+                modal.classList.add('pointer-events-none', 'opacity-0');
+                modalContent.classList.remove('scale-100');
+            };
+            document.addEventListener('mouseout', e => e.clientY <= 0 && showModal());
+            document.getElementById('close-modal-btn').addEventListener('click', hideModal);
+            modal.addEventListener('click', e => e.target === modal && hideModal());
+
+            // 4. "Zuletzt angesehen" Logic
+            const recentlyViewedSection = document.getElementById('recently-viewed-section');
+            const recentlyViewedGrid = document.getElementById('recently-viewed-grid');
+            let recentlyViewedItems = [];
+
+            function handleProductView(card) {
+                const item = {
+                    sku: card.dataset.sku,
+                    name: card.dataset.name,
+                    img: card.dataset.img
+                };
+                // Avoid duplicates
+                if (recentlyViewedItems.some(rv => rv.sku === item.sku)) return;
+                
+                recentlyViewedItems.unshift(item); // Add to the beginning
+                if (recentlyViewedItems.length > 4) recentlyViewedItems.pop(); // Keep only 4
+
+                updateRecentlyViewed();
+            }
+
+            function updateRecentlyViewed() {
+                recentlyViewedGrid.innerHTML = '';
+                recentlyViewedItems.forEach(item => {
+                    const itemHtml = `
+                        <div class="bg-bg-card rounded-lg border border-border-color overflow-hidden flex flex-col">
+                            <img src="${item.img}" alt="${item.name}" class="w-full h-40 object-cover">
+                            <div class="p-3">
+                                <h4 class="font-semibold text-sm text-text-primary truncate">${item.name}</h4>
+                                <a href="#produkte" class="text-link text-sm mt-2 inline-block">Details ansehen</a>
+                            </div>
+                        </div>
+                    `;
+                    recentlyViewedGrid.innerHTML += itemHtml;
+                });
+                recentlyViewedSection.classList.remove('hidden');
+            }
+            
+            // 5. Gamification: Spin Wheel Modal
+            const spinModal = document.getElementById('spin-wheel-modal');
+            const spinModalContent = document.getElementById('spin-modal-content');
+            const spinEmailForm = document.getElementById('spin-email-form');
+            const spinWheelContainer = document.getElementById('spin-wheel-container');
+            const spinResultEl = document.getElementById('spin-result');
+            const spinFormView = document.getElementById('spin-form-view');
+            const spinWheelView = document.getElementById('spin-wheel-view');
+            const prizes = [
+                { text: '15% Rabatt', color: '#dc2626' }, { text: 'Niete', color: '#6b7280' },
+                { text: '10% Rabatt', color: '#2563eb' }, { text: 'Gratis Versand', color: '#f97316' },
+                { text: '5% Rabatt', color: '#16a34a' }, { text: 'Niete', color: '#6b7280' },
+                { text: '10% Rabatt', color: '#2563eb' }, { text: 'Gratis Versand', color: '#f97316' }
+            ];
+            let isSpinning = false;
+
+            function setupWheel() {
+                const segmentAngle = 360 / prizes.length;
+                prizes.forEach((prize, i) => {
+                    const segment = document.createElement('div');
+                    segment.className = 'segment';
+                    segment.style.transform = `rotate(${segmentAngle * i}deg)`;
+                    segment.style.backgroundColor = prize.color;
+                    segment.innerHTML = `<span>${prize.text}</span>`;
+                    spinWheelContainer.appendChild(segment);
+                });
+            }
+            setupWheel();
+
+            const showSpinModal = () => {
+                spinModal.classList.remove('pointer-events-none', 'opacity-0');
+                spinModalContent.classList.add('scale-100');
+            };
+            const hideSpinModal = () => {
+                spinModal.classList.add('pointer-events-none', 'opacity-0');
+                spinModalContent.classList.remove('scale-100');
+            };
+
+            // Show spin modal after 15 seconds
+            setTimeout(showSpinModal, 15000); 
+
+            document.getElementById('close-spin-modal-btn').addEventListener('click', hideSpinModal);
+            spinEmailForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (isSpinning) return;
+                isSpinning = true;
+                spinFormView.classList.add('hidden');
+                spinWheelView.classList.remove('hidden');
+                spinResultEl.textContent = 'Drehe...';
+
+                const segmentAngle = 360 / prizes.length;
+                const randomSegment = Math.floor(Math.random() * prizes.length);
+                const stopAngle = (randomSegment * segmentAngle) + (360 * 5) - (segmentAngle / 2); // 5 full spins + stop in middle of segment
+                
+                spinWheelContainer.style.transform = `rotate(${stopAngle}deg)`;
+
+                setTimeout(() => {
+                    const winningPrize = prizes[randomSegment];
+                    spinResultEl.textContent = `Glückwunsch! Sie gewinnen: ${winningPrize.text}`;
+                    isSpinning = false;
+                }, 5000); // Corresponds to transition duration in CSS
+            });
+
+            /* =================================================================== */
+            /* GEMINI CHATBOT LOGIC                                                */
+            /* =================================================================== */
+            const chatToggleButton = document.getElementById('chat-toggle-button');
+            const chatWidgetContainer = document.getElementById('chat-widget-container');
+            const chatOpenIcon = document.getElementById('chat-open-icon');
+            const chatCloseIcon = document.getElementById('chat-close-icon');
+            const chatMessages = document.getElementById('chat-messages');
+            const chatForm = document.getElementById('chat-form');
+            const chatInput = document.getElementById('chat-input');
+            
+            let chatHistory = [];
+            const systemPrompt = "You are a friendly and helpful sales assistant for adswarensicherung, a B2B supplier of security tags and systems. Your name is 'ADS-Bot'. Keep your answers concise and helpful, formatted in simple text or markdown. Your goal is to help potential resellers and answer their questions about the products. All your responses must be in German.";
+            chatHistory.push({ role: "system", parts: [{ text: systemPrompt }] });
+
+
+            chatToggleButton.addEventListener('click', () => {
+                const isHidden = chatWidgetContainer.classList.contains('opacity-0');
+                if (isHidden) {
+                    chatWidgetContainer.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-8');
+                    chatOpenIcon.classList.add('hidden');
+                    chatCloseIcon.classList.remove('hidden');
+                } else {
+                    chatWidgetContainer.classList.add('opacity-0', 'pointer-events-none', 'translate-y-8');
+                    chatOpenIcon.classList.remove('hidden');
+                    chatCloseIcon.classList.add('hidden');
+                }
+            });
+
+            chatForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const userMessage = chatInput.value.trim();
+                if (userMessage) {
+                    addMessage(userMessage, 'user');
+                    chatInput.value = '';
+                    getGeminiResponse(userMessage);
+                }
+            });
+
+            function addMessage(text, sender, isTyping = false) {
+                const messageWrapper = document.createElement('div');
+                messageWrapper.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+                
+                const messageBubble = document.createElement('div');
+                messageBubble.className = `p-3 rounded-lg max-w-xs ${sender === 'user' ? 'bg-accent-primary text-white' : 'bg-bg-interactive text-text-primary'}`;
+                
+                if (isTyping) {
+                    messageBubble.id = 'typing-indicator';
+                    messageBubble.innerHTML = `<div class="flex items-center gap-1.5">
+                        <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 0s;"></span>
+                        <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 0.2s;"></span>
+                        <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 0.4s;"></span>
+                    </div>`;
+                } else {
+                    messageBubble.textContent = text;
+                }
+
+                messageWrapper.appendChild(messageBubble);
+                chatMessages.appendChild(messageWrapper);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            async function getGeminiResponse(prompt) {
+                addMessage('', 'bot', true); // Show typing indicator
+                
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+
+                const payload = { contents: chatHistory };
+                const apiKey = ""; // API key is handled by the environment
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+                try {
+                    const response = await fetchWithBackoff(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`API request failed with status ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    const typingIndicator = document.getElementById('typing-indicator');
+                    if (typingIndicator) {
+                        typingIndicator.parentElement.remove();
+                    }
+
+                    if (result.candidates && result.candidates.length > 0) {
+                        const botResponse = result.candidates[0].content.parts[0].text;
+                        addMessage(botResponse, 'bot');
+                        chatHistory.push({ role: "model", parts: [{ text: botResponse }] });
+                    } else {
+                        addMessage("Entschuldigung, ich konnte keine Antwort generieren. Bitte versuchen Sie es erneut.", 'bot');
+                    }
+                } catch (error) {
+                    console.error("Error fetching Gemini response:", error);
+                    const typingIndicator = document.getElementById('typing-indicator');
+                    if (typingIndicator) {
+                        typingIndicator.parentElement.remove();
+                    }
+                    addMessage("Es gab ein Problem bei der Verbindung zum Chat-Service. Bitte überprüfen Sie Ihre Verbindung.", 'bot');
+                }
+            }
+            
+            // Utility function for fetch with exponential backoff
+            async function fetchWithBackoff(url, options, retries = 3, delay = 1000) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok && response.status === 429 && retries > 0) {
+                        // Throttled, so wait and retry
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        return fetchWithBackoff(url, options, retries - 1, delay * 2);
+                    }
+                    return response;
+                } catch (error) {
+                    if (retries > 0) {
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        return fetchWithBackoff(url, options, retries - 1, delay * 2);
+                    }
+                    throw error;
+                }
+            }
+        });
+    </script>
+
+</body>
+</html>
