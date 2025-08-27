@@ -1,0 +1,2015 @@
+<!DOCTYPE html>
+<html lang="de" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Produktdetailseite - ADS Warensicherung</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Übernahme der Corporate Identity Variablen */
+        :root {
+            --steel-blue-base: #4682B4;
+            --steel-blue-hover-base: #3A709A;
+            --off-white: #F8F9FA;
+            --light-gray: #E9ECEF;
+            --white: #FFFFFF;
+            --success-green-base: #28a745;
+            --warning-orange-base: #fd7e14;
+            --danger-red-base: #dc3545;
+            --star-yellow: #FFC107;
+            --bg-primary: var(--off-white);
+            --bg-secondary: var(--white);
+            --bg-card: var(--white);
+            --bg-interactive: var(--light-gray);
+            --bg-interactive-hover: #DDE2E7;
+            --border-color: var(--light-gray);
+            --text-primary: #1A202C;
+            --text-secondary: #4A5568;
+            --text-on-accent: var(--white);
+            --accent-primary: var(--steel-blue-base);
+            --accent-primary-hover: var(--steel-blue-hover-base);
+            --status-success: var(--success-green-base);
+            --status-warning: var(--warning-orange-base);
+            --status-danger: var(--danger-red-base); /* Korrigierter Variablenname */
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+        }
+        .brand-heading { font-weight: 700; letter-spacing: -0.01em; }
+        /* CI-konformes Button-System */
+        .btn {
+            font-weight: 600; padding: 0.8rem 1.75rem; border-radius: 0.5rem;
+            transition: all 0.3s ease; display: inline-flex; align-items: center;
+            justify-content: center; gap: 0.5rem; cursor: pointer; border: 2px solid transparent;
+        }
+        .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-cta { background-color: var(--accent-primary); color: var(--text-on-accent); }
+        .btn-cta:hover:not(:disabled) { background-color: var(--accent-primary-hover); }
+        .btn-secondary { background-color: var(--bg-interactive); color: var(--text-primary); }
+        .btn-secondary:hover:not(:disabled) { background-color: var(--bg-interactive-hover); }
+        .tab-active { border-color: var(--accent-primary); color: var(--accent-primary); font-weight: 600; }
+        .text-link { color: var(--accent-primary); font-weight: 600; text-decoration: none; transition: color 0.2s ease; }
+        .text-link:hover { text-decoration: underline; color: var(--accent-primary-hover); }
+        .quantity-selector button {
+            width: 2.5rem; height: 2.5rem; background-color: var(--bg-interactive);
+            color: var(--text-secondary); border-radius: 0.375rem; font-size: 1.25rem;
+            line-height: 1; transition: background-color 0.2s ease;
+        }
+        .quantity-selector button:hover { background-color: var(--bg-interactive-hover); }
+        .quantity-selector input { height: 2.5rem; border-left: none; border-right: none; }
+        .fade-in-out { animation: fadeInOut 4s ease-in-out forwards; }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(10px); } 15% { opacity: 1; transform: translateY(0); }
+            85% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(10px); }
+        }
+        #main-image-container { overflow: hidden; position: relative; }
+        #main-product-image.zoomed {
+            transform-origin: var(--zoom-origin, center center); transform: scale(2);
+            transition: transform 0.2s ease-out; cursor: zoom-out;
+        }
+        #back-to-top {
+            position: fixed; bottom: 2rem; right: 2rem; background-color: var(--accent-primary);
+            color: var(--text-on-accent); width: 3rem; height: 3rem; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-md);
+            opacity: 0; visibility: hidden; transform: translateY(10px);
+            transition: opacity 0.3s, visibility 0.3s, transform 0.3s; z-index: 100;
+        }
+        #back-to-top.visible { opacity: 1; visibility: visible; transform: translateY(0); }
+        #back-to-top:hover { background-color: var(--accent-primary-hover); }
+        .accordion-header.active { color: var(--accent-primary); }
+        .accordion-header.active svg { transform: rotate(180deg); }
+        
+        @media (max-width: 767px) {
+            .accordion-content {
+                max-height: 0;
+                overflow: hidden;
+                transition: max-height 0.3s ease-out;
+            }
+        }
+
+        #price-tiers-table tr.active-tier { background-color: #e6f2fb; }
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7);
+            display: flex; align-items: center; justify-content: center; z-index: 1000;
+            opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.visible { opacity: 1; visibility: visible; }
+        .modal-content {
+            background: var(--white); padding: 1rem; border-radius: 0.5rem; position: relative;
+            width: 90%; max-width: 900px; transform: scale(0.95); transition: transform 0.3s ease;
+        }
+        .modal-overlay.visible .modal-content { transform: scale(1); }
+        .modal-close {
+            position: absolute; top: -1.5rem; right: -1.5rem; background: var(--white);
+            border-radius: 50%; width: 2.5rem; height: 2.5rem; display: flex;
+            align-items: center; justify-content: center; cursor: pointer; color: var(--text-primary);
+        }
+        @media (max-width: 640px) {
+            .modal-close { top: 0.5rem; right: 0.5rem; background: rgba(0,0,0,0.5); color: white; }
+        }
+        .aspect-video { aspect-ratio: 16 / 9; }
+        #sticky-add-to-cart {
+            position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-secondary);
+            padding: 1rem; border-top: 1px solid var(--border-color); box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            z-index: 50; transform: translateY(100%); transition: transform 0.3s ease-in-out; display: none;
+        }
+        #sticky-add-to-cart.visible { transform: translateY(0); }
+        @media (min-width: 1024px) { #sticky-add-to-cart { display: none !important; } }
+        .btn-wishlist { background-color: var(--bg-interactive); color: var(--text-primary); padding: 0.8rem; }
+        .btn-wishlist svg { transition: all 0.2s ease-in-out; }
+        .btn-wishlist.active { background-color: #fddde0; }
+        .btn-wishlist.active svg { fill: var(--status-danger); color: var(--status-danger); transform: scale(1.1); }
+        .fly-to-cart-image {
+            position: fixed; z-index: 1100; border-radius: 50%;
+            border: 2px solid var(--accent-primary);
+            transition: all 1s cubic-bezier(0.55, 0.085, 0.68, 0.53);
+        }
+        @keyframes cart-shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
+        .cart-shake { animation: cart-shake 0.82s cubic-bezier(.36,.07,.19,.97) both; }
+        .stock-indicator-bar { background-color: var(--bg-interactive); border-radius: 99px; height: 8px; overflow: hidden; }
+        .stock-indicator-fill { height: 100%; border-radius: 99px; transition: width 0.5s ease-out; }
+        .qa-question.active svg { transform: rotate(180deg); }
+        .qa-answer {
+            max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+            padding-top: 0; padding-bottom: 0;
+        }
+        .qa-answer.visible { padding-top: 1rem; padding-bottom: 1rem; }
+        :focus-visible { outline: 3px solid var(--accent-primary); outline-offset: 2px; border-radius: 0.25rem; }
+        
+        /* Stile für Produktvarianten */
+        .variant-option {
+            padding: 0.5rem 1rem; border: 2px solid var(--border-color); border-radius: 0.5rem;
+            cursor: pointer; transition: all 0.2s ease;
+        }
+        .variant-option:hover { border-color: var(--accent-primary-hover); }
+        .variant-option.selected {
+            border-color: var(--accent-primary); background-color: #e6f2fb;
+            font-weight: 600; color: var(--accent-primary);
+        }
+        
+        /* Stile für Lieferzeit-Anzeige */
+        #delivery-info {
+            background-color: #e6f2fb; border-left: 4px solid var(--accent-primary);
+            padding: 0.75rem 1rem; border-radius: 0.25rem;
+        }
+
+        /* Stile für Bewertungen */
+        .star-rating { display: inline-flex; color: var(--star-yellow); }
+        .star-rating svg { width: 1.25rem; height: 1.25rem; }
+        .star-rating .star-outline { color: var(--border-color); }
+
+        /* Stile für Angebots-Modal */
+        .form-label {
+            display: block; font-weight: 600; color: var(--text-secondary);
+            margin-bottom: 0.5rem; font-size: 0.875rem;
+        }
+        .form-input, .form-textarea {
+            width: 100%; padding: 0.75rem; border: 1px solid var(--border-color);
+            border-radius: 0.5rem; transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-input:focus, .form-textarea:focus {
+            outline: none; border-color: var(--accent-primary);
+            box-shadow: 0 0 0 2px rgba(70, 130, 180, 0.3);
+        }
+        .accessory-checkbox {
+            display: flex; align-items: center; gap: 0.75rem;
+            padding: 0.75rem; border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            cursor: pointer; transition: background-color 0.2s;
+        }
+        .accessory-checkbox:hover { background-color: var(--bg-interactive); }
+        .accessory-checkbox input[type="checkbox"] {
+            height: 1.25rem; width: 1.25rem; border-radius: 0.25rem;
+            border-color: var(--border-color); color: var(--accent-primary);
+        }
+        .accessory-checkbox input[type="checkbox"]:focus { ring: var(--accent-primary); }
+
+        /* Stile für Live-Demo-Buchung */
+        .calendar-day {
+            width: 2.5rem; height: 2.5rem; display: flex; align-items: center; justify-content: center;
+            border-radius: 50%; cursor: pointer; transition: background-color 0.2s, color 0.2s;
+        }
+        .calendar-day:not(.disabled):hover { background-color: var(--bg-interactive-hover); }
+        .calendar-day.disabled { color: var(--text-secondary); opacity: 0.5; cursor: not-allowed; }
+        .calendar-day.today { font-weight: 700; border: 2px solid var(--border-color); }
+        .calendar-day.selected { background-color: var(--accent-primary); color: var(--text-on-accent); font-weight: 700; }
+        .calendar-day.has-slots::after {
+            content: ''; display: block; width: 5px; height: 5px;
+            background-color: var(--status-success); border-radius: 50%;
+            position: absolute; bottom: 4px;
+        }
+        .time-slot {
+            padding: 0.5rem 1rem; border: 2px solid var(--border-color); border-radius: 0.5rem;
+            cursor: pointer; transition: all 0.2s ease; text-align: center;
+        }
+        .time-slot:hover { border-color: var(--accent-primary-hover); }
+        .time-slot.selected {
+            border-color: var(--accent-primary); background-color: var(--accent-primary);
+            font-weight: 600; color: var(--text-on-accent);
+        }
+        .time-slot.disabled {
+            opacity: 0.5; background-color: var(--bg-interactive); cursor: not-allowed;
+            border-color: var(--border-color);
+        }
+        
+        /* Stile für Fallstudien */
+        .case-study-quote {
+            border-left: 4px solid var(--accent-primary);
+            padding-left: 1.5rem;
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+
+        /* NEU: Stile für SLA-Tabelle */
+        .sla-table {
+            display: grid;
+            grid-template-columns: 1fr repeat(3, 1.2fr);
+            gap: 0.5rem;
+        }
+        .sla-cell {
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            background-color: var(--bg-primary);
+        }
+        .sla-header {
+            font-weight: 700;
+            text-align: center;
+        }
+        .sla-feature {
+            font-weight: 600;
+            text-align: left;
+        }
+        .sla-table .recommended {
+            border: 2px solid var(--accent-primary);
+            transform: scale(1.02);
+            box-shadow: var(--shadow-md);
+            position: relative;
+            overflow: hidden;
+        }
+        .sla-table .recommended-badge {
+            position: absolute;
+            top: -1px;
+            right: -1px;
+            background-color: var(--accent-primary);
+            color: var(--text-on-accent);
+            padding: 0.25rem 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            border-bottom-left-radius: 0.5rem;
+        }
+
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Erweiterte Daten für Produktvarianten -->
+    <script id="product-variants-data" type="application/json">
+    [
+        {
+            "id": "45-RF-G5-S",
+            "name": "Antennensystem \"ADS-Gate 5\" RF 8.2 MHz",
+            "color": "Silber",
+            "price": 1150.00,
+            "stock": 23,
+            "image": "https://placehold.co/600x600/e9ecef/1a202c?text=ADS-Gate+5+Silber",
+            "loss_reduction_rate": 75,
+            "technical_data": {
+                "technologie": "Radiofrequenz (RF)",
+                "frequenz": "8.2 MHz",
+                "detektionsbreite": "Bis zu 220 cm (abhängig von Etiketten)",
+                "abmessungen": "155 cm x 40 cm x 5 cm (H x B x T)",
+                "material": "Eloxiertes Aluminium (Silber), Acrylglas",
+                "lieferumfang": "1x Sendeantenne, 1x Empfangsantenne, 1x Netzteil"
+            }
+        },
+        {
+            "id": "45-RF-G5-A",
+            "name": "Antennensystem \"ADS-Gate 5\" RF 8.2 MHz",
+            "color": "Anthrazit",
+            "price": 1180.00,
+            "stock": 15,
+            "image": "https://placehold.co/600x600/4A5568/FFFFFF?text=ADS-Gate+5+Anthrazit",
+            "loss_reduction_rate": 80,
+            "technical_data": {
+                "technologie": "Radiofrequenz (RF)",
+                "frequenz": "8.2 MHz",
+                "detektionsbreite": "Bis zu 225 cm (optimierte Antenne)",
+                "abmessungen": "155 cm x 40 cm x 5 cm (H x B x T)",
+                "material": "Pulverbeschichtetes Aluminium (Anthrazit), Acrylglas",
+                "lieferumfang": "1x Sendeantenne, 1x Empfangsantenne, 1x Netzteil, Montageset"
+            }
+        }
+    ]
+    </script>
+
+    <!-- Header -->
+    <header class="bg-bg-secondary shadow-sm border-b border-border-color sticky top-0 z-50">
+        <div class="container mx-auto p-4 max-w-7xl flex justify-between items-center">
+            <a href="#" class="flex items-center gap-2" aria-label="Zur Startseite">
+                <svg class="w-8 h-8 text-accent-primary" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-8-3zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V13H5V6.3l7-3.11v9.8z"/></svg>
+                <span class="brand-heading text-lg hidden sm:inline">adswarensicherung</span>
+            </a>
+            <div class="flex items-center gap-4">
+                <nav id="desktop-menu" class="hidden md:flex items-center space-x-6 text-sm font-semibold text-text-secondary">
+                    <a href="#" class="hover:text-accent-primary transition-colors">Produkte</a>
+                    <a href="#" class="hover:text-accent-primary transition-colors">Lösungen</a>
+                    <a href="#" class="hover:text-accent-primary transition-colors">Händler werden</a>
+                    <a href="#" class="hover:text-accent-primary transition-colors">Kontakt</a>
+                </nav>
+                <div id="mini-cart-icon" class="relative cursor-pointer">
+                     <svg class="w-7 h-7 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    <span id="cart-item-count" class="absolute -top-2 -right-2 bg-accent-primary text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center hidden" aria-live="polite" aria-atomic="true">0</span>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="text-text-primary focus:outline-none" aria-label="Menü öffnen">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="mobile-menu" class="hidden md:hidden bg-bg-secondary border-t border-border-color">
+            <a href="#" class="block py-2 px-4 text-sm hover:bg-bg-interactive">Produkte</a>
+            <a href="#" class="block py-2 px-4 text-sm hover:bg-bg-interactive">Lösungen</a>
+            <a href="#" class="block py-2 px-4 text-sm hover:bg-bg-interactive">Händler werden</a>
+            <a href="#" class="block py-2 px-4 text-sm hover:bg-bg-interactive">Kontakt</a>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl">
+        <!-- Breadcrumbs -->
+        <nav class="text-sm text-text-secondary mb-6">
+            <a href="#" class="text-link">Shop</a> &gt;
+            <a href="#" class="text-link">Antennensysteme</a> &gt;
+            <span id="breadcrumb-product-name" class="font-semibold text-text-primary">Antennensystem "ADS-Gate 5" RF 8.2 MHz</span>
+        </nav>
+
+        <!-- Haupt-Produktsektion -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
+            <!-- Linke Spalte: Produktbilder -->
+            <div class="product-gallery lg:sticky lg:top-24 self-start">
+                <div id="main-image-container" class="bg-white rounded-lg border border-border-color p-4 shadow-sm mb-4 cursor-zoom-in">
+                    <img id="main-product-image" src="https://placehold.co/600x600/e9ecef/1a202c?text=ADS-Gate+5" alt="Hauptansicht des Produkts ADS-Gate 5" class="w-full aspect-square object-contain rounded-md transition-transform duration-200">
+                </div>
+                <div id="thumbnail-gallery" class="grid grid-cols-4 gap-4">
+                    <button class="thumbnail-item bg-white rounded-md border-2 border-accent-primary p-1 cursor-pointer" data-type="image" data-large-src="https://placehold.co/600x600/e9ecef/1a202c?text=ADS-Gate+5" aria-label="Frontalansicht anzeigen" aria-current="true"><img src="https://placehold.co/150x150/e9ecef/1a202c?text=Frontal" alt="Thumbnail 1: Frontalansicht" class="w-full aspect-square object-contain rounded-sm"></button>
+                    <button class="thumbnail-item bg-white rounded-md border border-border-color p-1 cursor-pointer opacity-70 hover:opacity-100" data-type="image" data-large-src="https://placehold.co/600x600/e9ecef/1a202c?text=Detailansicht" aria-label="Detailansicht anzeigen"><img src="https://placehold.co/150x150/e9ecef/1a202c?text=Detail" alt="Thumbnail 2: Detailansicht" class="w-full aspect-square object-contain rounded-sm"></button>
+                    <button class="thumbnail-item bg-white rounded-md border border-border-color p-1 cursor-pointer opacity-70 hover:opacity-100" data-type="image" data-large-src="https://placehold.co/600x600/e9ecef/1a202c?text=Im+Einsatz" aria-label="Anwendungsbeispiel anzeigen"><img src="https://placehold.co/150x150/e9ecef/1a202c?text=Im+Einsatz" alt="Thumbnail 3: Im Einsatz" class="w-full aspect-square object-contain rounded-sm"></button>
+                    <button class="thumbnail-item bg-white rounded-md border border-border-color p-1 cursor-pointer opacity-70 hover:opacity-100 flex items-center justify-center" data-type="video" data-video-src="https://www.youtube.com/embed/dQw4w9WgXcQ" aria-label="Produktvideo abspielen">
+                        <svg class="w-8 h-8 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Rechte Spalte: Produktinformationen und Aktionen -->
+            <div class="product-info">
+                <h1 id="product-name" class="text-3xl md:text-4xl brand-heading tracking-tight">Antennensystem "ADS-Gate 5" RF 8.2 MHz</h1>
+                
+                <!-- Sterne-Rating und Metadaten -->
+                <div class="mt-3 flex items-center gap-2">
+                    <div id="product-star-rating" class="star-rating" aria-label="Durchschnittliche Bewertung: 4.5 von 5 Sternen"></div>
+                    <a href="#reviews" class="text-sm text-link">(12 Bewertungen)</a>
+                </div>
+                <div class="flex flex-wrap gap-x-4 gap-y-2 mt-3 text-sm">
+                    <span class="font-semibold text-text-secondary">Art.-Nr.: <span id="product-sku"></span></span>
+                    <span class="inline-flex items-center font-semibold text-text-primary bg-green-100 text-green-800 px-2 py-0.5 rounded-full">✅ Radiofrequenz (RF)</span>
+                    <span class="font-semibold text-text-secondary">VPE: 1 Stück (Set aus 2 Antennen)</span>
+                </div>
+                <p class="text-text-secondary mt-4 text-lg">Modernes RF-System mit hoher Detektionsrate für breite Eingänge. Die ideale Lösung für Mode- und Warenhäuser.</p>
+
+                <!-- Variantenauswahl -->
+                <div id="variant-selection" class="mt-6">
+                    <h3 class="font-semibold text-text-primary mb-2">Farbe auswählen:</h3>
+                    <div id="variant-options-container" class="flex gap-3"></div>
+                </div>
+
+                <!-- Preisbox -->
+                <div id="price-box" class="my-6 bg-bg-card p-6 rounded-lg border border-border-color shadow-sm">
+                    <div class="flex justify-between items-baseline" aria-live="polite">
+                        <span id="product-price" class="text-3xl font-bold text-text-primary"></span>
+                        <span id="price-unit" class="text-sm text-text-secondary">pro Set</span>
+                    </div>
+                    <p class="text-sm text-text-secondary mb-4">Alle Preise zzgl. gesetzl. MwSt.</p>
+                    <table id="price-tiers-table" class="w-full text-sm text-left">
+                        <tbody class="divide-y divide-border-color">
+                            <tr data-qty="1" data-discount="0"><td class="py-1">ab 1 Set</td><td class="py-1 text-right font-semibold price-tier-value"></td></tr>
+                            <tr data-qty="3" data-discount="0.08"><td class="py-1">ab 3 Sets</td><td class="py-1 text-right font-semibold price-tier-value"></td></tr>
+                            <tr data-qty="10" data-discount="0.15"><td class="py-1">ab 10 Sets</td><td class="py-1 text-right font-semibold text-status-success price-tier-value"></td></tr>
+                        </tbody>
+                    </table>
+                    <div id="stock-info" class="mt-4">
+                        <div class="flex justify-between items-center text-sm mb-1">
+                            <span id="stock-text" class="font-semibold">Auf Lager</span>
+                            <span id="stock-amount" class="text-text-secondary"></span>
+                        </div>
+                        <div class="stock-indicator-bar">
+                            <div id="stock-indicator" class="stock-indicator-fill bg-status-success"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Lieferzeit-Anzeige -->
+                <div id="delivery-info" class="text-sm font-semibold text-text-primary my-6">
+                    🚚 <span id="delivery-text"></span>
+                </div>
+
+                <!-- Aktionen -->
+                <div class="actions mt-6 space-y-4">
+                    <div class="flex items-center gap-4">
+                        <div class="flex-grow">
+                            <label for="quantity" class="font-semibold sr-only">Menge:</label>
+                            <div class="quantity-selector flex items-center">
+                                <button id="quantity-minus" aria-label="Menge um eins verringern">-</button>
+                                <input type="number" id="quantity" value="1" min="1" class="w-16 p-2 border-y border-border-color text-center focus:ring-2 focus:ring-accent-primary focus:border-accent-primary appearance-none [-moz-appearance:textfield]">
+                                <button id="quantity-plus" aria-label="Menge um eins erhöhen">+</button>
+                            </div>
+                        </div>
+                        <button id="wishlist-btn" class="btn btn-wishlist" aria-label="Zur Wunschliste hinzufügen">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 016.364 6.364L12 20.364l-7.682-7.682a4.5 4.5 0 010-6.364z"></path></svg>
+                        </button>
+                    </div>
+                    <button id="add-to-cart-btn" class="btn btn-cta w-full text-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        <span id="add-to-cart-text">In den Warenkorb</span>
+                    </button>
+                    <div id="add-to-cart-feedback" class="h-6 text-center relative" aria-live="polite"></div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <button id="request-quote-btn" class="btn btn-secondary w-full text-base">Beratung & Angebot</button>
+                        <button id="book-demo-btn" class="btn btn-secondary w-full text-base">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                            <span>Live-Demo buchen</span>
+                        </button>
+                        <button id="ask-question-btn" class="btn btn-secondary w-full text-base col-span-1 sm:col-span-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span>Frage zum Produkt</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Social Share -->
+                <div class="mt-8 text-sm text-center sm:text-left">
+                    <span class="font-semibold mr-3">Produkt teilen:</span>
+                    <div class="inline-flex gap-2 items-center" id="share-buttons">
+                        <a href="#" data-network="facebook" class="text-text-secondary hover:text-accent-primary transition-colors" aria-label="Auf Facebook teilen"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"/></svg></a>
+                        <a href="#" data-network="twitter" class="text-text-secondary hover:text-accent-primary transition-colors" aria-label="Auf Twitter teilen"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M22.46 6c-.77.35-1.6.58-2.46.67.88-.53 1.56-1.37 1.88-2.38-.83.5-1.75.85-2.72 1.05C18.37 4.5 17.26 4 16 4c-2.35 0-4.27 1.92-4.27 4.29 0 .34.04.67.11.98-3.56-.18-6.73-1.89-8.84-4.48-.37.63-.58 1.37-.58 2.15 0 1.49.75 2.81 1.91 3.56-.71 0-1.37-.22-1.95-.55v.03c0 2.08 1.48 3.82 3.44 4.21a4.22 4.22 0 0 1-1.94.07 4.28 4.28 0 0 0 4 2.98 8.521 8.521 0 0 1-5.33 1.84c-.34 0-.68-.02-1.02-.06C3.44 20.29 5.7 21 8.12 21 16 21 20.33 14.5 20.33 8.79c0-.19 0-.38-.01-.57.84-.6 1.56-1.36 2.14-2.22z"/></svg></a>
+                        <button data-network="copy" class="text-text-secondary hover:text-accent-primary transition-colors relative" aria-label="Link kopieren"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg></button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Wrapper für die unteren Sektionen -->
+        <div class="mt-16 space-y-16">
+            <!-- Detailinformationen -->
+            <section id="reviews" class="bg-bg-card p-4 sm:p-8 rounded-lg border border-border-color shadow-sm scroll-mt-20">
+                <div id="tabs-container">
+                    <div class="border-b border-gray-300 hidden md:block">
+                        <nav class="flex flex-wrap -mb-px" aria-label="Tabs" role="tablist">
+                            <button class="tab-button py-4 px-4 border-b-2 font-medium text-lg text-text-secondary hover:text-accent-primary hover:border-accent-primary tab-active" id="tab-beschreibung" data-tab="beschreibung" role="tab" aria-controls="tab-content-beschreibung" aria-selected="true">Beschreibung</button>
+                            <button class="tab-button py-4 px-4 border-b-2 border-transparent font-medium text-lg text-text-secondary hover:text-accent-primary hover:border-accent-primary" id="tab-technische-daten" data-tab="technische-daten" role="tab" aria-controls="tab-content-technische-daten" aria-selected="false" tabindex="-1">Technische Daten</button>
+                            <button class="tab-button py-4 px-4 border-b-2 border-transparent font-medium text-lg text-text-secondary hover:text-accent-primary hover:border-accent-primary" id="tab-anwendung" data-tab="anwendung" role="tab" aria-controls="tab-content-anwendung" aria-selected="false" tabindex="-1">Anwendung</button>
+                            <button class="tab-button py-4 px-4 border-b-2 border-transparent font-medium text-lg text-text-secondary hover:text-accent-primary hover:border-accent-primary" id="tab-bewertungen" data-tab="bewertungen" role="tab" aria-controls="tab-content-bewertungen" aria-selected="false" tabindex="-1">Bewertungen (12)</button>
+                            <button class="tab-button py-4 px-4 border-b-2 border-transparent font-medium text-lg text-text-secondary hover:text-accent-primary hover:border-accent-primary" id="tab-fallstudien" data-tab="fallstudien" role="tab" aria-controls="tab-content-fallstudien" aria-selected="false" tabindex="-1">Fallstudien</button>
+                            <button class="tab-button py-4 px-4 border-b-2 border-transparent font-medium text-lg text-text-secondary hover:text-accent-primary hover:border-accent-primary" id="tab-service" data-tab="service" role="tab" aria-controls="tab-content-service" aria-selected="false">Service & Wartung</button>
+                            <!-- NEUER TAB -->
+                            <button class="tab-button py-4 px-4 border-b-2 border-transparent font-medium text-lg text-text-secondary hover:text-accent-primary hover:border-accent-primary" id="tab-training" data-tab="training" role="tab" aria-controls="tab-content-training" aria-selected="false">Mitarbeitertraining</button>
+                            <button class="tab-button py-4 px-4 border-b-2 border-transparent font-medium text-lg text-text-secondary hover:text-accent-primary hover:border-accent-primary" id="tab-downloads" data-tab="downloads" role="tab" aria-controls="tab-content-downloads" aria-selected="false">Downloads</button>
+                        </nav>
+                    </div>
+                    <div class="mt-8 md:mt-8">
+                        <div class="accordion-item">
+                            <h3 class="accordion-header md:hidden flex justify-between items-center w-full py-4 font-medium text-lg text-left text-text-primary border-b border-border-color" data-tab="beschreibung" aria-expanded="false">
+                                <span>Beschreibung</span>
+                                <svg class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </h3>
+                            <div id="tab-content-beschreibung" class="tab-content accordion-content" role="tabpanel" aria-labelledby="tab-beschreibung">
+                                <div class="pt-4 pb-2 space-y-4 text-text-secondary leading-relaxed">
+                                    <p>Das "ADS-Gate 5" ist unsere Premium-Lösung für den anspruchsvollen Einzelhandel. Es kombiniert eine herausragende RF-Technologie mit einem eleganten Design, das sich nahtlos in jede moderne Ladenbau-Architektur einfügt. Schützen Sie Ihre Waren effektiv vor Diebstahl, ohne das Einkaufserlebnis Ihrer ehrlichen Kunden zu beeinträchtigen.</p>
+                                    <p>Dank der fortschrittlichen digitalen Signalverarbeitung werden Fehlalarme auf ein absolutes Minimum reduziert. Das System ist für alle gängigen RF-Etiketten (Hart- und Klebeetiketten) optimiert und bietet eine zuverlässige Leistung, auf die Sie sich Tag für Tag verlassen können.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                             <h3 class="accordion-header md:hidden flex justify-between items-center w-full py-4 font-medium text-lg text-left text-text-primary border-b border-border-color" data-tab="technische-daten" aria-expanded="false">
+                                 <span>Technische Daten</span>
+                                 <svg class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                             </h3>
+                            <div id="tab-content-technische-daten" class="tab-content accordion-content" role="tabpanel" aria-labelledby="tab-technische-daten">
+                                <div class="pt-4 pb-2">
+                                    <table class="w-full max-w-2xl text-left">
+                                        <tbody class="divide-y divide-border-color">
+                                            <tr class="hover:bg-bg-interactive"><td class="py-3 px-4 font-semibold">Technologie</td><td id="tech-data-technologie" class="py-3 px-4"></td></tr>
+                                            <tr class="hover:bg-bg-interactive"><td class="py-3 px-4 font-semibold">Frequenz</td><td id="tech-data-frequenz" class="py-3 px-4"></td></tr>
+                                            <tr class="hover:bg-bg-interactive"><td class="py-3 px-4 font-semibold">Detektionsbreite</td><td id="tech-data-detektionsbreite" class="py-3 px-4"></td></tr>
+                                            <tr class="hover:bg-bg-interactive"><td class="py-3 px-4 font-semibold">Abmessungen (pro Antenne)</td><td id="tech-data-abmessungen" class="py-3 px-4"></td></tr>
+                                            <tr class="hover:bg-bg-interactive"><td class="py-3 px-4 font-semibold">Material</td><td id="tech-data-material" class="py-3 px-4"></td></tr>
+                                            <tr class="hover:bg-bg-interactive"><td class="py-3 px-4 font-semibold">Lieferumfang</td><td id="tech-data-lieferumfang" class="py-3 px-4"></td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                              <h3 class="accordion-header md:hidden flex justify-between items-center w-full py-4 font-medium text-lg text-left text-text-primary border-b border-border-color" data-tab="anwendung" aria-expanded="false">
+                                  <span>Anwendung</span>
+                                  <svg class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                              </h3>
+                              <div id="tab-content-anwendung" class="tab-content accordion-content" role="tabpanel" aria-labelledby="tab-anwendung">
+                                  <div class="pt-4 pb-2 space-y-4 text-text-secondary leading-relaxed">
+                                    <p>Ideal für den Einsatz in Boutiquen, Modegeschäften, Kaufhäusern, Supermärkten und überall dort, wo eine zuverlässige und ästhetische Warensicherung gefordert ist. Die Installation ist unkompliziert und kann von unserem Fachpersonal oder nach Anleitung selbst durchgeführt werden.</p>
+                                </div>
+                              </div>
+                            </div>
+                        <div class="accordion-item">
+                           <h3 class="accordion-header md:hidden flex justify-between items-center w-full py-4 font-medium text-lg text-left text-text-primary border-b border-border-color" data-tab="bewertungen" aria-expanded="false">
+                               <span>Bewertungen (12)</span>
+                               <svg class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                           </h3>
+                           <div id="tab-content-bewertungen" class="tab-content accordion-content" role="tabpanel" aria-labelledby="tab-bewertungen">
+                                <div class="pt-4 pb-2">
+                                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                                        <div>
+                                            <h4 class="text-xl font-bold">Kundenrezensionen</h4>
+                                            <div class="flex items-center gap-2 mt-1">
+                                                <div class="star-rating" id="reviews-summary-stars"></div>
+                                                <p class="font-semibold">4.5 von 5 Sternen</p>
+                                                <p class="text-text-secondary">basierend auf 12 Bewertungen</p>
+                                            </div>
+                                        </div>
+                                        <button class="btn btn-secondary">Bewertung schreiben</button>
+                                    </div>
+                                    <div class="space-y-6 divide-y divide-border-color">
+                                        <!-- Beispiel-Bewertung 1 -->
+                                        <div class="pt-6">
+                                            <div class="flex items-center mb-2">
+                                                <div class="star-rating" data-rating="5"></div>
+                                                <p class="ml-3 font-bold text-text-primary">Hervorragendes System!</p>
+                                            </div>
+                                            <p class="text-text-secondary">"Die Installation war einfacher als gedacht und die Detektionsrate ist hervorragend. Seitdem haben wir kaum noch Verluste. Absolute Empfehlung!"</p>
+                                            <p class="text-sm text-text-secondary mt-2">M. Schmidt am 15. August 2024</p>
+                                        </div>
+                                        <!-- Beispiel-Bewertung 2 -->
+                                        <div class="pt-6">
+                                            <div class="flex items-center mb-2">
+                                                <div class="star-rating" data-rating="4"></div>
+                                                <p class="ml-3 font-bold text-text-primary">Sehr elegant und zuverlässig</p>
+                                            </div>
+                                            <p class="text-text-secondary">"Ein sehr elegantes System, das optisch perfekt in unseren Laden passt. Der Support von ADS war bei der Einrichtung sehr hilfreich. Ein Stern Abzug, da die Anleitung etwas klarer sein könnte."</p>
+                                            <p class="text-sm text-text-secondary mt-2">J. Weber am 02. August 2024</p>
+                                        </div>
+                                        <!-- Beispiel-Bewertung 3 -->
+                                        <div class="pt-6">
+                                            <div class="flex items-center mb-2">
+                                                <div class="star-rating" data-rating="5"></div>
+                                                <p class="ml-3 font-bold text-text-primary">Top Preis-Leistung</p>
+                                            </div>
+                                            <p class="text-text-secondary">"Wir haben mehrere Systeme verglichen und uns wegen des Preis-Leistungs-Verhältnisses für das ADS-Gate 5 entschieden. Wir wurden nicht enttäuscht."</p>
+                                            <p class="text-sm text-text-secondary mt-2">A. Keller am 28. Juli 2024</p>
+                                        </div>
+                                    </div>
+                                </div>
+                           </div>
+                         </div>
+                        <div class="accordion-item">
+                            <h3 class="accordion-header md:hidden flex justify-between items-center w-full py-4 font-medium text-lg text-left text-text-primary border-b border-border-color" data-tab="fallstudien" aria-expanded="false">
+                                <span>Fallstudien</span>
+                                <svg class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </h3>
+                            <div id="tab-content-fallstudien" class="tab-content accordion-content" role="tabpanel" aria-labelledby="tab-fallstudien">
+                                <div class="pt-4 pb-2 space-y-8">
+                                    <div class="case-study">
+                                        <h4 class="text-xl font-bold mb-4">Modeboutique "Stil-Ikone" | Berlin</h4>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                                            <div>
+                                                <img src="https://placehold.co/600x400/e9ecef/1a202c?text=Boutique+mit+ADS-Gate+5" alt="Modeboutique mit ADS-Gate 5" class="rounded-lg shadow-md w-full">
+                                            </div>
+                                            <div class="space-y-4">
+                                                <div class="bg-blue-50 p-4 rounded-lg text-center">
+                                                    <p class="text-sm text-blue-700 font-semibold">Verluste reduziert um</p>
+                                                    <p class="text-4xl font-bold text-accent-primary">82%</p>
+                                                    <p class="text-sm text-blue-600">innerhalb von 6 Monaten</p>
+                                                </div>
+                                                <blockquote class="case-study-quote">
+                                                    <p>"Die Investition in das ADS-Gate 5 hat sich bereits nach wenigen Monaten amortisiert. Unsere Inventurdifferenzen sind drastisch gesunken und das elegante Design stört das Ambiente unserer Boutique überhaupt nicht. Eine klare Empfehlung für jeden Einzelhändler."</p>
+                                                    <footer class="mt-2 text-sm">
+                                                        <strong>Anna Müller</strong> – Geschäftsführerin, Stil-Ikone
+                                                    </footer>
+                                                </blockquote>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Service & Wartung (SLA) Content -->
+                        <div class="accordion-item">
+                            <h3 class="accordion-header md:hidden flex justify-between items-center w-full py-4 font-medium text-lg text-left text-text-primary border-b border-border-color" data-tab="service" aria-expanded="false">
+                                <span>Service & Wartung</span>
+                                <svg class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </h3>
+                            <div id="tab-content-service" class="tab-content accordion-content" role="tabpanel" aria-labelledby="tab-service">
+                                <div class="pt-4 pb-2 space-y-4">
+                                    <h4 class="text-xl font-bold">Unsere Service-Pakete für Ihre Sicherheit</h4>
+                                    <p class="text-text-secondary max-w-3xl">Wählen Sie das passende Service-Level-Agreement (SLA), um den reibungslosen Betrieb Ihrer Warensicherung langfristig zu gewährleisten. Wir bieten transparente Pakete für jeden Bedarf.</p>
+                                    <div class="sla-table text-center text-sm md:text-base">
+                                        <!-- Header -->
+                                        <div class="sla-cell sla-header hidden md:block"></div>
+                                        <div class="sla-cell sla-header">
+                                            <h5 class="text-lg font-bold">Basic</h5>
+                                            <p class="font-normal text-text-secondary">Standard-Support</p>
+                                        </div>
+                                        <div class="sla-cell sla-header recommended">
+                                            <div class="recommended-badge">Empfohlen</div>
+                                            <h5 class="text-lg font-bold">Pro</h5>
+                                            <p class="font-normal text-text-secondary">Erweiterte Sicherheit</p>
+                                        </div>
+                                        <div class="sla-cell sla-header">
+                                            <h5 class="text-lg font-bold">Enterprise</h5>
+                                            <p class="font-normal text-text-secondary">Rundum-Sorglos</p>
+                                        </div>
+                                        <!-- Rows -->
+                                        <div class="sla-cell sla-feature col-span-4 md:col-span-1">Reaktionszeit (werktags)</div>
+                                        <div class="sla-cell">< 48 Stunden</div>
+                                        <div class="sla-cell recommended font-bold">< 24 Stunden</div>
+                                        <div class="sla-cell font-bold">< 8 Stunden</div>
+                                        
+                                        <div class="sla-cell sla-feature col-span-4 md:col-span-1">Telefon- & E-Mail-Support</div>
+                                        <div class="sla-cell text-status-success">✔️</div>
+                                        <div class="sla-cell recommended text-status-success">✔️</div>
+                                        <div class="sla-cell text-status-success">✔️</div>
+
+                                        <div class="sla-cell sla-feature col-span-4 md:col-span-1">Jährliche Wartung vor Ort</div>
+                                        <div class="sla-cell text-text-secondary">-</div>
+                                        <div class="sla-cell recommended text-status-success">✔️</div>
+                                        <div class="sla-cell text-status-success">✔️</div>
+
+                                        <div class="sla-cell sla-feature col-span-4 md:col-span-1">Inkludierte Vor-Ort-Einsätze</div>
+                                        <div class="sla-cell">Keine</div>
+                                        <div class="sla-cell recommended">1 pro Jahr</div>
+                                        <div class="sla-cell">Unbegrenzt</div>
+
+                                        <div class="sla-cell sla-feature col-span-4 md:col-span-1">Ersatzteil-Garantie</div>
+                                        <div class="sla-cell">12 Monate</div>
+                                        <div class="sla-cell recommended">24 Monate</div>
+                                        <div class="sla-cell">Lebenslang</div>
+
+                                        <div class="sla-cell sla-feature col-span-4 md:col-span-1">Preis pro Jahr</div>
+                                        <div class="sla-cell"><strong class="text-lg">150 €</strong></div>
+                                        <div class="sla-cell recommended"><strong class="text-lg">250 €</strong></div>
+                                        <div class="sla-cell"><strong class="text-lg">450 €</strong></div>
+                                        
+                                        <div class="sla-cell col-span-4 md:col-span-1"></div>
+                                        <div class="sla-cell"><button class="btn btn-secondary text-sm w-full !py-2">Anfragen</button></div>
+                                        <div class="sla-cell recommended"><button class="btn btn-cta text-sm w-full !py-2">Anfragen</button></div>
+                                        <div class="sla-cell"><button class="btn btn-secondary text-sm w-full !py-2">Anfragen</button></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- NEU: Mitarbeitertraining -->
+                        <div class="accordion-item">
+                            <h3 class="accordion-header md:hidden flex justify-between items-center w-full py-4 font-medium text-lg text-left text-text-primary border-b border-border-color" data-tab="training" aria-expanded="false">
+                                <span>Mitarbeitertraining</span>
+                                <svg class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </h3>
+                            <div id="tab-content-training" class="tab-content accordion-content" role="tabpanel" aria-labelledby="tab-training">
+                                <div class="pt-4 pb-2 space-y-4">
+                                    <h4 class="text-xl font-bold">Online-Schulungsportal</h4>
+                                    <p class="text-text-secondary max-w-3xl">Kurze, prägnante Videos, die Ihrem Team helfen, das System optimal zu nutzen und sicher zu bedienen. Verkürzen Sie die Einarbeitungszeit und minimieren Sie Anwendungsfehler.</p>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                                        <!-- Video 1 -->
+                                        <div class="group relative bg-bg-interactive rounded-lg overflow-hidden cursor-pointer">
+                                            <img src="https://placehold.co/600x400/e9ecef/1a202c?text=Korrekt+Deaktivieren" alt="Video-Thumbnail: Etiketten korrekt deaktivieren" class="w-full aspect-video object-cover transition-transform duration-300 group-hover:scale-105">
+                                            <div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+                                                <svg class="w-16 h-16 text-white opacity-80 group-hover:opacity-100 transition-opacity" fill="currentColor" viewBox="0 0 24 24"><path d="M10,16.5V7.5L16,12M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"></path></svg>
+                                            </div>
+                                            <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent">
+                                                <h5 class="font-bold text-white">Etiketten korrekt deaktivieren</h5>
+                                            </div>
+                                        </div>
+                                        <!-- Video 2 -->
+                                        <div class="group relative bg-bg-interactive rounded-lg overflow-hidden cursor-pointer">
+                                            <img src="https://placehold.co/600x400/e9ecef/1a202c?text=Verhalten+bei+Alarm" alt="Video-Thumbnail: Verhalten bei einem Alarm" class="w-full aspect-video object-cover transition-transform duration-300 group-hover:scale-105">
+                                            <div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+                                                 <svg class="w-16 h-16 text-white opacity-80 group-hover:opacity-100 transition-opacity" fill="currentColor" viewBox="0 0 24 24"><path d="M10,16.5V7.5L16,12M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"></path></svg>
+                                            </div>
+                                             <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent">
+                                                <h5 class="font-bold text-white">Verhalten bei einem Alarm</h5>
+                                            </div>
+                                        </div>
+                                        <!-- Video 3 -->
+                                        <div class="group relative bg-bg-interactive rounded-lg overflow-hidden cursor-pointer">
+                                            <img src="https://placehold.co/600x400/e9ecef/1a202c?text=Systemfehler+melden" alt="Video-Thumbnail: Systemfehler erkennen und melden" class="w-full aspect-video object-cover transition-transform duration-300 group-hover:scale-105">
+                                            <div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+                                                 <svg class="w-16 h-16 text-white opacity-80 group-hover:opacity-100 transition-opacity" fill="currentColor" viewBox="0 0 24 24"><path d="M10,16.5V7.5L16,12M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"></path></svg>
+                                            </div>
+                                            <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent">
+                                                <h5 class="font-bold text-white">Systemfehler erkennen & melden</h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h3 class="accordion-header md:hidden flex justify-between items-center w-full py-4 font-medium text-lg text-left text-text-primary border-b border-border-color" data-tab="downloads" aria-expanded="false">
+                                <span>Downloads</span>
+                                <svg class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </h3>
+                            <div id="tab-content-downloads" class="tab-content accordion-content" role="tabpanel" aria-labelledby="tab-downloads">
+                                <div class="pt-4 pb-2">
+                                    <!-- Info-Paket für Einkäufer -->
+                                    <div class="bg-blue-50 border-l-4 border-accent-primary p-6 rounded-r-lg mb-8">
+                                        <h4 class="text-xl font-bold text-text-primary">Info-Paket für Einkäufer</h4>
+                                        <p class="text-text-secondary mt-1 mb-4">Sparen Sie Zeit: Laden Sie alle beschaffungsrelevanten Dokumente gebündelt in einem ZIP-Archiv herunter.</p>
+                                        <a href="#" class="btn btn-cta">
+                                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.11 0-2 .89-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6 9h-4v-5h4v5z"/></svg>
+                                            <span>Komplettpaket herunterladen (.zip)</span>
+                                        </a>
+                                        <p class="text-xs text-text-secondary mt-3">Enthält: Datenblatt, CE-Erklärung, EAN/GTIN, Zolltarifnr., Lieferanten-Selbstauskunft.</p>
+                                    </div>
+                                    <h4 class="text-lg font-bold text-text-primary mb-2">Einzel-Downloads</h4>
+                                    <div class="divide-y divide-border-color">
+                                        <!-- Download Item 1 -->
+                                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between py-4 gap-4">
+                                            <div class="flex items-center gap-4">
+                                                <svg class="w-8 h-8 text-status-danger flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M13.5,15.5V19H10.5V15.5H8L12,11.5L16,15.5H13.5M13,9V3.5L18.5,9H13Z" /></svg>
+                                                <div>
+                                                    <p class="font-semibold text-text-primary">Technisches Datenblatt ADS-Gate 5</p>
+                                                    <p class="text-sm text-text-secondary">PDF, 2.3 MB</p>
+                                                </div>
+                                            </div>
+                                            <a href="#" class="btn btn-secondary text-sm !py-2 !px-4 w-full sm:w-auto">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                                <span>Download</span>
+                                            </a>
+                                        </div>
+                                        <!-- Download Item 2 -->
+                                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between py-4 gap-4">
+                                            <div class="flex items-center gap-4">
+                                                <svg class="w-8 h-8 text-status-danger flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M13.5,15.5V19H10.5V15.5H8L12,11.5L16,15.5H13.5M13,9V3.5L18.5,9H13Z" /></svg>
+                                                <div>
+                                                    <p class="font-semibold text-text-primary">Installationsanleitung & Handbuch</p>
+                                                    <p class="text-sm text-text-secondary">PDF, 5.1 MB</p>
+                                                </div>
+                                            </div>
+                                            <a href="#" class="btn btn-secondary text-sm !py-2 !px-4 w-full sm:w-auto">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                                <span>Download</span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bundle & Save -->
+            <section id="bundle-and-save">
+                <h2 class="text-2xl brand-heading text-center mb-2">Unser Starter-Set für Sie</h2>
+                <p class="text-center text-text-secondary mb-8 max-w-2xl mx-auto">Alles, was Sie für den sofortigen Einsatz benötigen. Fügen Sie das komplette Paket mit einem Klick zum Warenkorb hinzu und sparen Sie.</p>
+                <div class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-center">
+                    <div class="bundle-item flex flex-col items-center p-4 bg-bg-card rounded-lg border-2 border-accent-primary" data-price="1150.00">
+                        <img src="https://placehold.co/150x150/e9ecef/1a202c?text=ADS-Gate+5" alt="ADS-Gate 5" class="w-24 h-24 object-contain mb-2" loading="lazy" decoding="async">
+                        <h3 class="font-semibold text-center">1x Antennensystem "ADS-Gate 5"</h3>
+                        <p class="text-sm font-bold" id="bundle-main-product-price"></p>
+                    </div>
+                    <div class="text-3xl font-light text-center text-text-secondary my-4 md:my-0">+</div>
+                    <div class="bg-bg-card p-4 rounded-lg border border-border-color space-y-4">
+                        <label class="bundle-item flex items-center gap-4 p-2 rounded-md hover:bg-bg-interactive cursor-pointer" data-price="150.00">
+                            <input type="checkbox" class="bundle-checkbox h-5 w-5 rounded text-accent-primary focus:ring-accent-primary border-gray-300" checked>
+                            <img src="https://placehold.co/80x80/e9ecef/1a202c?text=Mini+Square" alt="RF-Hartetikett" class="w-12 h-12 object-contain" loading="lazy" decoding="async">
+                            <div><h4 class="font-semibold">500x Hartetiketten</h4><p class="text-sm font-bold">150,00 €</p></div>
+                        </label>
+                        <label class="bundle-item flex items-center gap-4 p-2 rounded-md hover:bg-bg-interactive cursor-pointer" data-price="50.00">
+                            <input type="checkbox" class="bundle-checkbox h-5 w-5 rounded text-accent-primary focus:ring-accent-primary border-gray-300" checked>
+                            <img src="https://placehold.co/80x80/e9ecef/1a202c?text=Super-L%C3%B6ser" alt="Super-Magnetlöser" class="w-12 h-12 object-contain" loading="lazy" decoding="async">
+                            <div><h4 class="font-semibold">1x Super-Magnetlöser</h4><p class="text-sm font-bold">50,00 €</p></div>
+                        </label>
+                    </div>
+                </div>
+                <div class="mt-6 bg-green-50 border-l-4 border-green-500 p-6 rounded-r-lg max-w-4xl mx-auto text-center">
+                    <p class="text-lg">Paketpreis:</p>
+                    <div class="my-2">
+                        <span id="bundle-original-price" class="text-xl text-gray-500 line-through mr-2"></span>
+                        <span id="bundle-discount-price" class="text-3xl font-bold text-green-800"></span>
+                    </div>
+                    <p id="bundle-savings" class="font-semibold text-green-700"></p>
+                    <button id="add-bundle-to-cart" class="btn btn-cta mt-4">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        <span>Komplettes Set in den Warenkorb</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- ROI-Rechner -->
+            <section id="roi-calculator-section">
+                <h2 class="text-2xl brand-heading text-center mb-2">Rechnet sich die Investition?</h2>
+                <p class="text-center text-text-secondary mb-8 max-w-2xl mx-auto">Geben Sie Ihre geschätzten monatlichen Verluste ein und sehen Sie, wie schnell sich das "ADS-Gate 5" für Ihr Geschäft bezahlt macht.</p>
+                <div class="max-w-3xl mx-auto bg-bg-card p-6 md:p-8 rounded-lg border border-border-color shadow-sm grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Inputs -->
+                    <div class="space-y-4 my-auto">
+                        <div>
+                            <label for="monthly-loss" class="block text-sm font-semibold text-text-primary mb-1">Ø Monatlicher Verlust durch Diebstahl (€)</label>
+                            <input type="number" id="monthly-loss" value="350" class="w-full p-2 border border-border-color rounded-md focus:ring-2 focus:ring-accent-primary focus:border-accent-primary">
+                        </div>
+                        <div>
+                            <label for="loss-reduction" class="block text-sm font-semibold text-text-primary mb-1">Geschätzte Reduzierung der Verluste (%)</label>
+                            <input type="number" id="loss-reduction" value="75" class="w-full p-2 border border-border-color rounded-md focus:ring-2 focus:ring-accent-primary focus:border-accent-primary">
+                        </div>
+                    </div>
+                    <!-- Results -->
+                    <div class="bg-blue-50 border-l-4 border-accent-primary p-4 rounded-r-md flex flex-col justify-center">
+                        <div class="space-y-3">
+                            <div>
+                                <p class="text-sm text-text-secondary">Jährliche Einsparung:</p>
+                                <p id="roi-annual-savings" class="text-2xl font-bold text-status-success"></p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-text-secondary">Amortisationszeit:</p>
+                                <p id="roi-payback-period" class="text-2xl font-bold text-accent-primary"></p>
+                            </div>
+                        </div>
+                       <p class="text-xs text-text-secondary mt-4 italic">Dies ist eine Beispielrechnung. Die tatsächliche Amortisation kann abweichen.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Q&A Sektion -->
+            <section id="q-and-a">
+                <h2 class="text-2xl brand-heading text-center mb-8">Fragen & Antworten</h2>
+                <div class="max-w-3xl mx-auto space-y-4">
+                    <div class="qa-item border-b border-border-color">
+                        <button class="qa-question flex justify-between items-center w-full py-4 font-semibold text-lg text-left text-text-primary" aria-expanded="false">
+                            <span>Ist die Installation kompliziert?</span>
+                            <svg class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="qa-answer text-text-secondary"><p>Die Installation ist für technisch versierte Personen unkompliziert. Eine detaillierte Anleitung liegt bei. Für eine reibungslose Inbetriebnahme empfehlen wir jedoch die Installation durch unser zertifiziertes Fachpersonal.</p></div>
+                    </div>
+                    <div class="qa-item border-b border-border-color">
+                        <button class="qa-question flex justify-between items-center w-full py-4 font-semibold text-lg text-left text-text-primary" aria-expanded="false">
+                            <span>Kann ich das System mit meinen vorhandenen Etiketten nutzen?</span>
+                            <svg class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="qa-answer text-text-secondary"><p>Ja, das "ADS-Gate 5" ist mit allen gängigen 8.2 MHz RF-Hart- und Klebeetiketten kompatibel. Für eine optimale Leistung empfehlen wir jedoch die Verwendung unserer hauseigenen Etiketten.</p></div>
+                    </div>
+                    <div class="qa-item border-b border-border-color">
+                        <button class="qa-question flex justify-between items-center w-full py-4 font-semibold text-lg text-left text-text-primary" aria-expanded="false">
+                            <span>Wie hoch ist die Rate an Fehlalarmen?</span>
+                            <svg class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="qa-answer text-text-secondary"><p>Dank modernster digitaler Signalverarbeitung (DSP) ist die Fehlalarmrate extrem gering. Das System filtert Störquellen wie Smartphones oder elektronische Geräte in der Nähe zuverlässig heraus.</p></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Kunden-Galerie -->
+            <section id="customer-gallery-section">
+                <h2 class="text-2xl brand-heading text-center mb-2">Unsere Systeme im Einsatz</h2>
+                <p class="text-center text-text-secondary mb-8 max-w-2xl mx-auto">Sehen Sie, wie das "ADS-Gate 5" in verschiedenen Laden-Umgebungen aussieht. Haben Sie auch ein Foto für uns? Senden Sie es uns und erhalten Sie einen Gutschein!</p>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div class="group relative overflow-hidden rounded-lg">
+                        <img src="https://placehold.co/400x400/e9ecef/1a202c?text=Kunde+1" alt="Installation bei Kunde 1" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    </div>
+                    <div class="group relative overflow-hidden rounded-lg">
+                        <img src="https://placehold.co/400x400/4A5568/FFFFFF?text=Kunde+2" alt="Installation bei Kunde 2" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    </div>
+                    <div class="group relative overflow-hidden rounded-lg">
+                        <img src="https://placehold.co/400x400/e9ecef/1a202c?text=Kunde+3" alt="Installation bei Kunde 3" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    </div>
+                </div>
+                <div class="text-center mt-8">
+                    <a href="#" class="btn btn-secondary">Foto einsenden & Gutschein sichern</a>
+                </div>
+            </section>
+
+            <!-- "Könnte Ihnen auch gefallen" Sektion -->
+            <section id="ai-recommendations-section">
+                <h2 class="text-2xl brand-heading text-center mb-8">Könnte Ihnen auch gefallen</h2>
+                <div id="ai-recommendations-container" class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                    <!-- Empfehlungen werden per JS eingefügt -->
+                </div>
+            </section>
+
+            <!-- Zuletzt angesehen -->
+            <section id="recently-viewed-section" class="hidden">
+                <h2 class="text-2xl brand-heading text-center mb-8">Zuletzt angesehen</h2>
+                <div id="recently-viewed-container" class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6"></div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-bg-secondary mt-16 border-t border-border-color">
+        <div class="container mx-auto p-8 text-center text-text-secondary">
+            <p>&copy; 2024 ADS Warensicherung | Alle Rechte vorbehalten.</p>
+        </div>
+    </footer>
+    
+    <!-- "Nach oben"-Button -->
+    <a href="#" id="back-to-top" aria-label="Nach oben scrollen">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+    </a>
+
+    <!-- Video Modal -->
+    <div id="video-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="video-modal-title">
+        <div class="modal-content" role="document">
+            <button id="video-modal-close" class="modal-close" aria-label="Video schließen">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <div id="video-container" class="aspect-video"></div>
+        </div>
+    </div>
+
+    <!-- "Frage zum Produkt"-Modal -->
+    <div id="question-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="question-modal-title">
+        <div class="modal-content !max-w-lg p-6 sm:p-8" role="document">
+            <button id="question-modal-close" class="modal-close" aria-label="Formular schließen">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <!-- Ansicht 1: Formular -->
+            <div id="question-form-view">
+                <h2 id="question-modal-title" class="text-2xl brand-heading mb-2">Frage zum Produkt stellen</h2>
+                <p class="text-text-secondary mb-6">Unser Support-Team antwortet Ihnen in der Regel innerhalb weniger Stunden.</p>
+                <form id="question-form" novalidate>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="question-name" class="form-label">Ihr Name</label>
+                            <input type="text" id="question-name" name="name" class="form-input" required>
+                        </div>
+                        <div>
+                            <label for="question-email" class="form-label">Ihre E-Mail-Adresse</label>
+                            <input type="email" id="question-email" name="email" class="form-input" required>
+                        </div>
+                        <div>
+                            <label for="question-message" class="form-label">Ihre Frage</label>
+                            <textarea id="question-message" name="message" rows="4" class="form-textarea" placeholder="Was möchten Sie über das Antennensystem 'ADS-Gate 5' wissen?" required></textarea>
+                        </div>
+                        <button type="submit" id="question-submit-btn" class="btn btn-cta w-full text-lg mt-2">
+                            <span id="question-submit-btn-text">Frage absenden</span>
+                            <svg id="question-submit-spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <!-- Ansicht 2: Erfolg -->
+            <div id="question-success-view" class="hidden text-center py-12">
+                <div class="mx-auto bg-status-success rounded-full h-16 w-16 flex items-center justify-center">
+                    <svg class="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                </div>
+                <h2 class="text-2xl brand-heading mt-4">Vielen Dank!</h2>
+                <p class="text-text-secondary mt-2 max-w-md mx-auto">Ihre Frage wurde übermittelt. Wir werden uns so schnell wie möglich bei Ihnen melden.</p>
+                <button id="question-success-close-btn" class="btn btn-secondary mt-6">Fenster schließen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Angebots-Modal -->
+    <div id="quote-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="quote-modal-title">
+        <div class="modal-content !max-w-3xl p-6 sm:p-8" role="document">
+            <button id="quote-modal-close" class="modal-close" aria-label="Anfrage schließen">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+
+            <!-- Ansicht 1: Formular -->
+            <div id="quote-form-view">
+                <h2 id="quote-modal-title" class="text-2xl brand-heading mb-2">Unverbindliches Angebot anfordern</h2>
+                <p class="text-text-secondary mb-6">Füllen Sie das Formular aus, unser Team meldet sich in Kürze bei Ihnen.</p>
+
+                <form id="quote-form" novalidate>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Linke Spalte: Anfrage-Details -->
+                        <div class="space-y-4">
+                            <div>
+                                <h3 class="font-bold text-lg mb-2">Ihre Auswahl</h3>
+                                <div class="bg-bg-interactive p-4 rounded-lg flex items-center gap-4">
+                                    <img id="quote-product-image" src="" alt="" class="w-16 h-16 object-contain bg-white rounded-md">
+                                    <div>
+                                        <p id="quote-product-name" class="font-semibold"></p>
+                                        <p class="text-sm text-text-secondary">Menge: <span id="quote-product-quantity"></span></p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-lg mb-2">Zubehör hinzufügen</h3>
+                                <div class="space-y-3">
+                                    <label class="accessory-checkbox">
+                                        <input type="checkbox" name="accessories" value="500-hartetiketten">
+                                        <span>500x RF Hartetiketten "Mini Square"</span>
+                                    </label>
+                                    <label class="accessory-checkbox">
+                                        <input type="checkbox" name="accessories" value="magnetloeser">
+                                        <span>1x Super-Magnetlöser</span>
+                                    </label>
+                                    <label class="accessory-checkbox">
+                                        <input type="checkbox" name="accessories" value="installationsservice">
+                                        <span>Installationsservice durch Fachpersonal</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Rechte Spalte: Kontaktdaten -->
+                        <div class="space-y-4">
+                            <div>
+                                <label for="quote-company" class="form-label">Firma</label>
+                                <input type="text" id="quote-company" name="company" class="form-input" required>
+                            </div>
+                            <div>
+                                <label for="quote-name" class="form-label">Ansprechpartner</label>
+                                <input type="text" id="quote-name" name="name" class="form-input" required>
+                            </div>
+                            <div>
+                                <label for="quote-email" class="form-label">E-Mail-Adresse</label>
+                                <input type="email" id="quote-email" name="email" class="form-input" required>
+                            </div>
+                             <div>
+                                <label for="quote-message" class="form-label">Ihre Nachricht (optional)</label>
+                                <textarea id="quote-message" name="message" rows="3" class="form-textarea" placeholder="Haben Sie spezielle Anforderungen?"></textarea>
+                            </div>
+                            <button type="submit" id="quote-submit-btn" class="btn btn-cta w-full text-lg mt-2">
+                                <span id="quote-submit-btn-text">Angebot jetzt anfordern</span>
+                                <svg id="quote-submit-spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Ansicht 2: Erfolg -->
+            <div id="quote-success-view" class="hidden text-center py-12">
+                <div class="mx-auto bg-status-success rounded-full h-16 w-16 flex items-center justify-center">
+                    <svg class="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                </div>
+                <h2 class="text-2xl brand-heading mt-4">Vielen Dank!</h2>
+                <p class="text-text-secondary mt-2 max-w-md mx-auto">Ihre Anfrage wurde erfolgreich übermittelt. Unser Team wird sich schnellstmöglich mit einem passenden Angebot bei Ihnen melden.</p>
+                <button id="quote-success-close-btn" class="btn btn-secondary mt-6">Fenster schließen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live-Demo Modal -->
+    <div id="demo-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="demo-modal-title">
+        <div class="modal-content !max-w-4xl p-0" role="document">
+            <button id="demo-modal-close" class="modal-close z-10" aria-label="Buchung schließen">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <div class="grid grid-cols-1 md:grid-cols-2">
+                <!-- Linke Spalte: Info -->
+                <div class="bg-bg-interactive p-6 sm:p-8 rounded-l-lg hidden md:block">
+                    <h2 id="demo-modal-title" class="text-2xl brand-heading mb-2">Live-Demo: ADS-Gate 5</h2>
+                    <p class="text-text-secondary mb-6">Buchen Sie eine persönliche 1:1-Vorführung mit einem unserer Produktexperten.</p>
+                    <img src="https://placehold.co/600x600/e9ecef/1a202c?text=ADS-Gate+5" alt="ADS-Gate 5" class="w-full aspect-square object-contain rounded-md">
+                    <ul class="mt-6 space-y-3 text-text-secondary">
+                        <li class="flex items-start gap-3"><svg class="w-5 h-5 text-status-success flex-shrink-0 mt-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg><span>30-minütige Video-Vorführung via Zoom.</span></li>
+                        <li class="flex items-start gap-3"><svg class="w-5 h-5 text-status-success flex-shrink-0 mt-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg><span>Klären Sie all Ihre technischen Fragen direkt.</span></li>
+                        <li class="flex items-start gap-3"><svg class="w-5 h-5 text-status-success flex-shrink-0 mt-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg><span>Absolut kostenlos und unverbindlich.</span></li>
+                    </ul>
+                </div>
+                <!-- Rechte Spalte: Buchung -->
+                <div class="p-6 sm:p-8">
+                    <!-- Ansicht 1: Terminwahl -->
+                    <div id="demo-booking-view">
+                        <h3 class="font-bold text-lg mb-4">1. Wählen Sie einen Termin</h3>
+                        <div class="flex items-center justify-between mb-4">
+                            <button id="prev-month-btn" aria-label="Vorheriger Monat" class="p-2 rounded-full hover:bg-bg-interactive"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
+                            <h4 id="month-year" class="font-semibold text-center"></h4>
+                            <button id="next-month-btn" aria-label="Nächster Monat" class="p-2 rounded-full hover:bg-bg-interactive"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
+                        </div>
+                        <div class="grid grid-cols-7 gap-1 text-center text-sm text-text-secondary mb-2">
+                            <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span>
+                        </div>
+                        <div id="demo-calendar-body" class="grid grid-cols-7 gap-1"></div>
+                        
+                        <div id="time-slots-container" class="mt-6 hidden">
+                            <h3 class="font-bold text-lg mb-4">2. Wählen Sie eine Uhrzeit</h3>
+                            <div id="time-slots" class="grid grid-cols-3 gap-3"></div>
+                        </div>
+
+                        <button id="demo-confirm-btn" class="btn btn-cta w-full mt-6" disabled>Termin bestätigen</button>
+                    </div>
+                    <!-- Ansicht 2: Bestätigung -->
+                    <div id="demo-confirmation-view" class="hidden">
+                        <h3 class="font-bold text-lg mb-4">Ihre Terminauswahl</h3>
+                        <div class="bg-bg-interactive p-4 rounded-lg mb-6">
+                            <p class="font-semibold">Produkt: <span id="demo-confirm-product"></span></p>
+                            <p class="font-semibold">Datum: <span id="demo-confirm-date"></span></p>
+                            <p class="font-semibold">Uhrzeit: <span id="demo-confirm-time"></span></p>
+                        </div>
+                        <form id="demo-form">
+                                <div>
+                                <label for="demo-name" class="form-label">Ihr Name</label>
+                                <input type="text" id="demo-name" class="form-input" required>
+                            </div>
+                           <div class="mt-4">
+                                <label for="demo-email" class="form-label">Ihre E-Mail</label>
+                                <input type="email" id="demo-email" class="form-input" required>
+                            </div>
+                            <button id="demo-submit-btn" type="submit" class="btn btn-cta w-full mt-6">Demo jetzt buchen</button>
+                        </form>
+                    </div>
+                    <!-- Ansicht 3: Erfolg -->
+                    <div id="demo-success-view" class="hidden text-center py-12 flex flex-col items-center justify-center h-full">
+                         <div class="mx-auto bg-status-success rounded-full h-16 w-16 flex items-center justify-center">
+                             <svg class="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                         </div>
+                         <h2 class="text-2xl brand-heading mt-4">Termin gebucht!</h2>
+                         <p class="text-text-secondary mt-2 max-w-md mx-auto">Vielen Dank! Sie erhalten in Kürze eine Bestätigungs-E-Mail mit allen Details.</p>
+                         <button id="demo-success-close-btn" class="btn btn-secondary mt-6">Fenster schließen</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sticky Add-to-Cart Leiste (mobil) -->
+    <div id="sticky-add-to-cart">
+        <div class="flex justify-between items-center">
+            <div>
+                <span class="font-bold text-lg" id="sticky-price"></span>
+                <span class="text-sm text-text-secondary" id="sticky-price-unit">pro Set</span>
+            </div>
+            <button id="sticky-add-to-cart-btn" class="btn btn-cta">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                <span>Hinzufügen</span>
+            </button>
+        </div>
+    </div>
+
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        const App = {
+            state: {
+                isAddingToCart: false,
+                variants: [],
+                selectedVariant: null,
+                maxStockDisplay: 50,
+                cartItemCount: 0,
+                priceTiers: [],
+                avgRating: 4.5, 
+                aiRecommendations: [
+                    { id: 'AM-GATE-2', name: 'Antennensystem "ADS-Gate 2" AM', image: 'https://placehold.co/300x300/e9ecef/1a202c?text=ADS-Gate+2', price: '980,00 €', url: '#' },
+                    { id: 'RF-TAG-01', name: '500x RF Hartetiketten "Mini"', image: 'https://placehold.co/300x300/e9ecef/1a202c?text=RF+Tags', price: '125,00 €', url: '#' },
+                    { id: 'AM-DEAC-1', name: 'AM Deaktivator Pad', image: 'https://placehold.co/300x300/e9ecef/1a202c?text=AM+Deaktivator', price: '250,00 €', url: '#' },
+                    { id: 'RF-LOOP-1', name: 'Warensicherung "Loop"', image: 'https://placehold.co/300x300/e9ecef/1a202c?text=RF+Loop', price: '180,00 €', url: '#' }
+                ],
+                demoBooking: {
+                    currentDate: new Date(),
+                    selectedDate: null,
+                    selectedTime: null,
+                }
+            },
+            
+            formatCurrency: (value) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(value),
+            
+            init() {
+                this.cacheDOMElements();
+                this.initVariants();
+                this.initPriceTiers();
+                this.selectVariant(this.state.variants[0]);
+                this.bindEvents();
+                this.setupTabsOrAccordion();
+                this.initWishlist();
+                this.initRecentlyViewed();
+                this.initStickyBar();
+                this.updateDeliveryTime();
+                this.initRatings();
+                this.initAiRecommendations();
+                setInterval(this.updateDeliveryTime.bind(this), 60000);
+            },
+
+            cacheDOMElements() {
+                this.dom = {
+                    mobileMenuButton: document.getElementById('mobile-menu-button'),
+                    mobileMenu: document.getElementById('mobile-menu'),
+                    mainImageContainer: document.getElementById('main-image-container'),
+                    mainImage: document.getElementById('main-product-image'),
+                    thumbnailGallery: document.getElementById('thumbnail-gallery'),
+                    videoModal: document.getElementById('video-modal'),
+                    videoModalClose: document.getElementById('video-modal-close'),
+                    videoContainer: document.getElementById('video-container'),
+                    quantityInput: document.getElementById('quantity'),
+                    minusBtn: document.getElementById('quantity-minus'),
+                    plusBtn: document.getElementById('quantity-plus'),
+                    priceEl: document.getElementById('product-price'),
+                    priceUnitEl: document.getElementById('price-unit'),
+                    priceTiersTable: document.getElementById('price-tiers-table'),
+                    stickyPriceEl: document.getElementById('sticky-price'),
+                    stickyPriceUnitEl: document.getElementById('sticky-price-unit'),
+                    addToCartBtn: document.getElementById('add-to-cart-btn'),
+                    stickyAddToCartBtn: document.getElementById('sticky-add-to-cart-btn'),
+                    addBundleBtn: document.getElementById('add-bundle-to-cart'),
+                    feedbackEl: document.getElementById('add-to-cart-feedback'),
+                    tabsContainer: document.getElementById('tabs-container'),
+                    backToTopBtn: document.getElementById('back-to-top'),
+                    stickyBar: document.getElementById('sticky-add-to-cart'),
+                    priceBox: document.getElementById('price-box'),
+                    bundleContainer: document.getElementById('bundle-and-save'),
+                    bundleMainProductPriceEl: document.getElementById('bundle-main-product-price'),
+                    bundleOriginalPriceEl: document.getElementById('bundle-original-price'),
+                    bundleDiscountPriceEl: document.getElementById('bundle-discount-price'),
+                    bundleSavingsEl: document.getElementById('bundle-savings'),
+                    wishlistBtn: document.getElementById('wishlist-btn'),
+                    recentlyViewedSection: document.getElementById('recently-viewed-section'),
+                    recentlyViewedContainer: document.getElementById('recently-viewed-container'),
+                    miniCartIcon: document.getElementById('mini-cart-icon'),
+                    cartItemCount: document.getElementById('cart-item-count'),
+                    stockIndicator: document.getElementById('stock-indicator'),
+                    stockText: document.getElementById('stock-text'),
+                    stockAmount: document.getElementById('stock-amount'),
+                    shareButtons: document.getElementById('share-buttons'),
+                    qaContainer: document.getElementById('q-and-a'),
+                    productName: document.getElementById('product-name'),
+                    breadcrumbName: document.getElementById('breadcrumb-product-name'),
+                    productSku: document.getElementById('product-sku'),
+                    variantOptionsContainer: document.getElementById('variant-options-container'),
+                    deliveryText: document.getElementById('delivery-text'),
+                    productStarRating: document.getElementById('product-star-rating'),
+                    reviewsSummaryStars: document.getElementById('reviews-summary-stars'),
+                    aiRecommendationsContainer: document.getElementById('ai-recommendations-container'),
+                    monthlyLossInput: document.getElementById('monthly-loss'),
+                    lossReductionInput: document.getElementById('loss-reduction'),
+                    roiAnnualSavings: document.getElementById('roi-annual-savings'),
+                    roiPaybackPeriod: document.getElementById('roi-payback-period'),
+                    techData: {
+                        technologie: document.getElementById('tech-data-technologie'),
+                        frequenz: document.getElementById('tech-data-frequenz'),
+                        detektionsbreite: document.getElementById('tech-data-detektionsbreite'),
+                        abmessungen: document.getElementById('tech-data-abmessungen'),
+                        material: document.getElementById('tech-data-material'),
+                        lieferumfang: document.getElementById('tech-data-lieferumfang'),
+                    },
+                    requestQuoteBtn: document.getElementById('request-quote-btn'),
+                    quoteModal: document.getElementById('quote-modal'),
+                    quoteModalClose: document.getElementById('quote-modal-close'),
+                    quoteFormView: document.getElementById('quote-form-view'),
+                    quoteSuccessView: document.getElementById('quote-success-view'),
+                    quoteForm: document.getElementById('quote-form'),
+                    quoteSubmitBtn: document.getElementById('quote-submit-btn'),
+                    quoteSubmitBtnText: document.getElementById('quote-submit-btn-text'),
+                    quoteSubmitSpinner: document.getElementById('quote-submit-spinner'),
+                    quoteSuccessCloseBtn: document.getElementById('quote-success-close-btn'),
+                    quoteProductImage: document.getElementById('quote-product-image'),
+                    quoteProductName: document.getElementById('quote-product-name'),
+                    quoteProductQuantity: document.getElementById('quote-product-quantity'),
+                    bookDemoBtn: document.getElementById('book-demo-btn'),
+                    demoModal: document.getElementById('demo-modal'),
+                    demoModalClose: document.getElementById('demo-modal-close'),
+                    prevMonthBtn: document.getElementById('prev-month-btn'),
+                    nextMonthBtn: document.getElementById('next-month-btn'),
+                    monthYearEl: document.getElementById('month-year'),
+                    calendarBody: document.getElementById('demo-calendar-body'),
+                    timeSlotsContainer: document.getElementById('time-slots-container'),
+                    timeSlots: document.getElementById('time-slots'),
+                    demoConfirmBtn: document.getElementById('demo-confirm-btn'),
+                    demoBookingView: document.getElementById('demo-booking-view'),
+                    demoConfirmationView: document.getElementById('demo-confirmation-view'),
+                    demoSuccessView: document.getElementById('demo-success-view'),
+                    demoConfirmProduct: document.getElementById('demo-confirm-product'),
+                    demoConfirmDate: document.getElementById('demo-confirm-date'),
+                    demoConfirmTime: document.getElementById('demo-confirm-time'),
+                    demoForm: document.getElementById('demo-form'),
+                    demoSubmitBtn: document.getElementById('demo-submit-btn'),
+                    demoSuccessCloseBtn: document.getElementById('demo-success-close-btn'),
+                    askQuestionBtn: document.getElementById('ask-question-btn'),
+                    questionModal: document.getElementById('question-modal'),
+                    questionModalClose: document.getElementById('question-modal-close'),
+                    questionFormView: document.getElementById('question-form-view'),
+                    questionSuccessView: document.getElementById('question-success-view'),
+                    questionForm: document.getElementById('question-form'),
+                    questionSubmitBtn: document.getElementById('question-submit-btn'),
+                    questionSubmitBtnText: document.getElementById('question-submit-btn-text'),
+                    questionSubmitSpinner: document.getElementById('question-submit-spinner'),
+                    questionSuccessCloseBtn: document.getElementById('question-success-close-btn'),
+                };
+            },
+
+            bindEvents() {
+                this.dom.mobileMenuButton.addEventListener('click', () => this.dom.mobileMenu.classList.toggle('hidden'));
+                this.dom.thumbnailGallery.addEventListener('click', this.handleGalleryClick.bind(this));
+                this.dom.videoModalClose.addEventListener('click', this.closeVideoModal.bind(this));
+                this.dom.videoModal.addEventListener('click', (e) => e.target === this.dom.videoModal && this.closeVideoModal());
+                document.addEventListener('keydown', (e) => e.key === "Escape" && this.dom.videoModal.classList.contains('visible') && this.closeVideoModal());
+                
+                this.dom.mainImageContainer.addEventListener('mousemove', this.handleImageZoom.bind(this));
+                this.dom.mainImageContainer.addEventListener('click', () => this.toggleZoom());
+                this.dom.mainImageContainer.addEventListener('mouseleave', () => this.disableZoom());
+                
+                this.dom.minusBtn.addEventListener('click', () => this.updateQuantity(-1));
+                this.dom.plusBtn.addEventListener('click', () => this.updateQuantity(1));
+                this.dom.quantityInput.addEventListener('change', this.updatePriceUI.bind(this));
+                this.dom.quantityInput.addEventListener('input', this.updatePriceUI.bind(this));
+                
+                this.dom.addToCartBtn.addEventListener('click', (e) => this.handleAddToCart(e, 'Produkt'));
+                this.dom.stickyAddToCartBtn.addEventListener('click', (e) => this.handleAddToCart(e, 'Produkt'));
+                this.dom.addBundleBtn.addEventListener('click', (e) => this.handleAddToCart(e, 'Set'));
+                
+                window.addEventListener('resize', this.setupTabsOrAccordion.bind(this));
+                window.addEventListener('resize', this.initStickyBar.bind(this));
+                window.addEventListener('scroll', () => this.dom.backToTopBtn.classList.toggle('visible', window.scrollY > 300));
+
+                this.dom.bundleContainer.querySelectorAll('.bundle-checkbox').forEach(checkbox => {
+                    checkbox.addEventListener('change', this.updateBundlePrice.bind(this));
+                });
+                
+                this.dom.wishlistBtn.addEventListener('click', this.toggleWishlist.bind(this));
+                this.dom.shareButtons.addEventListener('click', this.handleShareClick.bind(this));
+                this.dom.qaContainer.addEventListener('click', this.handleQaClick.bind(this));
+                this.dom.variantOptionsContainer.addEventListener('click', this.handleVariantChange.bind(this));
+
+                this.dom.monthlyLossInput.addEventListener('input', this.calculateROI.bind(this));
+                this.dom.lossReductionInput.addEventListener('input', this.calculateROI.bind(this));
+
+                this.dom.requestQuoteBtn.addEventListener('click', this.openQuoteModal.bind(this));
+                this.dom.quoteModalClose.addEventListener('click', this.closeQuoteModal.bind(this));
+                this.dom.quoteSuccessCloseBtn.addEventListener('click', this.closeQuoteModal.bind(this));
+                this.dom.quoteModal.addEventListener('click', (e) => e.target === this.dom.quoteModal && this.closeQuoteModal());
+                document.addEventListener('keydown', (e) => e.key === "Escape" && this.dom.quoteModal.classList.contains('visible') && this.closeQuoteModal());
+                this.dom.quoteForm.addEventListener('submit', this.handleQuoteSubmit.bind(this));
+
+                this.dom.askQuestionBtn.addEventListener('click', this.openQuestionModal.bind(this));
+                this.dom.questionModalClose.addEventListener('click', this.closeQuestionModal.bind(this));
+                this.dom.questionSuccessCloseBtn.addEventListener('click', this.closeQuestionModal.bind(this));
+                this.dom.questionModal.addEventListener('click', (e) => e.target === this.dom.questionModal && this.closeQuestionModal());
+                document.addEventListener('keydown', (e) => e.key === "Escape" && this.dom.questionModal.classList.contains('visible') && this.closeQuestionModal());
+                this.dom.questionForm.addEventListener('submit', this.handleQuestionSubmit.bind(this));
+
+                this.dom.bookDemoBtn.addEventListener('click', this.openDemoModal.bind(this));
+                this.dom.demoModalClose.addEventListener('click', this.closeDemoModal.bind(this));
+                this.dom.demoSuccessCloseBtn.addEventListener('click', this.closeDemoModal.bind(this));
+                this.dom.demoModal.addEventListener('click', (e) => e.target === this.dom.demoModal && this.closeDemoModal());
+                document.addEventListener('keydown', (e) => e.key === "Escape" && this.dom.demoModal.classList.contains('visible') && this.closeDemoModal());
+                this.dom.prevMonthBtn.addEventListener('click', () => this.changeMonth(-1));
+                this.dom.nextMonthBtn.addEventListener('click', () => this.changeMonth(1));
+                this.dom.calendarBody.addEventListener('click', this.handleDateClick.bind(this));
+                this.dom.timeSlots.addEventListener('click', this.handleTimeClick.bind(this));
+                this.dom.demoConfirmBtn.addEventListener('click', this.showDemoConfirmation.bind(this));
+                this.dom.demoForm.addEventListener('submit', this.handleDemoSubmit.bind(this));
+            },
+            
+            initVariants() {
+                const variantsData = JSON.parse(document.getElementById('product-variants-data').textContent);
+                this.state.variants = variantsData;
+                this.renderVariantOptions();
+            },
+            
+            renderVariantOptions() {
+                this.dom.variantOptionsContainer.innerHTML = this.state.variants.map(variant => `
+                    <button class="variant-option" data-variant-id="${variant.id}">
+                        ${variant.color}
+                    </button>
+                `).join('');
+            },
+
+            handleVariantChange(e) {
+                const target = e.target.closest('.variant-option');
+                if (!target) return;
+                const variantId = target.dataset.variantId;
+                const newVariant = this.state.variants.find(v => v.id === variantId);
+                if (newVariant && newVariant.id !== this.state.selectedVariant.id) {
+                    this.selectVariant(newVariant);
+                }
+            },
+
+            selectVariant(variant) {
+                this.state.selectedVariant = variant;
+                
+                this.dom.mainImage.src = variant.image;
+                this.dom.productName.textContent = variant.name;
+                this.dom.breadcrumbName.textContent = variant.name;
+                this.dom.productSku.textContent = variant.id;
+                
+                this.dom.variantOptionsContainer.querySelectorAll('.variant-option').forEach(btn => {
+                    btn.classList.toggle('selected', btn.dataset.variantId === variant.id);
+                });
+
+                this.updatePriceUI();
+                this.updateStockIndicator();
+                this.updateBundlePrice();
+                this.initWishlist();
+                this.renderTechnicalData(variant.technical_data);
+                this.updateRoiDefaults(variant.loss_reduction_rate);
+            },
+
+            renderTechnicalData(data) {
+                if (!data || !this.dom.techData) return;
+                for (const key in data) {
+                    if (this.dom.techData[key]) {
+                        this.dom.techData[key].textContent = data[key];
+                    }
+                }
+            },
+
+            updateRoiDefaults(reductionRate) {
+                if (reductionRate) {
+                    this.dom.lossReductionInput.value = reductionRate;
+                }
+                this.calculateROI();
+            },
+
+            handleGalleryClick(e) {
+                const targetButton = e.target.closest('.thumbnail-item');
+                if (!targetButton) return;
+
+                const type = targetButton.dataset.type;
+                if (type === 'image') {
+                    this.dom.mainImage.src = targetButton.dataset.largeSrc;
+                    this.dom.thumbnailGallery.querySelectorAll('.thumbnail-item').forEach(item => {
+                        item.classList.remove('border-accent-primary', 'border-2', 'opacity-100');
+                        item.classList.add('border-border-color', 'opacity-70');
+                        item.removeAttribute('aria-current');
+                    });
+                    targetButton.classList.add('border-accent-primary', 'border-2', 'opacity-100');
+                    targetButton.classList.remove('border-border-color', 'opacity-70');
+                    targetButton.setAttribute('aria-current', 'true');
+                } else if (type === 'video') {
+                    this.openVideoModal(targetButton.dataset.videoSrc);
+                }
+            },
+
+            openVideoModal(src) {
+                this.dom.videoContainer.innerHTML = `<iframe class="w-full h-full" src="${src}?autoplay=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+                this.dom.videoModal.classList.add('visible');
+                document.body.style.overflow = 'hidden';
+            },
+            
+            closeVideoModal() {
+                this.dom.videoModal.classList.remove('visible');
+                this.dom.videoContainer.innerHTML = '';
+                document.body.style.overflow = '';
+            },
+
+            openQuestionModal() {
+                this.dom.questionForm.reset();
+                this.dom.questionFormView.classList.remove('hidden');
+                this.dom.questionSuccessView.classList.add('hidden');
+                this.dom.questionModal.classList.add('visible');
+                document.body.style.overflow = 'hidden';
+            },
+
+            closeQuestionModal() {
+                this.dom.questionModal.classList.remove('visible');
+                document.body.style.overflow = '';
+            },
+
+            handleQuestionSubmit(e) {
+                e.preventDefault();
+                if (this.dom.questionForm.checkValidity() === false) {
+                    this.dom.questionForm.reportValidity();
+                    return;
+                }
+                this.dom.questionSubmitBtn.disabled = true;
+                this.dom.questionSubmitBtnText.classList.add('hidden');
+                this.dom.questionSubmitSpinner.classList.remove('hidden');
+                setTimeout(() => {
+                    this.dom.questionSubmitBtn.disabled = false;
+                    this.dom.questionSubmitBtnText.classList.remove('hidden');
+                    this.dom.questionSubmitSpinner.classList.add('hidden');
+                    this.dom.questionFormView.classList.add('hidden');
+                    this.dom.questionSuccessView.classList.remove('hidden');
+                }, 1500);
+            },
+
+            openQuoteModal() {
+                this.dom.quoteProductImage.src = this.state.selectedVariant.image.replace('600x600', '150x150');
+                this.dom.quoteProductImage.alt = this.state.selectedVariant.name;
+                this.dom.quoteProductName.textContent = `${this.state.selectedVariant.name} (${this.state.selectedVariant.color})`;
+                this.dom.quoteProductQuantity.textContent = this.dom.quantityInput.value;
+                this.dom.quoteForm.reset();
+                this.dom.quoteFormView.classList.remove('hidden');
+                this.dom.quoteSuccessView.classList.add('hidden');
+                this.dom.quoteModal.classList.add('visible');
+                document.body.style.overflow = 'hidden';
+            },
+
+            closeQuoteModal() {
+                this.dom.quoteModal.classList.remove('visible');
+                document.body.style.overflow = '';
+            },
+
+            handleQuoteSubmit(e) {
+                e.preventDefault();
+                if (this.dom.quoteForm.checkValidity() === false) {
+                    this.dom.quoteForm.reportValidity();
+                    return;
+                }
+                this.dom.quoteSubmitBtn.disabled = true;
+                this.dom.quoteSubmitBtnText.classList.add('hidden');
+                this.dom.quoteSubmitSpinner.classList.remove('hidden');
+                setTimeout(() => {
+                    this.dom.quoteSubmitBtn.disabled = false;
+                    this.dom.quoteSubmitBtnText.classList.remove('hidden');
+                    this.dom.quoteSubmitSpinner.classList.add('hidden');
+                    this.dom.quoteFormView.classList.add('hidden');
+                    this.dom.quoteSuccessView.classList.remove('hidden');
+                }, 1500);
+            },
+
+            openDemoModal() {
+                this.state.demoBooking.currentDate = new Date();
+                this.resetDemoBooking();
+                this.renderCalendar();
+                this.dom.demoModal.classList.add('visible');
+                document.body.style.overflow = 'hidden';
+            },
+
+            closeDemoModal() {
+                this.dom.demoModal.classList.remove('visible');
+                document.body.style.overflow = '';
+            },
+
+            resetDemoBooking() {
+                this.state.demoBooking.selectedDate = null;
+                this.state.demoBooking.selectedTime = null;
+                this.dom.demoBookingView.classList.remove('hidden');
+                this.dom.demoConfirmationView.classList.add('hidden');
+                this.dom.demoSuccessView.classList.add('hidden');
+                this.dom.timeSlotsContainer.classList.add('hidden');
+                this.dom.demoConfirmBtn.disabled = true;
+            },
+
+            changeMonth(offset) {
+                this.state.demoBooking.currentDate.setMonth(this.state.demoBooking.currentDate.getMonth() + offset);
+                this.renderCalendar();
+            },
+
+            renderCalendar() {
+                const { currentDate } = this.state.demoBooking;
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth();
+                this.dom.monthYearEl.textContent = new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'numeric' }).format(currentDate);
+                this.dom.calendarBody.innerHTML = '';
+                const firstDayOfMonth = new Date(year, month, 1);
+                const lastDayOfMonth = new Date(year, month + 1, 0);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                let startingDay = firstDayOfMonth.getDay();
+                startingDay = (startingDay === 0) ? 6 : startingDay - 1;
+                for (let i = 0; i < startingDay; i++) {
+                    this.dom.calendarBody.innerHTML += '<div></div>';
+                }
+                for (let day = 1; day <= lastDayOfMonth.getDate(); day++) {
+                    const date = new Date(year, month, day);
+                    const dateString = date.toISOString().split('T')[0];
+                    const cell = document.createElement('div');
+                    cell.className = 'relative flex items-center justify-center';
+                    const button = document.createElement('button');
+                    button.textContent = day;
+                    button.dataset.date = dateString;
+                    button.className = 'calendar-day';
+                    if (date < today) {
+                        button.classList.add('disabled');
+                        button.disabled = true;
+                    }
+                    if (date.getTime() === today.getTime()) {
+                        button.classList.add('today');
+                    }
+                    if (date >= today && date.getDay() !== 0 && date.getDay() !== 6) {
+                        button.classList.add('has-slots');
+                    }
+                    cell.appendChild(button);
+                    this.dom.calendarBody.appendChild(cell);
+                }
+            },
+
+            handleDateClick(e) {
+                const target = e.target.closest('.calendar-day:not(.disabled)');
+                if (!target) return;
+                this.state.demoBooking.selectedDate = target.dataset.date;
+                this.state.demoBooking.selectedTime = null;
+                this.dom.calendarBody.querySelectorAll('.calendar-day').forEach(d => d.classList.remove('selected'));
+                target.classList.add('selected');
+                this.generateTimeSlots();
+                this.dom.demoConfirmBtn.disabled = true;
+            },
+
+            generateTimeSlots() {
+                const times = ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00"];
+                this.dom.timeSlots.innerHTML = times.map(time => `<button class="time-slot">${time}</button>`).join('');
+                this.dom.timeSlotsContainer.classList.remove('hidden');
+            },
+
+            handleTimeClick(e) {
+                const target = e.target.closest('.time-slot');
+                if (!target) return;
+                this.state.demoBooking.selectedTime = target.textContent;
+                this.dom.timeSlots.querySelectorAll('.time-slot').forEach(t => t.classList.remove('selected'));
+                target.classList.add('selected');
+                this.dom.demoConfirmBtn.disabled = false;
+            },
+
+            showDemoConfirmation() {
+                const { selectedDate, selectedTime } = this.state.demoBooking;
+                const date = new Date(selectedDate);
+                const formattedDate = new Intl.DateTimeFormat('de-DE', { dateStyle: 'full' }).format(date);
+                this.dom.demoConfirmProduct.textContent = this.state.selectedVariant.name;
+                this.dom.demoConfirmDate.textContent = formattedDate;
+                this.dom.demoConfirmTime.textContent = `${selectedTime} Uhr`;
+                this.dom.demoBookingView.classList.add('hidden');
+                this.dom.demoConfirmationView.classList.remove('hidden');
+            },
+
+            handleDemoSubmit(e) {
+                e.preventDefault();
+                if (this.dom.demoForm.checkValidity() === false) {
+                    this.dom.demoForm.reportValidity();
+                    return;
+                }
+                this.dom.demoSubmitBtn.disabled = true;
+                setTimeout(() => {
+                    this.dom.demoConfirmationView.classList.add('hidden');
+                    this.dom.demoSuccessView.classList.remove('hidden');
+                    this.dom.demoSubmitBtn.disabled = false;
+                }, 1000);
+            },
+
+            handleImageZoom(e) {
+                if (!this.dom.mainImage.classList.contains('zoomed')) return;
+                const rect = this.dom.mainImageContainer.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / rect.width * 100;
+                const y = (e.clientY - rect.top) / rect.height * 100;
+                this.dom.mainImage.style.setProperty('--zoom-origin', `${x}% ${y}%`);
+            },
+            toggleZoom() {
+                this.dom.mainImage.classList.toggle('zoomed');
+                this.dom.mainImageContainer.classList.toggle('cursor-zoom-out');
+                this.dom.mainImageContainer.classList.toggle('cursor-zoom-in');
+            },
+            disableZoom() {
+                this.dom.mainImage.classList.remove('zoomed');
+                this.dom.mainImageContainer.classList.remove('cursor-zoom-out');
+                this.dom.mainImageContainer.classList.add('cursor-zoom-in');
+            },
+
+            initPriceTiers() {
+                this.state.priceTiers = Array.from(this.dom.priceTiersTable.querySelectorAll('tr')).map(row => ({
+                    qty: parseInt(row.dataset.qty),
+                    discount: parseFloat(row.dataset.discount),
+                    element: row
+                })).sort((a, b) => b.qty - a.qty);
+            },
+            updateQuantity(change) {
+                let currentValue = parseInt(this.dom.quantityInput.value) || 1;
+                if (currentValue + change >= 1) {
+                    this.dom.quantityInput.value = currentValue + change;
+                    this.updatePriceUI();
+                }
+            },
+            updatePriceUI() {
+                let quantity = parseInt(this.dom.quantityInput.value) || 1;
+                if (quantity < 1) {
+                    quantity = 1;
+                    this.dom.quantityInput.value = 1;
+                }
+                const basePrice = this.state.selectedVariant.price;
+                const applicableTier = this.state.priceTiers.find(tier => quantity >= tier.qty);
+                const pricePerSet = basePrice * (1 - (applicableTier ? applicableTier.discount : 0));
+                const totalPrice = quantity * pricePerSet;
+                const formattedTotalPrice = this.formatCurrency(totalPrice);
+                this.dom.priceEl.textContent = formattedTotalPrice;
+                this.dom.stickyPriceEl.textContent = formattedTotalPrice;
+                const unitText = (quantity === 1) ? 'pro Set' : `(${this.formatCurrency(pricePerSet)} / Set)`;
+                this.dom.priceUnitEl.textContent = unitText;
+                this.dom.stickyPriceUnitEl.textContent = unitText;
+                this.state.priceTiers.forEach(tier => {
+                    tier.element.classList.toggle('active-tier', tier === applicableTier);
+                    const tierPrice = basePrice * (1 - tier.discount);
+                    tier.element.querySelector('.price-tier-value').textContent = this.formatCurrency(tierPrice);
+                });
+            },
+
+            handleAddToCart(e, itemType) {
+                e.preventDefault();
+                if (this.state.isAddingToCart) return;
+                this.state.isAddingToCart = true;
+                const btn = e.currentTarget;
+                const originalText = btn.querySelector('span').textContent;
+                btn.querySelector('span').textContent = 'Wird hinzugefügt...';
+                btn.disabled = true;
+                this.flyToCart();
+                setTimeout(() => {
+                    this.dom.feedbackEl.innerHTML = `<span class="text-status-success font-semibold fade-in-out">✅ ${itemType} zum Warenkorb hinzugefügt!</span>`;
+                    btn.querySelector('span').textContent = originalText;
+                    btn.disabled = false;
+                    this.state.isAddingToCart = false;
+                    this.state.cartItemCount++;
+                    this.dom.cartItemCount.textContent = this.state.cartItemCount;
+                    this.dom.cartItemCount.classList.remove('hidden');
+                    this.dom.miniCartIcon.classList.add('cart-shake');
+                    setTimeout(() => { this.dom.feedbackEl.innerHTML = ''; }, 4000);
+                    this.dom.miniCartIcon.addEventListener('animationend', () => {
+                        this.dom.miniCartIcon.classList.remove('cart-shake');
+                    }, { once: true });
+                }, 1000);
+            },
+            
+            flyToCart() {
+                const img = this.dom.mainImage;
+                const flyingImg = img.cloneNode();
+                flyingImg.classList.add('fly-to-cart-image');
+                const startRect = img.getBoundingClientRect();
+                const endRect = this.dom.miniCartIcon.getBoundingClientRect();
+                flyingImg.style.left = `${startRect.left}px`;
+                flyingImg.style.top = `${startRect.top}px`;
+                flyingImg.style.width = `${startRect.width}px`;
+                flyingImg.style.height = `${startRect.height}px`;
+                document.body.appendChild(flyingImg);
+                requestAnimationFrame(() => {
+                    flyingImg.style.left = `${endRect.left + endRect.width / 2}px`;
+                    flyingImg.style.top = `${endRect.top + endRect.height / 2}px`;
+                    flyingImg.style.width = '20px';
+                    flyingImg.style.height = '20px';
+                    flyingImg.style.opacity = '0';
+                });
+                setTimeout(() => {
+                    flyingImg.remove();
+                }, 1000);
+            },
+
+            setupTabsOrAccordion() {
+                const isDesktop = window.innerWidth >= 768;
+                if (isDesktop) {
+                    this.dom.tabsContainer.querySelectorAll('.tab-button').forEach(btn => btn.onclick = () => this.switchTab(btn.dataset.tab));
+                    const activeTab = document.querySelector('.tab-button.tab-active')?.dataset.tab || 'beschreibung';
+                    this.switchTab(activeTab);
+                } else {
+                    this.dom.tabsContainer.querySelectorAll('.tab-button').forEach(btn => btn.onclick = null);
+                    this.dom.tabsContainer.querySelectorAll('.accordion-header').forEach(header => header.onclick = () => this.toggleAccordion(header));
+                    this.toggleAccordion(this.dom.tabsContainer.querySelector('.accordion-header'), true);
+                }
+            },
+            switchTab(tabId) {
+                this.dom.tabsContainer.querySelectorAll('.tab-button').forEach(btn => {
+                    const isActive = btn.dataset.tab === tabId;
+                    btn.classList.toggle('tab-active', isActive);
+                    btn.setAttribute('aria-selected', isActive);
+                    // KORREKTUR: Explizit die transparente Border-Klasse umschalten
+                    btn.classList.toggle('border-transparent', !isActive);
+                });
+                this.dom.tabsContainer.querySelectorAll('.tab-content').forEach(content => {
+                    content.style.maxHeight = null;
+                    content.classList.toggle('hidden', content.id !== `tab-content-${tabId}`);
+                });
+            },
+            toggleAccordion(header, forceOpen = false) {
+                const content = header.nextElementSibling;
+                const wasActive = header.classList.contains('active');
+                this.dom.tabsContainer.querySelectorAll('.accordion-header').forEach(h => {
+                    h.classList.remove('active');
+                    h.setAttribute('aria-expanded', 'false');
+                    h.nextElementSibling.style.maxHeight = null;
+                });
+                if (!wasActive || forceOpen) {
+                    header.classList.add('active');
+                    header.setAttribute('aria-expanded', 'true');
+                    content.style.maxHeight = content.scrollHeight + "px";
+                }
+            },
+
+            updateBundlePrice() {
+                let total = this.state.selectedVariant.price;
+                this.dom.bundleMainProductPriceEl.textContent = this.formatCurrency(this.state.selectedVariant.price);
+                this.dom.bundleContainer.querySelectorAll('.bundle-item').forEach(item => {
+                    const checkbox = item.querySelector('.bundle-checkbox');
+                    if (checkbox && checkbox.checked) {
+                        total += parseFloat(item.dataset.price);
+                    }
+                });
+                const discountPrice = total * 0.95;
+                const savings = total - discountPrice;
+                this.dom.bundleOriginalPriceEl.textContent = this.formatCurrency(total);
+                this.dom.bundleDiscountPriceEl.textContent = this.formatCurrency(discountPrice);
+                this.dom.bundleSavingsEl.textContent = `Sie sparen ${this.formatCurrency(savings)}!`;
+            },
+            
+            calculateROI() {
+                const monthlyLoss = parseFloat(this.dom.monthlyLossInput.value) || 0;
+                const lossReduction = parseFloat(this.dom.lossReductionInput.value) || 0;
+                const investmentCost = this.state.selectedVariant.price;
+                if (monthlyLoss <= 0 || lossReduction <= 0) {
+                    this.dom.roiAnnualSavings.textContent = this.formatCurrency(0);
+                    this.dom.roiPaybackPeriod.textContent = "-";
+                    return;
+                }
+                const monthlySavings = monthlyLoss * (lossReduction / 100);
+                const annualSavings = monthlySavings * 12;
+                const paybackMonths = investmentCost / monthlySavings;
+                this.dom.roiAnnualSavings.textContent = this.formatCurrency(annualSavings);
+                if (paybackMonths <= 0 || !isFinite(paybackMonths)) {
+                    this.dom.roiPaybackPeriod.textContent = "-";
+                } else if (paybackMonths < 1) {
+                    this.dom.roiPaybackPeriod.textContent = "< 1 Monat";
+                } else {
+                    this.dom.roiPaybackPeriod.textContent = `~ ${Math.ceil(paybackMonths)} Monate`;
+                }
+            },
+
+            initWishlist() {
+                const wishlist = this.getWishlist();
+                const isActive = wishlist.includes(this.state.selectedVariant.id);
+                this.dom.wishlistBtn.classList.toggle('active', isActive);
+                this.dom.wishlistBtn.setAttribute('aria-label', isActive ? 'Von der Wunschliste entfernen' : 'Zur Wunschliste hinzufügen');
+            },
+            getWishlist() {
+                return JSON.parse(localStorage.getItem('wishlist') || '[]');
+            },
+            toggleWishlist() {
+                const wishlist = this.getWishlist();
+                const productId = this.state.selectedVariant.id;
+                const isInWishlist = wishlist.includes(productId);
+                const newWishlist = isInWishlist ? wishlist.filter(id => id !== productId) : [...wishlist, productId];
+                localStorage.setItem('wishlist', JSON.stringify(newWishlist));
+                this.initWishlist();
+            },
+
+            initRecentlyViewed() {
+                const currentProduct = {
+                    id: this.state.selectedVariant.id,
+                    name: this.state.selectedVariant.name,
+                    image: this.state.selectedVariant.image.replace('600x600', '300x300'),
+                    price: this.formatCurrency(this.state.selectedVariant.price),
+                    url: window.location.href
+                };
+                let recentlyViewed = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
+                recentlyViewed = recentlyViewed.filter(item => item.id !== currentProduct.id);
+                recentlyViewed.unshift(currentProduct);
+                if (recentlyViewed.length > 5) recentlyViewed.pop();
+                localStorage.setItem('recentlyViewed', JSON.stringify(recentlyViewed));
+                const itemsToRender = recentlyViewed.slice(1);
+                if (itemsToRender.length > 0) {
+                    this.dom.recentlyViewedContainer.innerHTML = itemsToRender.map(item => `
+                        <a href="${item.url}" class="group block bg-bg-card p-4 rounded-lg border border-border-color hover:shadow-md transition-shadow">
+                            <img src="${item.image}" alt="${item.name}" class="w-full aspect-square object-contain rounded-md mb-3" loading="lazy" decoding="async">
+                            <h3 class="font-semibold text-sm text-text-primary group-hover:text-accent-primary transition-colors truncate">${item.name}</h3>
+                            <p class="text-text-secondary text-sm font-bold">${item.price}</p>
+                        </a>
+                    `).join('');
+                    this.dom.recentlyViewedSection.classList.remove('hidden');
+                }
+            },
+
+            initStickyBar() {
+                if (!this.dom.priceBox) return;
+                const observer = new IntersectionObserver((entries) => {
+                    this.dom.stickyBar.classList.toggle('visible', !entries[0].isIntersecting);
+                }, { threshold: 0 });
+                observer.observe(this.dom.priceBox);
+                this.dom.stickyBar.style.display = window.innerWidth < 1024 ? 'block' : 'none';
+            },
+
+            updateStockIndicator() {
+                const stock = this.state.selectedVariant.stock;
+                const maxStock = this.state.maxStockDisplay;
+                const percentage = Math.min((stock / maxStock) * 100, 100);
+                this.dom.stockIndicator.style.width = `${percentage}%`;
+                if (stock > 20) {
+                    this.dom.stockIndicator.className = 'stock-indicator-fill bg-status-success';
+                    this.dom.stockText.textContent = 'Auf Lager';
+                } else if (stock > 5) {
+                    this.dom.stockIndicator.className = 'stock-indicator-fill bg-status-warning';
+                    this.dom.stockText.textContent = 'Geringer Bestand';
+                } else if (stock > 0) {
+                    this.dom.stockIndicator.className = 'stock-indicator-fill bg-status-danger';
+                    this.dom.stockText.textContent = 'Fast ausverkauft!';
+                } else {
+                    this.dom.stockIndicator.className = 'stock-indicator-fill bg-gray-400';
+                    this.dom.stockText.textContent = 'Ausverkauft';
+                }
+                this.dom.stockAmount.textContent = `${stock} Stück`;
+            },
+            
+            updateDeliveryTime() {
+                const now = new Date();
+                const cutoffHour = 14;
+                let deliveryDate = new Date();
+                if (now.getHours() >= cutoffHour || now.getDay() === 6 || now.getDay() === 0) {
+                    deliveryDate.setDate(deliveryDate.getDate() + 1);
+                }
+                while (deliveryDate.getDay() === 0 || deliveryDate.getDay() === 6) {
+                    deliveryDate.setDate(deliveryDate.getDate() + 1);
+                }
+                let deliveryDays = 2;
+                while (deliveryDays > 0) {
+                    deliveryDate.setDate(deliveryDate.getDate() + 1);
+                    if (deliveryDate.getDay() !== 0 && deliveryDate.getDay() !== 6) {
+                        deliveryDays--;
+                    }
+                }
+                const options = { weekday: 'long', day: 'numeric', month: 'long' };
+                const formattedDate = deliveryDate.toLocaleDateString('de-DE', options);
+                const timeToCutoff = (cutoffHour - now.getHours() - 1) * 60 + (60 - now.getMinutes());
+                const hours = Math.floor(timeToCutoff / 60);
+                const minutes = timeToCutoff % 60;
+                if (now.getHours() < cutoffHour && now.getDay() > 0 && now.getDay() < 6) {
+                    this.dom.deliveryText.innerHTML = `Bestellen Sie innerhalb von <strong class="text-accent-primary">${hours}h ${minutes}min</strong> für eine Lieferung bis <strong class="text-accent-primary">${formattedDate}</strong>.`;
+                } else {
+                    this.dom.deliveryText.innerHTML = `Voraussichtliche Lieferung bis <strong class="text-accent-primary">${formattedDate}</strong>.`;
+                }
+            },
+
+            handleShareClick(e) {
+                e.preventDefault();
+                const target = e.target.closest('a, button');
+                if (!target) return;
+                const network = target.dataset.network;
+                const url = window.location.href;
+                const text = `Schau dir dieses Produkt an: ${document.title}`;
+                let shareUrl = '';
+                switch(network) {
+                    case 'facebook': shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`; break;
+                    case 'twitter': shareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`; break;
+                    case 'copy':
+                        navigator.clipboard.writeText(url).then(() => {
+                            const feedback = document.createElement('span');
+                            feedback.className = 'absolute -top-8 left-1/2 -translate-x-1/2 bg-text-primary text-white text-xs px-2 py-1 rounded-md fade-in-out';
+                            feedback.textContent = 'Kopiert!';
+                            target.appendChild(feedback);
+                            setTimeout(() => feedback.remove(), 4000);
+                        });
+                        return;
+                }
+                window.open(shareUrl, '_blank', 'noopener,noreferrer,width=600,height=400');
+            },
+
+            handleQaClick(e) {
+                const questionButton = e.target.closest('.qa-question');
+                if (!questionButton) return;
+                const answer = questionButton.nextElementSibling;
+                const wasActive = questionButton.classList.contains('active');
+                this.dom.qaContainer.querySelectorAll('.qa-question').forEach(q => {
+                    q.classList.remove('active');
+                    q.setAttribute('aria-expanded', 'false');
+                });
+                this.dom.qaContainer.querySelectorAll('.qa-answer').forEach(a => {
+                    a.classList.remove('visible');
+                    a.style.maxHeight = null;
+                });
+                if (!wasActive) {
+                    questionButton.classList.add('active');
+                    questionButton.setAttribute('aria-expanded', 'true');
+                    answer.classList.add('visible');
+                    answer.style.maxHeight = answer.scrollHeight + 'px';
+                }
+            },
+
+            initRatings() {
+                this.renderStars(this.dom.productStarRating, this.state.avgRating);
+                this.renderStars(this.dom.reviewsSummaryStars, this.state.avgRating);
+                document.querySelectorAll('.star-rating[data-rating]').forEach(el => {
+                    const rating = parseFloat(el.dataset.rating);
+                    this.renderStars(el, rating);
+                });
+            },
+
+            renderStars(container, rating) {
+                if (!container) return;
+                container.innerHTML = '';
+                const fullStar = '<svg fill="currentColor" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>';
+                const halfStar = '<svg fill="currentColor" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0v15z"/></svg>';
+                const emptyStar = '<svg fill="currentColor" class="star-outline" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>';
+                for (let i = 1; i <= 5; i++) {
+                    if (i <= rating) {
+                        container.innerHTML += fullStar;
+                    } else if (i - 0.5 <= rating) {
+                        container.innerHTML += halfStar;
+                    } else {
+                        container.innerHTML += emptyStar;
+                    }
+                }
+            },
+
+            initAiRecommendations() {
+                this.dom.aiRecommendationsContainer.innerHTML = this.state.aiRecommendations.map(item => `
+                    <a href="${item.url}" class="group block bg-bg-card p-4 rounded-lg border border-border-color hover:shadow-md transition-shadow">
+                        <img src="${item.image}" alt="${item.name}" class="w-full aspect-square object-contain rounded-md mb-3" loading="lazy" decoding="async">
+                        <h3 class="font-semibold text-sm text-text-primary group-hover:text-accent-primary transition-colors truncate">${item.name}</h3>
+                        <p class="text-text-secondary text-sm font-bold">${item.price}</p>
+                    </a>
+                `).join('');
+            }
+        };
+
+        App.init();
+    });
+    </script>
+
+</body>
+</html>
